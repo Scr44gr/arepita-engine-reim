@@ -1,0 +1,6 @@
+/// SDL 3.4.12 raw types and callbacks.
+pub import self::types as types;
+/// SDL 3.4.12 generated enum constants.
+pub import self::constants as constants;
+/// SDL 3.4.12 native function catalog.
+pub import self::functions as functions;

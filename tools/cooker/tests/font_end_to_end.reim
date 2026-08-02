@@ -1,0 +1,85 @@
+from std::alloc import general_allocator;
+from std::binary import read_u32_le;
+from std::fs import create, open, remove_file, write_string;
+from std::target import OperatingSystem, os;
+
+from self::pipeline import cook;
+
+const SOURCE_FONT: str = "C:\\Windows\\Fonts\\arial.ttf";
+const FONT_PATH: str = "arepita-cooker-font-e2e.ttf";
+const MANIFEST_PATH: str = "arepita-cooker-font-e2e.toml";
+const OUTPUT_PATH: str = "arepita-cooker-font-e2e.apack";
+
+fn main() -> i32 {
+    // The Windows integration gate uses an OS-provided font. Other targets
+    // exercise the same generic bridge in its Rust tests until a redistributable
+    // cross-platform font fixture is added to the repository.
+    if os() != OperatingSystem::Windows {
+        return 0;
+    }
+    remove_if_present(FONT_PATH);
+    remove_if_present(MANIFEST_PATH);
+    remove_if_present(OUTPUT_PATH);
+    defer remove_if_present(FONT_PATH);
+    defer remove_if_present(MANIFEST_PATH);
+    defer remove_if_present(OUTPUT_PATH);
+
+    let allocator = general_allocator();
+    let mut source = match open(SOURCE_FONT) {
+        Ok(value) => value,
+        Err(_) => { return 0; },
+    };
+    let loaded = source.read_to_end(&allocator);
+    source.deinit();
+    let mut bytes = match loaded {
+        Ok(value) => value,
+        Err(_) => { return 1; },
+    };
+    let mut destination = match create(FONT_PATH) {
+        Ok(value) => value,
+        Err(_) => {
+            bytes.release();
+            return 2;
+        },
+    };
+    let written = destination.write_buffer(&bytes);
+    destination.deinit();
+    bytes.release();
+    match written {
+        Ok(_) => {},
+        Err(_) => { return 3; },
+    }
+
+    let manifest = "[[atlases]]\nid = \"test/font-atlas\"\nwidth = 128\nheight = 128\npadding = 1\n\n[[atlases.fonts]]\nid = \"test/font\"\npath = \"arepita-cooker-font-e2e.ttf\"\npixel_size = 24.0\ncharacters = \" A?\"\n";
+    match write_string(MANIFEST_PATH, manifest) {
+        Ok(_) => {},
+        Err(_) => { return 4; },
+    }
+    match cook(&allocator, MANIFEST_PATH, OUTPUT_PATH) {
+        Ok(_) => {},
+        Err(_) => { return 5; },
+    }
+    let mut output = match open(OUTPUT_PATH) {
+        Ok(value) => value,
+        Err(_) => { return 6; },
+    };
+    let packed = output.read_to_end(&allocator);
+    output.deinit();
+    let mut packed = match packed {
+        Ok(value) => value,
+        Err(_) => { return 7; },
+    };
+    let count = {
+        let data = packed.as_bytes();
+        read_u32_le(data, 16)
+    };
+    packed.release();
+    match count {
+        Some(2) => 0,
+        _ => 8,
+    }
+}
+
+fn remove_if_present(path: str) {
+    match remove_file(path) { Ok(_) => {}, Err(_) => {} }
+}

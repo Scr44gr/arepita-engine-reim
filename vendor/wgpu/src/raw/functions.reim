@@ -1,0 +1,872 @@
+// Generated from wgpu-native 29.0.1.1: raw functions. Do not edit by hand.
+// Run `vendor/wgpu/tools/generate.ps1` to update this file.
+
+import self::types as types;
+
+@link("wgpu_native")
+extern "C" {
+    /// Create a WGPUInstance
+    ///
+    /// Returns:
+    /// This value is ReturnedWithOwnership.
+    pub fn wgpuCreateInstance(descriptor: *const types::WGPUInstanceDescriptor) -> types::WGPUInstance;
+
+    /// Get the list of WGPUInstanceFeatureName values supported by the instance.
+    ///
+    /// Parameter features
+    /// This parameter is ReturnedWithOwnership.
+    pub fn wgpuGetInstanceFeatures(features: *mut types::WGPUSupportedInstanceFeatures) -> ();
+
+    /// Get the limits supported by the instance.
+    ///
+    /// Returns:
+    /// Indicates if there was an OutStructChainError.
+    pub fn wgpuGetInstanceLimits(limits: *mut types::WGPUInstanceLimits) -> types::WGPUStatus;
+
+    /// Check whether a particular WGPUInstanceFeatureName is supported by the instance.
+    pub fn wgpuHasInstanceFeature(feature: types::WGPUInstanceFeatureName) -> types::WGPUBool;
+
+    /// Returns the "procedure address" (function pointer) of the named function.
+    /// The result must be cast to the appropriate proc pointer type.
+    pub fn wgpuGetProcAddress(proc_name: types::WGPUStringView) -> types::WGPUProc;
+
+    /// Get the list of WGPUFeatureName values supported by the adapter.
+    ///
+    /// Parameter features
+    /// This parameter is ReturnedWithOwnership.
+    pub fn wgpuAdapterGetFeatures(adapter: types::WGPUAdapter, features: *mut types::WGPUSupportedFeatures) -> ();
+
+    /// Parameter info
+    /// This parameter is ReturnedWithOwnership.
+    ///
+    /// Returns:
+    /// Indicates if there was an OutStructChainError.
+    pub fn wgpuAdapterGetInfo(adapter: types::WGPUAdapter, info: *mut types::WGPUAdapterInfo) -> types::WGPUStatus;
+
+    /// Returns:
+    /// Indicates if there was an OutStructChainError.
+    pub fn wgpuAdapterGetLimits(adapter: types::WGPUAdapter, limits: *mut types::WGPULimits) -> types::WGPUStatus;
+
+    /// Calls the native `wgpuAdapterHasFeature` WebGPU operation.
+    pub fn wgpuAdapterHasFeature(adapter: types::WGPUAdapter, feature: types::WGPUFeatureName) -> types::WGPUBool;
+
+    /// Calls the native `wgpuAdapterRequestDevice` WebGPU operation.
+    pub fn wgpuAdapterRequestDevice(adapter: types::WGPUAdapter, descriptor: *const types::WGPUDeviceDescriptor, callback_info: types::WGPURequestDeviceCallbackInfo) -> types::WGPUFuture;
+
+    /// Calls the native `wgpuAdapterAddRef` WebGPU operation.
+    pub fn wgpuAdapterAddRef(adapter: types::WGPUAdapter) -> ();
+
+    /// Calls the native `wgpuAdapterRelease` WebGPU operation.
+    pub fn wgpuAdapterRelease(adapter: types::WGPUAdapter) -> ();
+
+    /// Frees members which were allocated by the API.
+    pub fn wgpuAdapterInfoFreeMembers(adapter_info: types::WGPUAdapterInfo) -> ();
+
+    /// Functions whose first argument has type WGPUBindGroup.
+    pub fn wgpuBindGroupSetLabel(bind_group: types::WGPUBindGroup, label: types::WGPUStringView) -> ();
+
+    /// Calls the native `wgpuBindGroupAddRef` WebGPU operation.
+    pub fn wgpuBindGroupAddRef(bind_group: types::WGPUBindGroup) -> ();
+
+    /// Calls the native `wgpuBindGroupRelease` WebGPU operation.
+    pub fn wgpuBindGroupRelease(bind_group: types::WGPUBindGroup) -> ();
+
+    /// Functions whose first argument has type WGPUBindGroupLayout.
+    pub fn wgpuBindGroupLayoutSetLabel(bind_group_layout: types::WGPUBindGroupLayout, label: types::WGPUStringView) -> ();
+
+    /// Calls the native `wgpuBindGroupLayoutAddRef` WebGPU operation.
+    pub fn wgpuBindGroupLayoutAddRef(bind_group_layout: types::WGPUBindGroupLayout) -> ();
+
+    /// Calls the native `wgpuBindGroupLayoutRelease` WebGPU operation.
+    pub fn wgpuBindGroupLayoutRelease(bind_group_layout: types::WGPUBindGroupLayout) -> ();
+
+    /// Functions whose first argument has type WGPUBuffer.
+    pub fn wgpuBufferDestroy(buffer: types::WGPUBuffer) -> ();
+
+    /// Returns a const pointer to beginning of the mapped range.
+    /// It must not be written; writing to this range causes undefined behavior.
+    /// See MappedRangeBehavior for error conditions and guarantees.
+    /// This function is safe to call inside spontaneous callbacks (see CallbackReentrancy).
+    ///
+    /// In Wasm, if `memcpy`ing from this range, prefer using wgpuBufferReadMappedRange
+    /// instead for better performance.
+    ///
+    /// Parameter offset
+    /// Byte offset relative to the beginning of the buffer.
+    ///
+    /// Parameter size
+    /// Byte size of the range to get.
+    /// If this is WGPU_WHOLE_MAP_SIZE, it defaults to `buffer.size - offset`.
+    /// The returned pointer is valid for exactly this many bytes.
+    pub fn wgpuBufferGetConstMappedRange(buffer: types::WGPUBuffer, offset: usize, size: usize) -> *const ();
+
+    /// Returns a mutable pointer to beginning of the mapped range.
+    /// See MappedRangeBehavior for error conditions and guarantees.
+    /// This function is safe to call inside spontaneous callbacks (see CallbackReentrancy).
+    ///
+    /// In Wasm, if `memcpy`ing into this range, prefer using wgpuBufferWriteMappedRange
+    /// instead for better performance.
+    ///
+    /// Parameter offset
+    /// Byte offset relative to the beginning of the buffer.
+    ///
+    /// Parameter size
+    /// Byte size of the range to get.
+    /// If this is WGPU_WHOLE_MAP_SIZE, it defaults to `buffer.size - offset`.
+    /// The returned pointer is valid for exactly this many bytes.
+    pub fn wgpuBufferGetMappedRange(buffer: types::WGPUBuffer, offset: usize, size: usize) -> *mut ();
+
+    /// Calls the native `wgpuBufferGetMapState` WebGPU operation.
+    pub fn wgpuBufferGetMapState(buffer: types::WGPUBuffer) -> types::WGPUBufferMapState;
+
+    /// Calls the native `wgpuBufferGetSize` WebGPU operation.
+    pub fn wgpuBufferGetSize(buffer: types::WGPUBuffer) -> u64;
+
+    /// Calls the native `wgpuBufferGetUsage` WebGPU operation.
+    pub fn wgpuBufferGetUsage(buffer: types::WGPUBuffer) -> types::WGPUBufferUsage;
+
+    /// Parameter mode
+    /// The mapping mode (read or write).
+    ///
+    /// Parameter offset
+    /// Byte offset relative to beginning of the buffer.
+    ///
+    /// Parameter size
+    /// Byte size of the region to map.
+    /// If this is WGPU_WHOLE_MAP_SIZE, it defaults to `buffer.size - offset`.
+    pub fn wgpuBufferMapAsync(buffer: types::WGPUBuffer, mode: types::WGPUMapMode, offset: usize, size: usize, callback_info: types::WGPUBufferMapCallbackInfo) -> types::WGPUFuture;
+
+    /// Copies a range of data from the buffer mapping into the provided destination pointer.
+    /// See MappedRangeBehavior for error conditions and guarantees.
+    /// This function is safe to call inside spontaneous callbacks (see CallbackReentrancy).
+    ///
+    /// In Wasm, this is more efficient than copying from a mapped range into a `malloc`'d range.
+    ///
+    /// Parameter offset
+    /// Byte offset relative to the beginning of the buffer.
+    ///
+    /// Parameter data
+    /// Destination, to read buffer data into.
+    ///
+    /// Parameter size
+    /// Number of bytes of data to read from the buffer.
+    /// (Note WGPU_WHOLE_MAP_SIZE is *not* accepted here.)
+    ///
+    /// Returns:
+    /// WGPUStatus_Error if the copy did not occur.
+    pub fn wgpuBufferReadMappedRange(buffer: types::WGPUBuffer, offset: usize, data: *mut (), size: usize) -> types::WGPUStatus;
+
+    /// Calls the native `wgpuBufferSetLabel` WebGPU operation.
+    pub fn wgpuBufferSetLabel(buffer: types::WGPUBuffer, label: types::WGPUStringView) -> ();
+
+    /// Calls the native `wgpuBufferUnmap` WebGPU operation.
+    pub fn wgpuBufferUnmap(buffer: types::WGPUBuffer) -> ();
+
+    /// Copies a range of data from the provided source pointer into the buffer mapping.
+    /// See MappedRangeBehavior for error conditions and guarantees.
+    /// This function is safe to call inside spontaneous callbacks (see CallbackReentrancy).
+    ///
+    /// In Wasm, this is more efficient than copying from a `malloc`'d range into a mapped range.
+    ///
+    /// Parameter offset
+    /// Byte offset relative to the beginning of the buffer.
+    ///
+    /// Parameter data
+    /// Source, to write buffer data from.
+    ///
+    /// Parameter size
+    /// Number of bytes of data to write to the buffer.
+    /// (Note WGPU_WHOLE_MAP_SIZE is *not* accepted here.)
+    ///
+    /// Returns:
+    /// WGPUStatus_Error if the copy did not occur.
+    pub fn wgpuBufferWriteMappedRange(buffer: types::WGPUBuffer, offset: usize, data: *const (), size: usize) -> types::WGPUStatus;
+
+    /// Calls the native `wgpuBufferAddRef` WebGPU operation.
+    pub fn wgpuBufferAddRef(buffer: types::WGPUBuffer) -> ();
+
+    /// Calls the native `wgpuBufferRelease` WebGPU operation.
+    pub fn wgpuBufferRelease(buffer: types::WGPUBuffer) -> ();
+
+    /// Functions whose first argument has type WGPUCommandBuffer.
+    pub fn wgpuCommandBufferSetLabel(command_buffer: types::WGPUCommandBuffer, label: types::WGPUStringView) -> ();
+
+    /// Calls the native `wgpuCommandBufferAddRef` WebGPU operation.
+    pub fn wgpuCommandBufferAddRef(command_buffer: types::WGPUCommandBuffer) -> ();
+
+    /// Calls the native `wgpuCommandBufferRelease` WebGPU operation.
+    pub fn wgpuCommandBufferRelease(command_buffer: types::WGPUCommandBuffer) -> ();
+
+    /// Returns:
+    /// This value is ReturnedWithOwnership.
+    pub fn wgpuCommandEncoderBeginComputePass(command_encoder: types::WGPUCommandEncoder, descriptor: *const types::WGPUComputePassDescriptor) -> types::WGPUComputePassEncoder;
+
+    /// Returns:
+    /// This value is ReturnedWithOwnership.
+    pub fn wgpuCommandEncoderBeginRenderPass(command_encoder: types::WGPUCommandEncoder, descriptor: *const types::WGPURenderPassDescriptor) -> types::WGPURenderPassEncoder;
+
+    /// Calls the native `wgpuCommandEncoderClearBuffer` WebGPU operation.
+    pub fn wgpuCommandEncoderClearBuffer(command_encoder: types::WGPUCommandEncoder, buffer: types::WGPUBuffer, offset: u64, size: u64) -> ();
+
+    /// Calls the native `wgpuCommandEncoderCopyBufferToBuffer` WebGPU operation.
+    pub fn wgpuCommandEncoderCopyBufferToBuffer(command_encoder: types::WGPUCommandEncoder, source: types::WGPUBuffer, source_offset: u64, destination: types::WGPUBuffer, destination_offset: u64, size: u64) -> ();
+
+    /// Calls the native `wgpuCommandEncoderCopyBufferToTexture` WebGPU operation.
+    pub fn wgpuCommandEncoderCopyBufferToTexture(command_encoder: types::WGPUCommandEncoder, source: *const types::WGPUTexelCopyBufferInfo, destination: *const types::WGPUTexelCopyTextureInfo, copy_size: *const types::WGPUExtent3D) -> ();
+
+    /// Calls the native `wgpuCommandEncoderCopyTextureToBuffer` WebGPU operation.
+    pub fn wgpuCommandEncoderCopyTextureToBuffer(command_encoder: types::WGPUCommandEncoder, source: *const types::WGPUTexelCopyTextureInfo, destination: *const types::WGPUTexelCopyBufferInfo, copy_size: *const types::WGPUExtent3D) -> ();
+
+    /// Calls the native `wgpuCommandEncoderCopyTextureToTexture` WebGPU operation.
+    pub fn wgpuCommandEncoderCopyTextureToTexture(command_encoder: types::WGPUCommandEncoder, source: *const types::WGPUTexelCopyTextureInfo, destination: *const types::WGPUTexelCopyTextureInfo, copy_size: *const types::WGPUExtent3D) -> ();
+
+    /// Returns:
+    /// This value is ReturnedWithOwnership.
+    pub fn wgpuCommandEncoderFinish(command_encoder: types::WGPUCommandEncoder, descriptor: *const types::WGPUCommandBufferDescriptor) -> types::WGPUCommandBuffer;
+
+    /// Calls the native `wgpuCommandEncoderInsertDebugMarker` WebGPU operation.
+    pub fn wgpuCommandEncoderInsertDebugMarker(command_encoder: types::WGPUCommandEncoder, marker_label: types::WGPUStringView) -> ();
+
+    /// Calls the native `wgpuCommandEncoderPopDebugGroup` WebGPU operation.
+    pub fn wgpuCommandEncoderPopDebugGroup(command_encoder: types::WGPUCommandEncoder) -> ();
+
+    /// Calls the native `wgpuCommandEncoderPushDebugGroup` WebGPU operation.
+    pub fn wgpuCommandEncoderPushDebugGroup(command_encoder: types::WGPUCommandEncoder, group_label: types::WGPUStringView) -> ();
+
+    /// Calls the native `wgpuCommandEncoderResolveQuerySet` WebGPU operation.
+    pub fn wgpuCommandEncoderResolveQuerySet(command_encoder: types::WGPUCommandEncoder, query_set: types::WGPUQuerySet, first_query: u32, query_count: u32, destination: types::WGPUBuffer, destination_offset: u64) -> ();
+
+    /// Calls the native `wgpuCommandEncoderSetLabel` WebGPU operation.
+    pub fn wgpuCommandEncoderSetLabel(command_encoder: types::WGPUCommandEncoder, label: types::WGPUStringView) -> ();
+
+    /// Calls the native `wgpuCommandEncoderWriteTimestamp` WebGPU operation.
+    pub fn wgpuCommandEncoderWriteTimestamp(command_encoder: types::WGPUCommandEncoder, query_set: types::WGPUQuerySet, query_index: u32) -> ();
+
+    /// Calls the native `wgpuCommandEncoderAddRef` WebGPU operation.
+    pub fn wgpuCommandEncoderAddRef(command_encoder: types::WGPUCommandEncoder) -> ();
+
+    /// Calls the native `wgpuCommandEncoderRelease` WebGPU operation.
+    pub fn wgpuCommandEncoderRelease(command_encoder: types::WGPUCommandEncoder) -> ();
+
+    /// Functions whose first argument has type WGPUComputePassEncoder.
+    pub fn wgpuComputePassEncoderDispatchWorkgroups(compute_pass_encoder: types::WGPUComputePassEncoder, workgroup_count_x: u32, workgroup_count_y: u32, workgroup_count_z: u32) -> ();
+
+    /// Calls the native `wgpuComputePassEncoderDispatchWorkgroupsIndirect` WebGPU operation.
+    pub fn wgpuComputePassEncoderDispatchWorkgroupsIndirect(compute_pass_encoder: types::WGPUComputePassEncoder, indirect_buffer: types::WGPUBuffer, indirect_offset: u64) -> ();
+
+    /// Calls the native `wgpuComputePassEncoderEnd` WebGPU operation.
+    pub fn wgpuComputePassEncoderEnd(compute_pass_encoder: types::WGPUComputePassEncoder) -> ();
+
+    /// Calls the native `wgpuComputePassEncoderInsertDebugMarker` WebGPU operation.
+    pub fn wgpuComputePassEncoderInsertDebugMarker(compute_pass_encoder: types::WGPUComputePassEncoder, marker_label: types::WGPUStringView) -> ();
+
+    /// Calls the native `wgpuComputePassEncoderPopDebugGroup` WebGPU operation.
+    pub fn wgpuComputePassEncoderPopDebugGroup(compute_pass_encoder: types::WGPUComputePassEncoder) -> ();
+
+    /// Calls the native `wgpuComputePassEncoderPushDebugGroup` WebGPU operation.
+    pub fn wgpuComputePassEncoderPushDebugGroup(compute_pass_encoder: types::WGPUComputePassEncoder, group_label: types::WGPUStringView) -> ();
+
+    /// Calls the native `wgpuComputePassEncoderSetBindGroup` WebGPU operation.
+    pub fn wgpuComputePassEncoderSetBindGroup(compute_pass_encoder: types::WGPUComputePassEncoder, group_index: u32, group: types::WGPUBindGroup, dynamic_offset_count: usize, dynamic_offsets: *const u32) -> ();
+
+    /// Calls the native `wgpuComputePassEncoderSetImmediates` WebGPU operation.
+    pub fn wgpuComputePassEncoderSetImmediates(compute_pass_encoder: types::WGPUComputePassEncoder, offset: u32, data: *const (), size: usize) -> ();
+
+    /// Calls the native `wgpuComputePassEncoderSetLabel` WebGPU operation.
+    pub fn wgpuComputePassEncoderSetLabel(compute_pass_encoder: types::WGPUComputePassEncoder, label: types::WGPUStringView) -> ();
+
+    /// Calls the native `wgpuComputePassEncoderSetPipeline` WebGPU operation.
+    pub fn wgpuComputePassEncoderSetPipeline(compute_pass_encoder: types::WGPUComputePassEncoder, pipeline: types::WGPUComputePipeline) -> ();
+
+    /// Calls the native `wgpuComputePassEncoderAddRef` WebGPU operation.
+    pub fn wgpuComputePassEncoderAddRef(compute_pass_encoder: types::WGPUComputePassEncoder) -> ();
+
+    /// Calls the native `wgpuComputePassEncoderRelease` WebGPU operation.
+    pub fn wgpuComputePassEncoderRelease(compute_pass_encoder: types::WGPUComputePassEncoder) -> ();
+
+    /// Returns:
+    /// This value is ReturnedWithOwnership.
+    pub fn wgpuComputePipelineGetBindGroupLayout(compute_pipeline: types::WGPUComputePipeline, group_index: u32) -> types::WGPUBindGroupLayout;
+
+    /// Calls the native `wgpuComputePipelineSetLabel` WebGPU operation.
+    pub fn wgpuComputePipelineSetLabel(compute_pipeline: types::WGPUComputePipeline, label: types::WGPUStringView) -> ();
+
+    /// Calls the native `wgpuComputePipelineAddRef` WebGPU operation.
+    pub fn wgpuComputePipelineAddRef(compute_pipeline: types::WGPUComputePipeline) -> ();
+
+    /// Calls the native `wgpuComputePipelineRelease` WebGPU operation.
+    pub fn wgpuComputePipelineRelease(compute_pipeline: types::WGPUComputePipeline) -> ();
+
+    /// Returns:
+    /// This value is ReturnedWithOwnership.
+    pub fn wgpuDeviceCreateBindGroup(device: types::WGPUDevice, descriptor: *const types::WGPUBindGroupDescriptor) -> types::WGPUBindGroup;
+
+    /// Returns:
+    /// This value is ReturnedWithOwnership.
+    pub fn wgpuDeviceCreateBindGroupLayout(device: types::WGPUDevice, descriptor: *const types::WGPUBindGroupLayoutDescriptor) -> types::WGPUBindGroupLayout;
+
+    /// If WGPUBufferDescriptor::mappedAtCreation is `true` and the mapping allocation fails,
+    /// returns `NULL`.
+    ///
+    /// Returns:
+    /// This value is ReturnedWithOwnership.
+    pub fn wgpuDeviceCreateBuffer(device: types::WGPUDevice, descriptor: *const types::WGPUBufferDescriptor) -> types::WGPUBuffer;
+
+    /// Returns:
+    /// This value is ReturnedWithOwnership.
+    pub fn wgpuDeviceCreateCommandEncoder(device: types::WGPUDevice, descriptor: *const types::WGPUCommandEncoderDescriptor) -> types::WGPUCommandEncoder;
+
+    /// Returns:
+    /// This value is ReturnedWithOwnership.
+    pub fn wgpuDeviceCreateComputePipeline(device: types::WGPUDevice, descriptor: *const types::WGPUComputePipelineDescriptor) -> types::WGPUComputePipeline;
+
+    /// Calls the native `wgpuDeviceCreateComputePipelineAsync` WebGPU operation.
+    pub fn wgpuDeviceCreateComputePipelineAsync(device: types::WGPUDevice, descriptor: *const types::WGPUComputePipelineDescriptor, callback_info: types::WGPUCreateComputePipelineAsyncCallbackInfo) -> types::WGPUFuture;
+
+    /// Returns:
+    /// This value is ReturnedWithOwnership.
+    pub fn wgpuDeviceCreatePipelineLayout(device: types::WGPUDevice, descriptor: *const types::WGPUPipelineLayoutDescriptor) -> types::WGPUPipelineLayout;
+
+    /// Returns:
+    /// This value is ReturnedWithOwnership.
+    pub fn wgpuDeviceCreateQuerySet(device: types::WGPUDevice, descriptor: *const types::WGPUQuerySetDescriptor) -> types::WGPUQuerySet;
+
+    /// Returns:
+    /// This value is ReturnedWithOwnership.
+    pub fn wgpuDeviceCreateRenderBundleEncoder(device: types::WGPUDevice, descriptor: *const types::WGPURenderBundleEncoderDescriptor) -> types::WGPURenderBundleEncoder;
+
+    /// Returns:
+    /// This value is ReturnedWithOwnership.
+    pub fn wgpuDeviceCreateRenderPipeline(device: types::WGPUDevice, descriptor: *const types::WGPURenderPipelineDescriptor) -> types::WGPURenderPipeline;
+
+    /// Calls the native `wgpuDeviceCreateRenderPipelineAsync` WebGPU operation.
+    pub fn wgpuDeviceCreateRenderPipelineAsync(device: types::WGPUDevice, descriptor: *const types::WGPURenderPipelineDescriptor, callback_info: types::WGPUCreateRenderPipelineAsyncCallbackInfo) -> types::WGPUFuture;
+
+    /// Returns:
+    /// This value is ReturnedWithOwnership.
+    pub fn wgpuDeviceCreateSampler(device: types::WGPUDevice, descriptor: *const types::WGPUSamplerDescriptor) -> types::WGPUSampler;
+
+    /// Returns:
+    /// This value is ReturnedWithOwnership.
+    pub fn wgpuDeviceCreateShaderModule(device: types::WGPUDevice, descriptor: *const types::WGPUShaderModuleDescriptor) -> types::WGPUShaderModule;
+
+    /// Returns:
+    /// This value is ReturnedWithOwnership.
+    pub fn wgpuDeviceCreateTexture(device: types::WGPUDevice, descriptor: *const types::WGPUTextureDescriptor) -> types::WGPUTexture;
+
+    /// Calls the native `wgpuDeviceDestroy` WebGPU operation.
+    pub fn wgpuDeviceDestroy(device: types::WGPUDevice) -> ();
+
+    /// Parameter adapterInfo
+    /// This parameter is ReturnedWithOwnership.
+    ///
+    /// Returns:
+    /// Indicates if there was an OutStructChainError.
+    pub fn wgpuDeviceGetAdapterInfo(device: types::WGPUDevice, adapter_info: *mut types::WGPUAdapterInfo) -> types::WGPUStatus;
+
+    /// Get the list of WGPUFeatureName values supported by the device.
+    ///
+    /// Parameter features
+    /// This parameter is ReturnedWithOwnership.
+    pub fn wgpuDeviceGetFeatures(device: types::WGPUDevice, features: *mut types::WGPUSupportedFeatures) -> ();
+
+    /// Returns:
+    /// Indicates if there was an OutStructChainError.
+    pub fn wgpuDeviceGetLimits(device: types::WGPUDevice, limits: *mut types::WGPULimits) -> types::WGPUStatus;
+
+    /// Returns:
+    /// The WGPUFuture for the device-lost event of the device.
+    pub fn wgpuDeviceGetLostFuture(device: types::WGPUDevice) -> types::WGPUFuture;
+
+    /// Returns:
+    /// This value is ReturnedWithOwnership.
+    pub fn wgpuDeviceGetQueue(device: types::WGPUDevice) -> types::WGPUQueue;
+
+    /// Calls the native `wgpuDeviceHasFeature` WebGPU operation.
+    pub fn wgpuDeviceHasFeature(device: types::WGPUDevice, feature: types::WGPUFeatureName) -> types::WGPUBool;
+
+    /// Pops an error scope to the current thread's error scope stack,
+    /// asynchronously returning the result. See ErrorScopes.
+    pub fn wgpuDevicePopErrorScope(device: types::WGPUDevice, callback_info: types::WGPUPopErrorScopeCallbackInfo) -> types::WGPUFuture;
+
+    /// Pushes an error scope to the current thread's error scope stack.
+    /// See ErrorScopes.
+    pub fn wgpuDevicePushErrorScope(device: types::WGPUDevice, filter: types::WGPUErrorFilter) -> ();
+
+    /// Calls the native `wgpuDeviceSetLabel` WebGPU operation.
+    pub fn wgpuDeviceSetLabel(device: types::WGPUDevice, label: types::WGPUStringView) -> ();
+
+    /// Calls the native `wgpuDeviceAddRef` WebGPU operation.
+    pub fn wgpuDeviceAddRef(device: types::WGPUDevice) -> ();
+
+    /// Calls the native `wgpuDeviceRelease` WebGPU operation.
+    pub fn wgpuDeviceRelease(device: types::WGPUDevice) -> ();
+
+    /// Functions whose first argument has type WGPUExternalTexture.
+    pub fn wgpuExternalTextureSetLabel(external_texture: types::WGPUExternalTexture, label: types::WGPUStringView) -> ();
+
+    /// Calls the native `wgpuExternalTextureAddRef` WebGPU operation.
+    pub fn wgpuExternalTextureAddRef(external_texture: types::WGPUExternalTexture) -> ();
+
+    /// Calls the native `wgpuExternalTextureRelease` WebGPU operation.
+    pub fn wgpuExternalTextureRelease(external_texture: types::WGPUExternalTexture) -> ();
+
+    /// Creates a WGPUSurface, see Surface-Creation for more details.
+    ///
+    /// Parameter descriptor
+    /// The description of the WGPUSurface to create.
+    ///
+    /// Returns:
+    /// A new WGPUSurface for this descriptor (or an error WGPUSurface).
+    /// This value is ReturnedWithOwnership.
+    pub fn wgpuInstanceCreateSurface(instance: types::WGPUInstance, descriptor: *const types::WGPUSurfaceDescriptor) -> types::WGPUSurface;
+
+    /// Get the list of WGPUWGSLLanguageFeatureName values supported by the instance.
+    pub fn wgpuInstanceGetWGSLLanguageFeatures(instance: types::WGPUInstance, features: *mut types::WGPUSupportedWGSLLanguageFeatures) -> ();
+
+    /// Calls the native `wgpuInstanceHasWGSLLanguageFeature` WebGPU operation.
+    pub fn wgpuInstanceHasWGSLLanguageFeature(instance: types::WGPUInstance, feature: types::WGPUWGSLLanguageFeatureName) -> types::WGPUBool;
+
+    /// Processes asynchronous events on this `WGPUInstance`, calling any callbacks for asynchronous operations created with WGPUCallbackMode_AllowProcessEvents.
+    ///
+    /// See Process-Events for more information.
+    pub fn wgpuInstanceProcessEvents(instance: types::WGPUInstance) -> ();
+
+    /// Calls the native `wgpuInstanceRequestAdapter` WebGPU operation.
+    pub fn wgpuInstanceRequestAdapter(instance: types::WGPUInstance, options: *const types::WGPURequestAdapterOptions, callback_info: types::WGPURequestAdapterCallbackInfo) -> types::WGPUFuture;
+
+    /// Wait for at least one WGPUFuture in `futures` to complete, and call callbacks of the respective completed asynchronous operations.
+    ///
+    /// See Wait-Any for more information.
+    pub fn wgpuInstanceWaitAny(instance: types::WGPUInstance, future_count: usize, futures: *mut types::WGPUFutureWaitInfo, timeout_ns: u64) -> types::WGPUWaitStatus;
+
+    /// Calls the native `wgpuInstanceAddRef` WebGPU operation.
+    pub fn wgpuInstanceAddRef(instance: types::WGPUInstance) -> ();
+
+    /// Calls the native `wgpuInstanceRelease` WebGPU operation.
+    pub fn wgpuInstanceRelease(instance: types::WGPUInstance) -> ();
+
+    /// Functions whose first argument has type WGPUPipelineLayout.
+    pub fn wgpuPipelineLayoutSetLabel(pipeline_layout: types::WGPUPipelineLayout, label: types::WGPUStringView) -> ();
+
+    /// Calls the native `wgpuPipelineLayoutAddRef` WebGPU operation.
+    pub fn wgpuPipelineLayoutAddRef(pipeline_layout: types::WGPUPipelineLayout) -> ();
+
+    /// Calls the native `wgpuPipelineLayoutRelease` WebGPU operation.
+    pub fn wgpuPipelineLayoutRelease(pipeline_layout: types::WGPUPipelineLayout) -> ();
+
+    /// Functions whose first argument has type WGPUQuerySet.
+    pub fn wgpuQuerySetDestroy(query_set: types::WGPUQuerySet) -> ();
+
+    /// Calls the native `wgpuQuerySetGetCount` WebGPU operation.
+    pub fn wgpuQuerySetGetCount(query_set: types::WGPUQuerySet) -> u32;
+
+    /// Calls the native `wgpuQuerySetGetType` WebGPU operation.
+    pub fn wgpuQuerySetGetType(query_set: types::WGPUQuerySet) -> types::WGPUQueryType;
+
+    /// Calls the native `wgpuQuerySetSetLabel` WebGPU operation.
+    pub fn wgpuQuerySetSetLabel(query_set: types::WGPUQuerySet, label: types::WGPUStringView) -> ();
+
+    /// Calls the native `wgpuQuerySetAddRef` WebGPU operation.
+    pub fn wgpuQuerySetAddRef(query_set: types::WGPUQuerySet) -> ();
+
+    /// Calls the native `wgpuQuerySetRelease` WebGPU operation.
+    pub fn wgpuQuerySetRelease(query_set: types::WGPUQuerySet) -> ();
+
+    /// Functions whose first argument has type WGPUQueue.
+    pub fn wgpuQueueOnSubmittedWorkDone(queue: types::WGPUQueue, callback_info: types::WGPUQueueWorkDoneCallbackInfo) -> types::WGPUFuture;
+
+    /// Calls the native `wgpuQueueSetLabel` WebGPU operation.
+    pub fn wgpuQueueSetLabel(queue: types::WGPUQueue, label: types::WGPUStringView) -> ();
+
+    /// Calls the native `wgpuQueueSubmit` WebGPU operation.
+    pub fn wgpuQueueSubmit(queue: types::WGPUQueue, command_count: usize, commands: *const types::WGPUCommandBuffer) -> ();
+
+    /// Produces a DeviceError both content-timeline (`size` alignment) and device-timeline
+    /// errors defined by the WebGPU specification.
+    pub fn wgpuQueueWriteBuffer(queue: types::WGPUQueue, buffer: types::WGPUBuffer, buffer_offset: u64, data: *const (), size: usize) -> ();
+
+    /// Calls the native `wgpuQueueWriteTexture` WebGPU operation.
+    pub fn wgpuQueueWriteTexture(queue: types::WGPUQueue, destination: *const types::WGPUTexelCopyTextureInfo, data: *const (), data_size: usize, data_layout: *const types::WGPUTexelCopyBufferLayout, write_size: *const types::WGPUExtent3D) -> ();
+
+    /// Calls the native `wgpuQueueAddRef` WebGPU operation.
+    pub fn wgpuQueueAddRef(queue: types::WGPUQueue) -> ();
+
+    /// Calls the native `wgpuQueueRelease` WebGPU operation.
+    pub fn wgpuQueueRelease(queue: types::WGPUQueue) -> ();
+
+    /// Functions whose first argument has type WGPURenderBundle.
+    pub fn wgpuRenderBundleSetLabel(render_bundle: types::WGPURenderBundle, label: types::WGPUStringView) -> ();
+
+    /// Calls the native `wgpuRenderBundleAddRef` WebGPU operation.
+    pub fn wgpuRenderBundleAddRef(render_bundle: types::WGPURenderBundle) -> ();
+
+    /// Calls the native `wgpuRenderBundleRelease` WebGPU operation.
+    pub fn wgpuRenderBundleRelease(render_bundle: types::WGPURenderBundle) -> ();
+
+    /// Functions whose first argument has type WGPURenderBundleEncoder.
+    pub fn wgpuRenderBundleEncoderDraw(render_bundle_encoder: types::WGPURenderBundleEncoder, vertex_count: u32, instance_count: u32, first_vertex: u32, first_instance: u32) -> ();
+
+    /// Calls the native `wgpuRenderBundleEncoderDrawIndexed` WebGPU operation.
+    pub fn wgpuRenderBundleEncoderDrawIndexed(render_bundle_encoder: types::WGPURenderBundleEncoder, index_count: u32, instance_count: u32, first_index: u32, base_vertex: i32, first_instance: u32) -> ();
+
+    /// Calls the native `wgpuRenderBundleEncoderDrawIndexedIndirect` WebGPU operation.
+    pub fn wgpuRenderBundleEncoderDrawIndexedIndirect(render_bundle_encoder: types::WGPURenderBundleEncoder, indirect_buffer: types::WGPUBuffer, indirect_offset: u64) -> ();
+
+    /// Calls the native `wgpuRenderBundleEncoderDrawIndirect` WebGPU operation.
+    pub fn wgpuRenderBundleEncoderDrawIndirect(render_bundle_encoder: types::WGPURenderBundleEncoder, indirect_buffer: types::WGPUBuffer, indirect_offset: u64) -> ();
+
+    /// Returns:
+    /// This value is ReturnedWithOwnership.
+    pub fn wgpuRenderBundleEncoderFinish(render_bundle_encoder: types::WGPURenderBundleEncoder, descriptor: *const types::WGPURenderBundleDescriptor) -> types::WGPURenderBundle;
+
+    /// Calls the native `wgpuRenderBundleEncoderInsertDebugMarker` WebGPU operation.
+    pub fn wgpuRenderBundleEncoderInsertDebugMarker(render_bundle_encoder: types::WGPURenderBundleEncoder, marker_label: types::WGPUStringView) -> ();
+
+    /// Calls the native `wgpuRenderBundleEncoderPopDebugGroup` WebGPU operation.
+    pub fn wgpuRenderBundleEncoderPopDebugGroup(render_bundle_encoder: types::WGPURenderBundleEncoder) -> ();
+
+    /// Calls the native `wgpuRenderBundleEncoderPushDebugGroup` WebGPU operation.
+    pub fn wgpuRenderBundleEncoderPushDebugGroup(render_bundle_encoder: types::WGPURenderBundleEncoder, group_label: types::WGPUStringView) -> ();
+
+    /// Calls the native `wgpuRenderBundleEncoderSetBindGroup` WebGPU operation.
+    pub fn wgpuRenderBundleEncoderSetBindGroup(render_bundle_encoder: types::WGPURenderBundleEncoder, group_index: u32, group: types::WGPUBindGroup, dynamic_offset_count: usize, dynamic_offsets: *const u32) -> ();
+
+    /// Calls the native `wgpuRenderBundleEncoderSetImmediates` WebGPU operation.
+    pub fn wgpuRenderBundleEncoderSetImmediates(render_bundle_encoder: types::WGPURenderBundleEncoder, offset: u32, data: *const (), size: usize) -> ();
+
+    /// Calls the native `wgpuRenderBundleEncoderSetIndexBuffer` WebGPU operation.
+    pub fn wgpuRenderBundleEncoderSetIndexBuffer(render_bundle_encoder: types::WGPURenderBundleEncoder, buffer: types::WGPUBuffer, format: types::WGPUIndexFormat, offset: u64, size: u64) -> ();
+
+    /// Calls the native `wgpuRenderBundleEncoderSetLabel` WebGPU operation.
+    pub fn wgpuRenderBundleEncoderSetLabel(render_bundle_encoder: types::WGPURenderBundleEncoder, label: types::WGPUStringView) -> ();
+
+    /// Calls the native `wgpuRenderBundleEncoderSetPipeline` WebGPU operation.
+    pub fn wgpuRenderBundleEncoderSetPipeline(render_bundle_encoder: types::WGPURenderBundleEncoder, pipeline: types::WGPURenderPipeline) -> ();
+
+    /// Calls the native `wgpuRenderBundleEncoderSetVertexBuffer` WebGPU operation.
+    pub fn wgpuRenderBundleEncoderSetVertexBuffer(render_bundle_encoder: types::WGPURenderBundleEncoder, slot: u32, buffer: types::WGPUBuffer, offset: u64, size: u64) -> ();
+
+    /// Calls the native `wgpuRenderBundleEncoderAddRef` WebGPU operation.
+    pub fn wgpuRenderBundleEncoderAddRef(render_bundle_encoder: types::WGPURenderBundleEncoder) -> ();
+
+    /// Calls the native `wgpuRenderBundleEncoderRelease` WebGPU operation.
+    pub fn wgpuRenderBundleEncoderRelease(render_bundle_encoder: types::WGPURenderBundleEncoder) -> ();
+
+    /// Functions whose first argument has type WGPURenderPassEncoder.
+    pub fn wgpuRenderPassEncoderBeginOcclusionQuery(render_pass_encoder: types::WGPURenderPassEncoder, query_index: u32) -> ();
+
+    /// Calls the native `wgpuRenderPassEncoderDraw` WebGPU operation.
+    pub fn wgpuRenderPassEncoderDraw(render_pass_encoder: types::WGPURenderPassEncoder, vertex_count: u32, instance_count: u32, first_vertex: u32, first_instance: u32) -> ();
+
+    /// Calls the native `wgpuRenderPassEncoderDrawIndexed` WebGPU operation.
+    pub fn wgpuRenderPassEncoderDrawIndexed(render_pass_encoder: types::WGPURenderPassEncoder, index_count: u32, instance_count: u32, first_index: u32, base_vertex: i32, first_instance: u32) -> ();
+
+    /// Calls the native `wgpuRenderPassEncoderDrawIndexedIndirect` WebGPU operation.
+    pub fn wgpuRenderPassEncoderDrawIndexedIndirect(render_pass_encoder: types::WGPURenderPassEncoder, indirect_buffer: types::WGPUBuffer, indirect_offset: u64) -> ();
+
+    /// Calls the native `wgpuRenderPassEncoderDrawIndirect` WebGPU operation.
+    pub fn wgpuRenderPassEncoderDrawIndirect(render_pass_encoder: types::WGPURenderPassEncoder, indirect_buffer: types::WGPUBuffer, indirect_offset: u64) -> ();
+
+    /// Calls the native `wgpuRenderPassEncoderEnd` WebGPU operation.
+    pub fn wgpuRenderPassEncoderEnd(render_pass_encoder: types::WGPURenderPassEncoder) -> ();
+
+    /// Calls the native `wgpuRenderPassEncoderEndOcclusionQuery` WebGPU operation.
+    pub fn wgpuRenderPassEncoderEndOcclusionQuery(render_pass_encoder: types::WGPURenderPassEncoder) -> ();
+
+    /// Calls the native `wgpuRenderPassEncoderExecuteBundles` WebGPU operation.
+    pub fn wgpuRenderPassEncoderExecuteBundles(render_pass_encoder: types::WGPURenderPassEncoder, bundle_count: usize, bundles: *const types::WGPURenderBundle) -> ();
+
+    /// Calls the native `wgpuRenderPassEncoderInsertDebugMarker` WebGPU operation.
+    pub fn wgpuRenderPassEncoderInsertDebugMarker(render_pass_encoder: types::WGPURenderPassEncoder, marker_label: types::WGPUStringView) -> ();
+
+    /// Calls the native `wgpuRenderPassEncoderPopDebugGroup` WebGPU operation.
+    pub fn wgpuRenderPassEncoderPopDebugGroup(render_pass_encoder: types::WGPURenderPassEncoder) -> ();
+
+    /// Calls the native `wgpuRenderPassEncoderPushDebugGroup` WebGPU operation.
+    pub fn wgpuRenderPassEncoderPushDebugGroup(render_pass_encoder: types::WGPURenderPassEncoder, group_label: types::WGPUStringView) -> ();
+
+    /// Calls the native `wgpuRenderPassEncoderSetBindGroup` WebGPU operation.
+    pub fn wgpuRenderPassEncoderSetBindGroup(render_pass_encoder: types::WGPURenderPassEncoder, group_index: u32, group: types::WGPUBindGroup, dynamic_offset_count: usize, dynamic_offsets: *const u32) -> ();
+
+    /// Parameter color
+    /// The RGBA blend constant. Represents an `f32` color using DoubleAsSupertype.
+    pub fn wgpuRenderPassEncoderSetBlendConstant(render_pass_encoder: types::WGPURenderPassEncoder, color: *const types::WGPUColor) -> ();
+
+    /// Calls the native `wgpuRenderPassEncoderSetImmediates` WebGPU operation.
+    pub fn wgpuRenderPassEncoderSetImmediates(render_pass_encoder: types::WGPURenderPassEncoder, offset: u32, data: *const (), size: usize) -> ();
+
+    /// Calls the native `wgpuRenderPassEncoderSetIndexBuffer` WebGPU operation.
+    pub fn wgpuRenderPassEncoderSetIndexBuffer(render_pass_encoder: types::WGPURenderPassEncoder, buffer: types::WGPUBuffer, format: types::WGPUIndexFormat, offset: u64, size: u64) -> ();
+
+    /// Calls the native `wgpuRenderPassEncoderSetLabel` WebGPU operation.
+    pub fn wgpuRenderPassEncoderSetLabel(render_pass_encoder: types::WGPURenderPassEncoder, label: types::WGPUStringView) -> ();
+
+    /// Calls the native `wgpuRenderPassEncoderSetPipeline` WebGPU operation.
+    pub fn wgpuRenderPassEncoderSetPipeline(render_pass_encoder: types::WGPURenderPassEncoder, pipeline: types::WGPURenderPipeline) -> ();
+
+    /// Calls the native `wgpuRenderPassEncoderSetScissorRect` WebGPU operation.
+    pub fn wgpuRenderPassEncoderSetScissorRect(render_pass_encoder: types::WGPURenderPassEncoder, x: u32, y: u32, width: u32, height: u32) -> ();
+
+    /// Calls the native `wgpuRenderPassEncoderSetStencilReference` WebGPU operation.
+    pub fn wgpuRenderPassEncoderSetStencilReference(render_pass_encoder: types::WGPURenderPassEncoder, reference: u32) -> ();
+
+    /// Calls the native `wgpuRenderPassEncoderSetVertexBuffer` WebGPU operation.
+    pub fn wgpuRenderPassEncoderSetVertexBuffer(render_pass_encoder: types::WGPURenderPassEncoder, slot: u32, buffer: types::WGPUBuffer, offset: u64, size: u64) -> ();
+
+    /// If any argument is non-finite, produces a NonFiniteFloatValueError.
+    pub fn wgpuRenderPassEncoderSetViewport(render_pass_encoder: types::WGPURenderPassEncoder, x: f32, y: f32, width: f32, height: f32, min_depth: f32, max_depth: f32) -> ();
+
+    /// Calls the native `wgpuRenderPassEncoderAddRef` WebGPU operation.
+    pub fn wgpuRenderPassEncoderAddRef(render_pass_encoder: types::WGPURenderPassEncoder) -> ();
+
+    /// Calls the native `wgpuRenderPassEncoderRelease` WebGPU operation.
+    pub fn wgpuRenderPassEncoderRelease(render_pass_encoder: types::WGPURenderPassEncoder) -> ();
+
+    /// Returns:
+    /// This value is ReturnedWithOwnership.
+    pub fn wgpuRenderPipelineGetBindGroupLayout(render_pipeline: types::WGPURenderPipeline, group_index: u32) -> types::WGPUBindGroupLayout;
+
+    /// Calls the native `wgpuRenderPipelineSetLabel` WebGPU operation.
+    pub fn wgpuRenderPipelineSetLabel(render_pipeline: types::WGPURenderPipeline, label: types::WGPUStringView) -> ();
+
+    /// Calls the native `wgpuRenderPipelineAddRef` WebGPU operation.
+    pub fn wgpuRenderPipelineAddRef(render_pipeline: types::WGPURenderPipeline) -> ();
+
+    /// Calls the native `wgpuRenderPipelineRelease` WebGPU operation.
+    pub fn wgpuRenderPipelineRelease(render_pipeline: types::WGPURenderPipeline) -> ();
+
+    /// Functions whose first argument has type WGPUSampler.
+    pub fn wgpuSamplerSetLabel(sampler: types::WGPUSampler, label: types::WGPUStringView) -> ();
+
+    /// Calls the native `wgpuSamplerAddRef` WebGPU operation.
+    pub fn wgpuSamplerAddRef(sampler: types::WGPUSampler) -> ();
+
+    /// Calls the native `wgpuSamplerRelease` WebGPU operation.
+    pub fn wgpuSamplerRelease(sampler: types::WGPUSampler) -> ();
+
+    /// Functions whose first argument has type WGPUShaderModule.
+    pub fn wgpuShaderModuleGetCompilationInfo(shader_module: types::WGPUShaderModule, callback_info: types::WGPUCompilationInfoCallbackInfo) -> types::WGPUFuture;
+
+    /// Calls the native `wgpuShaderModuleSetLabel` WebGPU operation.
+    pub fn wgpuShaderModuleSetLabel(shader_module: types::WGPUShaderModule, label: types::WGPUStringView) -> ();
+
+    /// Calls the native `wgpuShaderModuleAddRef` WebGPU operation.
+    pub fn wgpuShaderModuleAddRef(shader_module: types::WGPUShaderModule) -> ();
+
+    /// Calls the native `wgpuShaderModuleRelease` WebGPU operation.
+    pub fn wgpuShaderModuleRelease(shader_module: types::WGPUShaderModule) -> ();
+
+    /// Frees members which were allocated by the API.
+    pub fn wgpuSupportedFeaturesFreeMembers(supported_features: types::WGPUSupportedFeatures) -> ();
+
+    /// Frees members which were allocated by the API.
+    pub fn wgpuSupportedInstanceFeaturesFreeMembers(supported_instance_features: types::WGPUSupportedInstanceFeatures) -> ();
+
+    /// Frees members which were allocated by the API.
+    pub fn wgpuSupportedWGSLLanguageFeaturesFreeMembers(supported_wgsl_language_features: types::WGPUSupportedWGSLLanguageFeatures) -> ();
+
+    /// Configures parameters for rendering to `surface`.
+    /// Produces a DeviceError for all content-timeline errors defined by the WebGPU specification.
+    ///
+    /// See Surface-Configuration for more details.
+    ///
+    /// Parameter config
+    /// The new configuration to use.
+    pub fn wgpuSurfaceConfigure(surface: types::WGPUSurface, config: *const types::WGPUSurfaceConfiguration) -> ();
+
+    /// Provides information on how `adapter` is able to use `surface`.
+    /// See Surface-Capabilities for more details.
+    ///
+    /// Parameter adapter
+    /// The WGPUAdapter to get capabilities for presenting to this WGPUSurface.
+    ///
+    /// Parameter capabilities
+    /// The structure to fill capabilities in.
+    /// It may contain memory allocations so wgpuSurfaceCapabilitiesFreeMembers must be called to avoid memory leaks.
+    /// This parameter is ReturnedWithOwnership.
+    ///
+    /// Returns:
+    /// Indicates if there was an OutStructChainError.
+    pub fn wgpuSurfaceGetCapabilities(surface: types::WGPUSurface, adapter: types::WGPUAdapter, capabilities: *mut types::WGPUSurfaceCapabilities) -> types::WGPUStatus;
+
+    /// Returns the WGPUTexture to render to `surface` this frame along with metadata on the frame.
+    /// Returns `NULL` and WGPUSurfaceGetCurrentTextureStatus_Error if the surface is not configured.
+    ///
+    /// See Surface-Presenting for more details.
+    ///
+    /// Parameter surfaceTexture
+    /// The structure to fill the WGPUTexture and metadata in.
+    pub fn wgpuSurfaceGetCurrentTexture(surface: types::WGPUSurface, surface_texture: *mut types::WGPUSurfaceTexture) -> ();
+
+    /// Shows `surface`'s current texture to the user.
+    /// See Surface-Presenting for more details.
+    ///
+    /// Returns:
+    /// Returns WGPUStatus_Error if the surface doesn't have a current texture.
+    pub fn wgpuSurfacePresent(surface: types::WGPUSurface) -> types::WGPUStatus;
+
+    /// Modifies the label used to refer to `surface`.
+    ///
+    /// Parameter label
+    /// The new label.
+    pub fn wgpuSurfaceSetLabel(surface: types::WGPUSurface, label: types::WGPUStringView) -> ();
+
+    /// Removes the configuration for `surface`.
+    /// See Surface-Configuration for more details.
+    pub fn wgpuSurfaceUnconfigure(surface: types::WGPUSurface) -> ();
+
+    /// Calls the native `wgpuSurfaceAddRef` WebGPU operation.
+    pub fn wgpuSurfaceAddRef(surface: types::WGPUSurface) -> ();
+
+    /// Calls the native `wgpuSurfaceRelease` WebGPU operation.
+    pub fn wgpuSurfaceRelease(surface: types::WGPUSurface) -> ();
+
+    /// Frees members which were allocated by the API.
+    pub fn wgpuSurfaceCapabilitiesFreeMembers(surface_capabilities: types::WGPUSurfaceCapabilities) -> ();
+
+    /// Returns:
+    /// This value is ReturnedWithOwnership.
+    pub fn wgpuTextureCreateView(texture: types::WGPUTexture, descriptor: *const types::WGPUTextureViewDescriptor) -> types::WGPUTextureView;
+
+    /// Calls the native `wgpuTextureDestroy` WebGPU operation.
+    pub fn wgpuTextureDestroy(texture: types::WGPUTexture) -> ();
+
+    /// Calls the native `wgpuTextureGetDepthOrArrayLayers` WebGPU operation.
+    pub fn wgpuTextureGetDepthOrArrayLayers(texture: types::WGPUTexture) -> u32;
+
+    /// Calls the native `wgpuTextureGetDimension` WebGPU operation.
+    pub fn wgpuTextureGetDimension(texture: types::WGPUTexture) -> types::WGPUTextureDimension;
+
+    /// Calls the native `wgpuTextureGetFormat` WebGPU operation.
+    pub fn wgpuTextureGetFormat(texture: types::WGPUTexture) -> types::WGPUTextureFormat;
+
+    /// Calls the native `wgpuTextureGetHeight` WebGPU operation.
+    pub fn wgpuTextureGetHeight(texture: types::WGPUTexture) -> u32;
+
+    /// Calls the native `wgpuTextureGetMipLevelCount` WebGPU operation.
+    pub fn wgpuTextureGetMipLevelCount(texture: types::WGPUTexture) -> u32;
+
+    /// Calls the native `wgpuTextureGetSampleCount` WebGPU operation.
+    pub fn wgpuTextureGetSampleCount(texture: types::WGPUTexture) -> u32;
+
+    /// Calls the native `wgpuTextureGetTextureBindingViewDimension` WebGPU operation.
+    pub fn wgpuTextureGetTextureBindingViewDimension(texture: types::WGPUTexture) -> types::WGPUTextureViewDimension;
+
+    /// Calls the native `wgpuTextureGetUsage` WebGPU operation.
+    pub fn wgpuTextureGetUsage(texture: types::WGPUTexture) -> types::WGPUTextureUsage;
+
+    /// Calls the native `wgpuTextureGetWidth` WebGPU operation.
+    pub fn wgpuTextureGetWidth(texture: types::WGPUTexture) -> u32;
+
+    /// Calls the native `wgpuTextureSetLabel` WebGPU operation.
+    pub fn wgpuTextureSetLabel(texture: types::WGPUTexture, label: types::WGPUStringView) -> ();
+
+    /// Calls the native `wgpuTextureAddRef` WebGPU operation.
+    pub fn wgpuTextureAddRef(texture: types::WGPUTexture) -> ();
+
+    /// Calls the native `wgpuTextureRelease` WebGPU operation.
+    pub fn wgpuTextureRelease(texture: types::WGPUTexture) -> ();
+
+    /// Functions whose first argument has type WGPUTextureView.
+    pub fn wgpuTextureViewSetLabel(texture_view: types::WGPUTextureView, label: types::WGPUStringView) -> ();
+
+    /// Calls the native `wgpuTextureViewAddRef` WebGPU operation.
+    pub fn wgpuTextureViewAddRef(texture_view: types::WGPUTextureView) -> ();
+
+    /// Calls the native `wgpuTextureViewRelease` WebGPU operation.
+    pub fn wgpuTextureViewRelease(texture_view: types::WGPUTextureView) -> ();
+
+    /// Calls the native `wgpuGenerateReport` WebGPU operation.
+    /// This operation is a wgpu-native extension.
+    pub fn wgpuGenerateReport(instance: types::WGPUInstance, report: *mut types::WGPUGlobalReport) -> ();
+
+    /// Calls the native `wgpuInstanceEnumerateAdapters` WebGPU operation.
+    /// This operation is a wgpu-native extension.
+    pub fn wgpuInstanceEnumerateAdapters(instance: types::WGPUInstance, options: *const types::WGPUInstanceEnumerateAdapterOptions, adapters: *mut types::WGPUAdapter) -> usize;
+
+    /// Calls the native `wgpuQueueSubmitForIndex` WebGPU operation.
+    /// This operation is a wgpu-native extension.
+    pub fn wgpuQueueSubmitForIndex(queue: types::WGPUQueue, command_count: usize, commands: *const types::WGPUCommandBuffer) -> types::WGPUSubmissionIndex;
+
+    /// Calls the native `wgpuQueueGetTimestampPeriod` WebGPU operation.
+    /// This operation is a wgpu-native extension.
+    pub fn wgpuQueueGetTimestampPeriod(queue: types::WGPUQueue) -> f32;
+
+    /// Returns true if the queue is empty, or false if there are more queue submissions still in flight.
+    /// This operation is a wgpu-native extension.
+    pub fn wgpuDevicePoll(device: types::WGPUDevice, wait: types::WGPUBool, submission_index: *const types::WGPUSubmissionIndex) -> types::WGPUBool;
+
+    /// Calls the native `wgpuDeviceCreateShaderModuleSpirV` WebGPU operation.
+    /// This operation is a wgpu-native extension.
+    pub fn wgpuDeviceCreateShaderModuleSpirV(device: types::WGPUDevice, descriptor: *const types::WGPUShaderModuleDescriptorSpirV) -> types::WGPUShaderModule;
+
+    /// Calls the native `wgpuSetLogCallback` WebGPU operation.
+    /// This operation is a wgpu-native extension.
+    pub fn wgpuSetLogCallback(callback: types::WGPULogCallback, userdata: *mut ()) -> ();
+
+    /// Calls the native `wgpuSetLogLevel` WebGPU operation.
+    /// This operation is a wgpu-native extension.
+    pub fn wgpuSetLogLevel(level: types::WGPULogLevel) -> ();
+
+    /// Calls the native `wgpuGetVersion` WebGPU operation.
+    /// This operation is a wgpu-native extension.
+    pub fn wgpuGetVersion() -> u32;
+
+    /// Calls the native `wgpuRenderPassEncoderMultiDrawIndirect` WebGPU operation.
+    /// This operation is a wgpu-native extension.
+    pub fn wgpuRenderPassEncoderMultiDrawIndirect(encoder: types::WGPURenderPassEncoder, buffer: types::WGPUBuffer, offset: u64, count: u32) -> ();
+
+    /// Calls the native `wgpuRenderPassEncoderMultiDrawIndexedIndirect` WebGPU operation.
+    /// This operation is a wgpu-native extension.
+    pub fn wgpuRenderPassEncoderMultiDrawIndexedIndirect(encoder: types::WGPURenderPassEncoder, buffer: types::WGPUBuffer, offset: u64, count: u32) -> ();
+
+    /// Calls the native `wgpuRenderPassEncoderMultiDrawIndirectCount` WebGPU operation.
+    /// This operation is a wgpu-native extension.
+    pub fn wgpuRenderPassEncoderMultiDrawIndirectCount(encoder: types::WGPURenderPassEncoder, buffer: types::WGPUBuffer, offset: u64, count_buffer: types::WGPUBuffer, count_buffer_offset: u64, max_count: u32) -> ();
+
+    /// Calls the native `wgpuRenderPassEncoderMultiDrawIndexedIndirectCount` WebGPU operation.
+    /// This operation is a wgpu-native extension.
+    pub fn wgpuRenderPassEncoderMultiDrawIndexedIndirectCount(encoder: types::WGPURenderPassEncoder, buffer: types::WGPUBuffer, offset: u64, count_buffer: types::WGPUBuffer, count_buffer_offset: u64, max_count: u32) -> ();
+
+    /// Calls the native `wgpuComputePassEncoderBeginPipelineStatisticsQuery` WebGPU operation.
+    /// This operation is a wgpu-native extension.
+    pub fn wgpuComputePassEncoderBeginPipelineStatisticsQuery(compute_pass_encoder: types::WGPUComputePassEncoder, query_set: types::WGPUQuerySet, query_index: u32) -> ();
+
+    /// Calls the native `wgpuComputePassEncoderEndPipelineStatisticsQuery` WebGPU operation.
+    /// This operation is a wgpu-native extension.
+    pub fn wgpuComputePassEncoderEndPipelineStatisticsQuery(compute_pass_encoder: types::WGPUComputePassEncoder) -> ();
+
+    /// Calls the native `wgpuRenderPassEncoderBeginPipelineStatisticsQuery` WebGPU operation.
+    /// This operation is a wgpu-native extension.
+    pub fn wgpuRenderPassEncoderBeginPipelineStatisticsQuery(render_pass_encoder: types::WGPURenderPassEncoder, query_set: types::WGPUQuerySet, query_index: u32) -> ();
+
+    /// Calls the native `wgpuRenderPassEncoderEndPipelineStatisticsQuery` WebGPU operation.
+    /// This operation is a wgpu-native extension.
+    pub fn wgpuRenderPassEncoderEndPipelineStatisticsQuery(render_pass_encoder: types::WGPURenderPassEncoder) -> ();
+
+    /// Calls the native `wgpuComputePassEncoderWriteTimestamp` WebGPU operation.
+    /// This operation is a wgpu-native extension.
+    pub fn wgpuComputePassEncoderWriteTimestamp(compute_pass_encoder: types::WGPUComputePassEncoder, query_set: types::WGPUQuerySet, query_index: u32) -> ();
+
+    /// Calls the native `wgpuRenderPassEncoderWriteTimestamp` WebGPU operation.
+    /// This operation is a wgpu-native extension.
+    pub fn wgpuRenderPassEncoderWriteTimestamp(render_pass_encoder: types::WGPURenderPassEncoder, query_set: types::WGPUQuerySet, query_index: u32) -> ();
+
+    /// Returns true if the capture was successfully started, or false if it failed to start or is not supported on the current platform.
+    /// This operation is a wgpu-native extension.
+    pub fn wgpuDeviceStartGraphicsDebuggerCapture(device: types::WGPUDevice) -> types::WGPUBool;
+
+    /// Calls the native `wgpuDeviceStopGraphicsDebuggerCapture` WebGPU operation.
+    /// This operation is a wgpu-native extension.
+    pub fn wgpuDeviceStopGraphicsDebuggerCapture(device: types::WGPUDevice) -> ();
+
+    /// Calls the native `wgpuCommandEncoderClearTexture` WebGPU operation.
+    /// This operation is a wgpu-native extension.
+    pub fn wgpuCommandEncoderClearTexture(command_encoder: types::WGPUCommandEncoder, texture: types::WGPUTexture, range: *const types::WGPUImageSubresourceRange) -> ();
+
+    /// Calls the native `wgpuDeviceCreateShaderModuleTrusted` WebGPU operation.
+    /// This operation is a wgpu-native extension.
+    pub fn wgpuDeviceCreateShaderModuleTrusted(device: types::WGPUDevice, descriptor: *const types::WGPUShaderModuleDescriptor, runtime_checks: types::WGPUShaderRuntimeChecks) -> types::WGPUShaderModule;
+
+}

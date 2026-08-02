@@ -1,0 +1,17 @@
+/target/
+**/target/
+reimer.lock
+**/reimer.lock
+*.pdb
+*.ilk
+*.exp
+*.lib
+*.dll
+*.so
+*.dylib
+
+# Native vendor artifacts are intentionally checksummed and shipped in-tree.
+!vendor/**/native/**/*.dll
+!vendor/**/native/**/*.lib
+!vendor/**/native/**/*.so
+!vendor/**/native/**/*.dylib

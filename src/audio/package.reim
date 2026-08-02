@@ -1,0 +1,4 @@
+pub from self::clip import AudioClip, AudioClipError;
+pub import self::clip as clip;
+pub from self::mixer import AudioMixer, MixerError, VoiceHandle, VoiceSettings;
+pub import self::mixer as mixer;

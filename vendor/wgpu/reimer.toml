@@ -1,0 +1,12 @@
+[package]
+name = "wgpu"
+version = "29.0.1"
+edition = "2026"
+
+[dependencies]
+
+[profile.debug]
+optimization = 0
+
+[profile.release]
+optimization = 3

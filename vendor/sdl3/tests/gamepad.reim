@@ -1,0 +1,48 @@
+import self::gamepad as gamepad;
+from self::init import GAMEPAD, Subsystems;
+
+fn main() -> i32 {
+    let started = Subsystems::init(GAMEPAD);
+    let subsystems = match started {
+        Ok(value) => value,
+        Err(_) => {
+            return 1;
+        },
+    };
+    defer subsystems.deinit();
+
+    let listed = gamepad::list(&subsystems);
+    let ids = match listed {
+        Ok(value) => value,
+        Err(_) => {
+            return 2;
+        },
+    };
+    defer ids.deinit();
+
+    let invalid_axis = match gamepad::GamepadAxis::from_raw(6) {
+        Some(_) => false,
+        None => true,
+    };
+    let invalid_button = match gamepad::GamepadButton::from_raw(26) {
+        Some(_) => false,
+        None => true,
+    };
+    let left_x = gamepad::AXIS_LEFT_X;
+    let south = gamepad::BUTTON_SOUTH;
+    let types_are_valid = invalid_axis
+        && invalid_button
+        && left_x.raw() == 0
+        && south.raw() == 0;
+    if !types_are_valid {
+        return 3;
+    }
+    if ids.is_empty() {
+        0
+    } else {
+        match ids.get(0) {
+            Some(_) => 0,
+            None => 4,
+        }
+    }
+}

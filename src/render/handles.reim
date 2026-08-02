@@ -1,0 +1,49 @@
+/// Generational handle for an uploaded texture.
+@derive(Copy, Clone, Debug, Eq, Hash)
+pub struct TextureHandle {
+    index: u32,
+    generation: u32,
+}
+
+impl TextureHandle {
+    pub fn from_parts(index: u32, generation: u32) -> TextureHandle {
+        TextureHandle { index: index, generation: generation }
+    }
+
+    pub fn index(&self) -> u32 { self.index }
+
+    pub fn generation(&self) -> u32 { self.generation }
+}
+/// Generational handle for an immutable mesh allocation.
+@derive(Copy, Clone, Debug, Eq, Hash)
+pub struct MeshHandle {
+    index: u32,
+    generation: u32,
+}
+
+impl MeshHandle {
+    pub fn from_parts(index: u32, generation: u32) -> MeshHandle {
+        MeshHandle { index: index, generation: generation }
+    }
+
+    pub fn index(&self) -> u32 { self.index }
+
+    pub fn generation(&self) -> u32 { self.generation }
+}
+
+/// Generational handle for a pipeline/material combination.
+@derive(Copy, Clone, Debug, Eq, Hash)
+pub struct MaterialHandle {
+    index: u32,
+    generation: u32,
+}
+
+impl MaterialHandle {
+    pub fn from_parts(index: u32, generation: u32) -> MaterialHandle {
+        MaterialHandle { index: index, generation: generation }
+    }
+
+    pub fn index(&self) -> u32 { self.index }
+
+    pub fn generation(&self) -> u32 { self.generation }
+}

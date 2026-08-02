@@ -1,0 +1,89 @@
+from std::alloc import AllocError, Allocator, general_allocator;
+from std::string import String, byte_len, byte_slice, ends_with, equals;
+from std::target import OperatingSystem, os;
+
+/// Borrows the parent portion of one UTF-8 file path.
+///
+/// Both Windows and POSIX separators are recognized. A root separator remains
+/// part of the returned parent so subsequent joins cannot become relative.
+pub fn parent(path: str) -> Option<str> {
+    let bytes = path.bytes();
+    let length = byte_len(path);
+    if length == 0 {
+        return None;
+    }
+    let mut index = length;
+    while index > 0 {
+        index -= 1;
+        if bytes[index] == 47 || bytes[index] == 92 {
+            let count = if index == 0 || (index == 2 && bytes[1] == 58) {
+                index + 1
+            } else {
+                index
+            };
+            return byte_slice(path, 0, count);
+        }
+    }
+    None
+}
+
+/// Joins a base directory and a validated relative path.
+pub fn join(
+    allocator: &Allocator,
+    base: str,
+    relative: str,
+) -> Result<String, AllocError> {
+    let windows = os() == OperatingSystem::Windows;
+    let separator = if ends_with(base, "/") || ends_with(base, "\\") {
+        ""
+    } else if windows {
+        "\\"
+    } else {
+        "/"
+    };
+    let prefix = match byte_len(base).checked_add(byte_len(separator)) {
+        Some(value) => value,
+        None => { return Err(AllocError::OutOfMemory); },
+    };
+    let required = match prefix.checked_add(byte_len(relative)) {
+        Some(value) => value,
+        None => { return Err(AllocError::OutOfMemory); },
+    };
+    let mut output = String::with_capacity(allocator, required)?;
+    output.push_str(base)?;
+    output.push_str(separator)?;
+    for character in relative.chars() {
+        if windows && character == '/' {
+            output.push_char('\\')?;
+        } else if !windows && character == '\\' {
+            output.push_char('/')?;
+        } else {
+            output.push_char(character)?;
+        }
+    }
+    Ok(output)
+}
+
+@test
+fn pathing_should_preserve_roots_and_join_portably() {
+    let allocator = general_allocator();
+    assert(match parent("C:\\assets\\pack.toml") {
+        Some(value) => equals(value, "C:\\assets"),
+        None => false,
+    });
+    assert(match parent("/pack.toml") {
+        Some(value) => equals(value, "/"),
+        None => false,
+    });
+    let joined = match join(&allocator, "C:\\assets", "sprites/a.png") {
+        Ok(value) => value,
+        Err(_) => panic("test path allocation failed"),
+    };
+    defer joined.deinit();
+    let expected = if os() == OperatingSystem::Windows {
+        "C:\\assets\\sprites\\a.png"
+    } else {
+        "C:\\assets/sprites/a.png"
+    };
+    assert(equals(joined.as_str(), expected));
+}

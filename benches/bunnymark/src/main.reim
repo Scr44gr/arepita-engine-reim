@@ -1,0 +1,552 @@
+from std::alloc import AllocError, Allocator, general_allocator;
+from std::fs import open;
+from std::io import eprintln, println;
+from std::job import chunk_len;
+from std::slice import len;
+from std::string import String;
+from std::thread import available_parallelism;
+from std::time import Instant;
+
+from arepita_engine::ecs import Component, ComponentStore, Entities, WorkerPool;
+from arepita_engine::platform import Gamepads, Input, WindowHost;
+import arepita_engine::platform::keys;
+from arepita_engine::render import ClearColor, PresentationMode, Renderer, RendererConfig, SpriteBatch, SpriteInstance;
+from media_codecs import CodecLimits, DecodedImage, decode_rgba8;
+
+const BUNNY_COUNT: usize = 50_000;
+const WINDOW_WIDTH: i32 = 640;
+const WINDOW_HEIGHT: i32 = 480;
+const SPRITE_PIXELS: f32 = 32.0;
+const MAX_BUNNY_X: f32 = 624.0;
+const MAX_BUNNY_Y: f32 = 464.0;
+const FIXED_DELTA_SECONDS: f32 = 0.008_333_333;
+const SIMULATION_PASSES: usize = 600;
+const WARMUP_FRAMES: usize = 60;
+const MEASURED_FRAMES: usize = 600;
+const MINIMUM_PARALLEL_CHUNK: usize = 4_096;
+
+@derive(Copy, Component)
+struct Bunny {
+    x: f32,
+    y: f32,
+    velocity_x: f32,
+    velocity_y: f32,
+}
+
+struct CpuMeasurements {
+    sequential_ns: u64,
+    parallel_ns: u64,
+    worker_count: usize,
+}
+
+struct FrameMeasurements {
+    frames: usize,
+    total_ns: u64,
+    simulation_ns: u64,
+    batching_ns: u64,
+    rendering_ns: u64,
+    uploaded_bytes: u64,
+    draw_calls: u64,
+    checksum: f32,
+}
+
+fn update_bunnies(values: &mut [Bunny]) {
+    let mut index: usize = 0;
+    let length = chunk_len(values);
+    while index < length {
+        let mut bunny = values[index];
+        bunny.x += bunny.velocity_x * FIXED_DELTA_SECONDS;
+        if bunny.x <= 0.0 {
+            bunny.x = 0.0;
+            if bunny.velocity_x < 0.0 {
+                bunny.velocity_x = -bunny.velocity_x;
+            }
+        } else if bunny.x >= MAX_BUNNY_X {
+            bunny.x = MAX_BUNNY_X;
+            if bunny.velocity_x > 0.0 {
+                bunny.velocity_x = -bunny.velocity_x;
+            }
+        }
+
+        bunny.y += bunny.velocity_y * FIXED_DELTA_SECONDS;
+        if bunny.y <= 0.0 {
+            bunny.y = 0.0;
+            if bunny.velocity_y < 0.0 {
+                bunny.velocity_y = -bunny.velocity_y;
+            }
+        } else if bunny.y >= MAX_BUNNY_Y {
+            bunny.y = MAX_BUNNY_Y;
+            if bunny.velocity_y > 0.0 {
+                bunny.velocity_y = -bunny.velocity_y;
+            }
+        }
+        values[index] = bunny;
+        index += 1;
+    }
+}
+
+fn load_bunny(
+    allocator: &Allocator,
+) -> Result<DecodedImage, i32> {
+    let mut file = match open("assets/bunny.png") {
+        Ok(value) => value,
+        Err(_) => {
+            return Err(20);
+        },
+    };
+    defer file.deinit();
+    let mut encoded = match file.read_to_end(allocator) {
+        Ok(value) => value,
+        Err(_) => {
+            return Err(21);
+        },
+    };
+    defer encoded.release();
+    match decode_rgba8(allocator, encoded.as_bytes(), CodecLimits::standard()) {
+        Ok(value) => Ok(value),
+        Err(_) => Err(22),
+    }
+}
+
+fn populate(
+    entities: &mut Entities,
+    bunnies: &mut ComponentStore<Bunny>,
+) -> Result<(), AllocError> {
+    let mut index: usize = 0;
+    while index < BUNNY_COUNT {
+        let entity = match entities.spawn() {
+            Ok(value) => value,
+            Err(_) => {
+                return Err(AllocError::OutOfMemory);
+            },
+        };
+        let x = (index * 37 % 609) as f32;
+        let y = (index * 53 % 449) as f32;
+        let velocity_x = (index * 83 % 401) as f32 - 200.0;
+        let velocity_y = (index * 97 % 401) as f32 - 200.0;
+        bunnies.insert(entity, Bunny {
+            x: x,
+            y: y,
+            velocity_x: velocity_x,
+            velocity_y: velocity_y,
+        })?;
+        index += 1;
+    }
+    Ok(())
+}
+
+fn choose_worker_count() -> usize {
+    let detected = available_parallelism();
+    if detected < 2 {
+        1
+    } else if detected > 8 {
+        8
+    } else {
+        detected
+    }
+}
+
+fn measure_cpu(
+    pool: &WorkerPool,
+    bunnies: &mut ComponentStore<Bunny>,
+) -> Result<CpuMeasurements, i32> {
+    let sequential_start = Instant::now();
+    let mut pass: usize = 0;
+    while pass < SIMULATION_PASSES {
+        update_bunnies(bunnies.values_mut());
+        pass += 1;
+    }
+    let sequential_duration = sequential_start.elapsed();
+    let sequential_ns = sequential_duration.as_nanoseconds();
+
+    let parallel_start = Instant::now();
+    pass = 0;
+    while pass < SIMULATION_PASSES {
+        match pool.for_each_mut(
+            bunnies,
+            update_bunnies,
+            MINIMUM_PARALLEL_CHUNK,
+        ) {
+            Ok(_) => {},
+            Err(_) => {
+                return Err(30);
+            },
+        }
+        pass += 1;
+    }
+    let parallel_duration = parallel_start.elapsed();
+    let parallel_ns = parallel_duration.as_nanoseconds();
+    Ok(CpuMeasurements {
+        sequential_ns: sequential_ns,
+        parallel_ns: parallel_ns,
+        worker_count: pool.workers(),
+    })
+}
+
+fn prepare_batch(
+    bunnies: &ComponentStore<Bunny>,
+    batch: &mut SpriteBatch,
+) -> Result<f32, i32> {
+    batch.clear();
+    let values = bunnies.values();
+    let two: f32 = 2.0;
+    let one: f32 = 1.0;
+    let width_scale = two / WINDOW_WIDTH as f32;
+    let height_scale = two / WINDOW_HEIGHT as f32;
+    let sprite_width = SPRITE_PIXELS * width_scale;
+    let sprite_height = SPRITE_PIXELS * height_scale;
+    let mut checksum: f32 = 0.0;
+    let mut index: usize = 0;
+    while index < len(values) {
+        let bunny = values[index];
+        let position_x = bunny.x * width_scale - one;
+        let position_y = one - bunny.y * height_scale;
+        let instance = SpriteInstance::new(
+            position_x,
+            position_y,
+            sprite_width,
+            sprite_height,
+        );
+        match batch.push_prepared(instance) {
+            Ok(_) => {},
+            Err(_) => {
+                return Err(31);
+            },
+        }
+        checksum += bunny.x + bunny.y;
+        index += 1;
+    }
+    Ok(checksum)
+}
+
+fn print_message(message: &String) {
+    match println(message.as_str()) {
+        Ok(_) => {},
+        Err(_) => {},
+    }
+}
+
+fn measured_loop(
+    host: &WindowHost,
+    gamepads: &mut Gamepads,
+    input: &mut Input,
+    renderer: &mut Renderer,
+    pool: &WorkerPool,
+    bunnies: &mut ComponentStore<Bunny>,
+    batch: &mut SpriteBatch,
+    use_parallel: bool,
+) -> Result<FrameMeasurements, i32> {
+    let background = ClearColor::rgba(0.96, 0.96, 0.96, 1.0);
+    let total_frames = WARMUP_FRAMES + MEASURED_FRAMES;
+    let mut frame: usize = 0;
+    let mut measured_frames: usize = 0;
+    let mut total_start = Instant::now();
+    let mut simulation_ns: u64 = 0;
+    let mut batching_ns: u64 = 0;
+    let mut rendering_ns: u64 = 0;
+    let mut uploaded_bytes: u64 = 0;
+    let mut draw_calls: u64 = 0;
+    let mut checksum: f32 = 0.0;
+    let mut running = true;
+
+    while running && frame < total_frames {
+        input.begin_frame();
+        let mut polling = true;
+        while polling {
+            match host.poll_event() {
+                Some(event) => {
+                    input.observe_event(&event);
+                    let _ = gamepads.handle_event(&event);
+                    if event.is_quit() {
+                        running = false;
+                    }
+                    if event.is_window_size_changed() {
+                        match renderer.resize() {
+                            Ok(_) => {},
+                            Err(_) => {
+                                return Err(40);
+                            },
+                        }
+                    }
+                },
+                None => {
+                    polling = false;
+                },
+            }
+        }
+        input.update();
+        gamepads.update();
+        if input.key_pressed(keys::ESCAPE) {
+            running = false;
+        }
+        if !running {
+            continue;
+        }
+
+        if frame == WARMUP_FRAMES {
+            total_start = Instant::now();
+        }
+        let measuring = frame >= WARMUP_FRAMES;
+
+        let simulation_start = Instant::now();
+        if use_parallel {
+            match pool.for_each_mut(
+                bunnies,
+                update_bunnies,
+                MINIMUM_PARALLEL_CHUNK,
+            ) {
+                Ok(_) => {},
+                Err(_) => {
+                    return Err(41);
+                },
+            }
+        } else {
+            update_bunnies(bunnies.values_mut());
+        }
+        let simulation_duration = simulation_start.elapsed();
+        let simulation_elapsed = simulation_duration.as_nanoseconds();
+
+        let batching_start = Instant::now();
+        let frame_checksum = prepare_batch(&*bunnies, batch)?;
+        let batching_duration = batching_start.elapsed();
+        let batching_elapsed = batching_duration.as_nanoseconds();
+
+        let rendering_start = Instant::now();
+        if !renderer.is_suspended() {
+            let report = match renderer.draw_sprites(&*batch, background) {
+                Ok(value) => value,
+                Err(_) => {
+                    return Err(42);
+                },
+            };
+            if measuring {
+                uploaded_bytes += report.uploaded_bytes;
+                draw_calls += report.draw_calls as u64;
+            }
+        }
+        let rendering_duration = rendering_start.elapsed();
+        let rendering_elapsed = rendering_duration.as_nanoseconds();
+
+        if measuring {
+            measured_frames += 1;
+            simulation_ns += simulation_elapsed;
+            batching_ns += batching_elapsed;
+            rendering_ns += rendering_elapsed;
+            checksum = frame_checksum;
+        }
+        frame += 1;
+    }
+    let total_duration = total_start.elapsed();
+    let total_ns = if measured_frames == 0 {
+        0 as u64
+    } else {
+        total_duration.as_nanoseconds()
+    };
+    Ok(FrameMeasurements {
+        frames: measured_frames,
+        total_ns: total_ns,
+        simulation_ns: simulation_ns,
+        batching_ns: batching_ns,
+        rendering_ns: rendering_ns,
+        uploaded_bytes: uploaded_bytes,
+        draw_calls: draw_calls,
+        checksum: checksum,
+    })
+}
+
+fn print_results(
+    cpu: &CpuMeasurements,
+    frames: &FrameMeasurements,
+    use_parallel: bool,
+    cpu_bytes: usize,
+    gpu_bytes: u64,
+) -> Result<(), AllocError> {
+    let allocator = general_allocator();
+    let updates = BUNNY_COUNT as u64 * SIMULATION_PASSES as u64;
+    let sequential_rate = updates * 1_000_000_000 / cpu.sequential_ns;
+    let parallel_rate = updates * 1_000_000_000 / cpu.parallel_ns;
+    let speedup = cpu.sequential_ns as f64 / cpu.parallel_ns as f64;
+    let average_frame_ns = if frames.frames == 0 {
+        0 as u64
+    } else {
+        frames.total_ns / frames.frames as u64
+    };
+    let measured_fps = if frames.total_ns == 0 {
+        0 as u64
+    } else {
+        frames.frames as u64 * 1_000_000_000 / frames.total_ns
+    };
+    let simulation_per_frame = if frames.frames == 0 { 0 as u64 } else {
+        frames.simulation_ns / frames.frames as u64
+    };
+    let batching_per_frame = if frames.frames == 0 { 0 as u64 } else {
+        frames.batching_ns / frames.frames as u64
+    };
+    let rendering_per_frame = if frames.frames == 0 { 0 as u64 } else {
+        frames.rendering_ns / frames.frames as u64
+    };
+
+    let mut message = String::with_capacity(&allocator, 1_024)?;
+    defer message.deinit();
+    message.push_format(f"Arepita BunnyMark: {BUNNY_COUNT} entities")?;
+    print_message(&message);
+    message.clear();
+    message.push_format(f"sequential: {cpu.sequential_ns} ns for {SIMULATION_PASSES} passes, {sequential_rate} updates/s")?;
+    print_message(&message);
+    message.clear();
+    message.push_format(f"parallel ({cpu.worker_count} workers): {cpu.parallel_ns} ns, {parallel_rate} updates/s, speedup={speedup}x")?;
+    print_message(&message);
+    message.clear();
+    message.push_format(f"render loop: {frames.frames} frames, {frames.total_ns} ns, {measured_fps} FPS, {average_frame_ns} ns/frame")?;
+    print_message(&message);
+    message.clear();
+    message.push_format(f"frame stages: simulation={simulation_per_frame} ns, batch={batching_per_frame} ns, render+present={rendering_per_frame} ns")?;
+    print_message(&message);
+    message.clear();
+    message.push_format(f"submission: {frames.draw_calls} draw calls, {frames.uploaded_bytes} uploaded bytes, parallel_selected={use_parallel}")?;
+    print_message(&message);
+    message.clear();
+    message.push_format(f"tracked memory: CPU={cpu_bytes} bytes, GPU={gpu_bytes} bytes, checksum={frames.checksum}")?;
+    print_message(&message);
+    Ok(())
+}
+
+fn run() -> Result<i32, i32> {
+    let allocator = general_allocator();
+    let mut entities = match Entities::new(&allocator) {
+        Ok(value) => value,
+        Err(_) => {
+            return Err(1);
+        },
+    };
+    defer entities.deinit();
+    let created: Result<ComponentStore<Bunny>, AllocError> =
+        ComponentStore::new(&allocator);
+    let mut bunnies = match created {
+        Ok(value) => value,
+        Err(_) => {
+            return Err(2);
+        },
+    };
+    defer bunnies.deinit();
+    match populate(&mut entities, &mut bunnies) {
+        Ok(_) => {},
+        Err(_) => {
+            return Err(3);
+        },
+    }
+
+    let worker_count = choose_worker_count();
+    let mut pool = match WorkerPool::fixed(&allocator, worker_count) {
+        Ok(value) => value,
+        Err(_) => {
+            return Err(4);
+        },
+    };
+    defer pool.release();
+    let cpu = measure_cpu(&pool, &mut bunnies)?;
+    let use_parallel = cpu.parallel_ns < cpu.sequential_ns;
+
+    let mut host = match WindowHost::create(
+        c"Arepita Engine - BunnyMark",
+        WINDOW_WIDTH,
+        WINDOW_HEIGHT,
+    ) {
+        Ok(value) => value,
+        Err(_) => {
+            return Err(5);
+        },
+    };
+    defer host.release();
+    let mut gamepads = match Gamepads::create(&host, &allocator, 4) {
+        Ok(value) => value,
+        Err(_) => {
+            return Err(6);
+        },
+    };
+    defer gamepads.release();
+    let mut input = Input::new();
+    let window = match host.window() {
+        Ok(value) => value,
+        Err(_) => {
+            return Err(7);
+        },
+    };
+    let renderer_config = RendererConfig::new(BUNNY_COUNT)
+        .with_presentation_mode(PresentationMode::Immediate);
+    let mut renderer = match Renderer::create_with_config(window, renderer_config) {
+        Ok(value) => value,
+        Err(_) => {
+            return Err(8);
+        },
+    };
+    defer renderer.release();
+
+    let mut image = load_bunny(&allocator)?;
+    defer image.release();
+    match renderer.set_sprite_atlas_rgba8(
+        image.width(),
+        image.height(),
+        image.pixels(),
+    ) {
+        Ok(_) => {},
+        Err(_) => {
+            return Err(9);
+        },
+    }
+    let mut batch = match SpriteBatch::with_capacity(&allocator, BUNNY_COUNT) {
+        Ok(value) => value,
+        Err(_) => {
+            return Err(10);
+        },
+    };
+    defer batch.deinit();
+
+    let frames = measured_loop(
+        &host,
+        &mut gamepads,
+        &mut input,
+        &mut renderer,
+        &pool,
+        &mut bunnies,
+        &mut batch,
+        use_parallel,
+    )?;
+    let cpu_bytes = entities.allocated_bytes()
+        + bunnies.allocated_bytes()
+        + batch.allocated_bytes()
+        + image.allocated_bytes();
+    match print_results(
+        &cpu,
+        &frames,
+        use_parallel,
+        cpu_bytes,
+        renderer.allocated_gpu_bytes(),
+    ) {
+        Ok(_) => Ok(0),
+        Err(_) => Err(11),
+    }
+}
+
+fn main() -> i32 {
+    match run() {
+        Ok(code) => code,
+        Err(code) => {
+            let allocator = general_allocator();
+            let mut message = match String::with_capacity(&allocator, 96) {
+                Ok(value) => value,
+                Err(_) => {
+                    return code;
+                },
+            };
+            defer message.deinit();
+            match message.push_format(f"BunnyMark failed with code {code}.") {
+                Ok(_) => {
+                    match eprintln(message.as_str()) { Ok(_) => {}, Err(_) => {} }
+                },
+                Err(_) => {},
+            }
+            code
+        },
+    }
+}

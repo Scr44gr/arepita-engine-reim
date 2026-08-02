@@ -1,0 +1,12 @@
+import self::time;
+
+fn main() -> i32 {
+    let before = time::ticks_ns();
+    time::sleep(1);
+    let after = time::ticks_ns();
+    if after >= before {
+        0
+    } else {
+        1
+    }
+}

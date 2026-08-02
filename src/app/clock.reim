@@ -1,0 +1,58 @@
+from std::time import Duration, Instant;
+
+from self::resource import Resource;
+
+/// Monotonic frame timing with a bounded simulation delta.
+@derive(Copy, Resource)
+pub struct FrameClock {
+    previous: Instant,
+    delta: Duration,
+    elapsed: Duration,
+    frame: u64,
+    maximum_delta: Duration,
+}
+
+impl FrameClock {
+    /// Starts a clock and caps a single simulation step at `maximum_delta`.
+    pub fn start(maximum_delta: Duration) -> FrameClock {
+        let now = Instant::now();
+        FrameClock {
+            previous: now,
+            delta: Duration::from_nanoseconds(0),
+            elapsed: Duration::from_nanoseconds(0),
+            frame: 0,
+            maximum_delta: maximum_delta,
+        }
+    }
+
+    /// Samples the monotonic clock once for the next frame.
+    pub fn tick(&mut self) {
+        let now = Instant::now();
+        let measured = now.duration_since(&self.previous);
+        self.previous = now;
+        self.delta = if measured.as_nanoseconds() > self.maximum_delta.as_nanoseconds() {
+            self.maximum_delta
+        } else {
+            measured
+        };
+        self.elapsed = Duration::from_nanoseconds(
+            self.elapsed.as_nanoseconds().saturating_add(self.delta.as_nanoseconds()),
+        );
+        self.frame = self.frame.wrapping_add(1);
+    }
+
+    /// Returns the bounded duration of the latest frame.
+    pub fn delta(&self) -> Duration {
+        self.delta
+    }
+
+    /// Returns total bounded simulation time.
+    pub fn elapsed(&self) -> Duration {
+        self.elapsed
+    }
+
+    /// Returns the number of completed ticks.
+    pub fn frame(&self) -> u64 {
+        self.frame
+    }
+}

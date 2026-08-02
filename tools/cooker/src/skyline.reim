@@ -1,0 +1,513 @@
+from std::alloc import AllocError, Allocator, general_allocator;
+from std::collections import Vec;
+from std::slice import len;
+
+@derive(Copy, Clone, Debug, Eq)
+pub enum LayoutError {
+    EmptyAtlas,
+    InvalidDimensions,
+    InvalidPadding,
+    SourceTooLarge,
+    AtlasFull,
+    SizeOverflow,
+    OutOfMemory,
+}
+
+/// One input rectangle before padding and extrusion.
+@derive(Copy, Clone, Debug, Eq)
+pub struct SourceRect {
+    pub source_index: usize,
+    pub width: u32,
+    pub height: u32,
+}
+
+/// One deterministic placement excluding its surrounding padding.
+@derive(Copy, Clone, Debug, Eq)
+pub struct Placement {
+    pub source_index: usize,
+    pub x: u32,
+    pub y: u32,
+    pub width: u32,
+    pub height: u32,
+}
+
+/// Allocator-owned placement result in deterministic packing order.
+pub struct AtlasLayout {
+    placements: Vec<Placement>,
+}
+
+impl AtlasLayout {
+    pub fn placements(&self) -> &[Placement] { self.placements.as_slice() }
+    pub fn get(&self, index: usize) -> Option<Placement> { self.placements.get(index) }
+    pub fn len(&self) -> usize { self.placements.len() }
+    pub fn release(&mut self) { self.placements.release(); }
+}
+
+@derive(Copy)
+struct SkylineNode {
+    x: u32,
+    y: u32,
+    width: u32,
+}
+
+@derive(Copy)
+struct Candidate {
+    node_index: usize,
+    x: u32,
+    y: u32,
+    top: u32,
+}
+
+/// Packs rectangles with a deterministic bottom-left skyline.
+///
+/// Larger rectangles are placed first. The hot search uses only compact
+/// `Copy` metadata; pixel payloads never move during packing.
+pub fn pack(
+    allocator: &Allocator,
+    atlas_width: u32,
+    atlas_height: u32,
+    padding: u32,
+    sources: &[SourceRect],
+) -> Result<AtlasLayout, LayoutError> {
+    if atlas_width == 0 || atlas_height == 0 {
+        return Err(LayoutError::InvalidDimensions);
+    }
+    if padding > 32 {
+        return Err(LayoutError::InvalidPadding);
+    }
+    if len(sources) == 0 {
+        return Err(LayoutError::EmptyAtlas);
+    }
+
+    let order_created: Result<Vec<SourceRect>, AllocError> =
+        Vec::with_capacity(allocator, len(sources));
+    let mut order = match order_created {
+        Ok(value) => value,
+        Err(_) => { return Err(LayoutError::OutOfMemory); },
+    };
+    let skyline_created: Result<Vec<SkylineNode>, AllocError> =
+        Vec::with_capacity(allocator, len(sources) + 1);
+    let mut skyline = match skyline_created {
+        Ok(value) => value,
+        Err(_) => {
+            order.release();
+            return Err(LayoutError::OutOfMemory);
+        },
+    };
+    let placements_created: Result<Vec<Placement>, AllocError> =
+        Vec::with_capacity(allocator, len(sources));
+    let mut placements = match placements_created {
+        Ok(value) => value,
+        Err(_) => {
+            order.release();
+            skyline.release();
+            return Err(LayoutError::OutOfMemory);
+        },
+    };
+
+    let mut index: usize = 0;
+    while index < len(sources) {
+        let source = sources[index];
+        if source.width == 0 || source.height == 0 {
+            order.release();
+            skyline.release();
+            placements.release();
+            return Err(LayoutError::InvalidDimensions);
+        }
+        let padded_width = match padded_extent(source.width, padding) {
+            Some(value) => value,
+            None => {
+                order.release();
+                skyline.release();
+                placements.release();
+                return Err(LayoutError::SizeOverflow);
+            },
+        };
+        let padded_height = match padded_extent(source.height, padding) {
+            Some(value) => value,
+            None => {
+                order.release();
+                skyline.release();
+                placements.release();
+                return Err(LayoutError::SizeOverflow);
+            },
+        };
+        if padded_width > atlas_width || padded_height > atlas_height {
+            order.release();
+            skyline.release();
+            placements.release();
+            return Err(LayoutError::SourceTooLarge);
+        }
+        if !order.push_within_capacity(source) {
+            panic("prepared source ordering capacity was unavailable")
+        }
+        index += 1;
+    }
+    {
+        let count = order.len();
+        let values = order.as_mut_slice();
+        sort_sources(values, count);
+    }
+    let initial_node = SkylineNode {
+        x: 0,
+        y: 0,
+        width: atlas_width,
+    };
+    if !skyline.push_within_capacity(initial_node) {
+        panic("prepared skyline capacity was unavailable")
+    }
+
+    index = 0;
+    while index < order.len() {
+        let source = match order.get(index) {
+            Some(value) => value,
+            None => panic("source ordering index escaped its table"),
+        };
+        let padded_width = match padded_extent(source.width, padding) {
+            Some(value) => value,
+            None => panic("validated source padding overflowed"),
+        };
+        let padded_height = match padded_extent(source.height, padding) {
+            Some(value) => value,
+            None => panic("validated source padding overflowed"),
+        };
+        let candidate = match find_position(
+            &skyline,
+            atlas_width,
+            atlas_height,
+            padded_width,
+            padded_height,
+        ) {
+            Some(value) => value,
+            None => {
+                order.release();
+                skyline.release();
+                placements.release();
+                return Err(LayoutError::AtlasFull);
+            },
+        };
+        match add_level(
+            &mut skyline,
+            candidate,
+            padded_width,
+            padded_height,
+        ) {
+            Ok(_) => {},
+            Err(error) => {
+                order.release();
+                skyline.release();
+                placements.release();
+                return Err(error);
+            },
+        }
+        let placement = Placement {
+            source_index: source.source_index,
+            x: candidate.x + padding,
+            y: candidate.y + padding,
+            width: source.width,
+            height: source.height,
+        };
+        if !placements.push_within_capacity(placement) {
+            panic("prepared placement capacity was unavailable")
+        }
+        index += 1;
+    }
+    order.release();
+    skyline.release();
+    Ok(AtlasLayout { placements: placements })
+}
+
+fn padded_extent(value: u32, padding: u32) -> Option<u32> {
+    let total = value as u64 + padding as u64 * 2;
+    if total > 4_294_967_295 {
+        None
+    } else {
+        Some(total as u32)
+    }
+}
+
+fn find_position(
+    skyline: &Vec<SkylineNode>,
+    atlas_width: u32,
+    atlas_height: u32,
+    width: u32,
+    height: u32,
+) -> Option<Candidate> {
+    let mut best: Option<Candidate> = None;
+    let mut index: usize = 0;
+    while index < skyline.len() {
+        let node = match skyline.get(index) {
+            Some(value) => value,
+            None => panic("skyline index escaped its table"),
+        };
+        let y = match fit_y(skyline, index, atlas_width, width) {
+            Some(value) => value,
+            None => {
+                index += 1;
+                continue;
+            },
+        };
+        if y as u64 + height as u64 <= atlas_height as u64 {
+            let candidate = Candidate {
+                node_index: index,
+                x: node.x,
+                y: y,
+                top: y + height,
+            };
+            let replace = match best {
+                Some(current) => {
+                    candidate.top < current.top
+                        || (candidate.top == current.top && candidate.y < current.y)
+                        || (candidate.top == current.top
+                            && candidate.y == current.y
+                            && candidate.x < current.x)
+                },
+                None => true,
+            };
+            if replace { best = Some(candidate); }
+        }
+        index += 1;
+    }
+    best
+}
+
+fn fit_y(
+    skyline: &Vec<SkylineNode>,
+    start: usize,
+    atlas_width: u32,
+    width: u32,
+) -> Option<u32> {
+    let first = match skyline.get(start) {
+        Some(value) => value,
+        None => { return None; },
+    };
+    if first.x as u64 + width as u64 > atlas_width as u64 {
+        return None;
+    }
+    let mut remaining = width;
+    let mut cursor = start;
+    let mut y: u32 = 0;
+    while remaining > 0 {
+        let node = match skyline.get(cursor) {
+            Some(value) => value,
+            None => { return None; },
+        };
+        if node.y > y { y = node.y; }
+        if node.width >= remaining {
+            remaining = 0;
+        } else {
+            remaining -= node.width;
+            cursor += 1;
+        }
+    }
+    Some(y)
+}
+
+fn add_level(
+    skyline: &mut Vec<SkylineNode>,
+    candidate: Candidate,
+    width: u32,
+    height: u32,
+) -> Result<(), LayoutError> {
+    let level = SkylineNode {
+        x: candidate.x,
+        y: candidate.y + height,
+        width: width,
+    };
+    match skyline.insert(candidate.node_index, level) {
+        Ok(true) => {},
+        Ok(false) => panic("skyline insertion index escaped its table"),
+        Err(_) => { return Err(LayoutError::OutOfMemory); },
+        _ => { return Err(LayoutError::OutOfMemory); },
+    }
+    let mut cursor = candidate.node_index + 1;
+    while cursor < skyline.len() {
+        let previous = match skyline.get(cursor - 1) {
+            Some(value) => value,
+            None => panic("skyline previous node disappeared"),
+        };
+        let current = match skyline.get(cursor) {
+            Some(value) => value,
+            None => panic("skyline current node disappeared"),
+        };
+        let previous_end = previous.x + previous.width;
+        if current.x >= previous_end {
+            break;
+        }
+        let overlap = previous_end - current.x;
+        if overlap >= current.width {
+            match skyline.remove(cursor) {
+                Some(_) => {},
+                None => panic("skyline overlap removal failed"),
+            }
+        } else {
+            let replacement = SkylineNode {
+                x: current.x + overlap,
+                y: current.y,
+                width: current.width - overlap,
+            };
+            if !skyline.set(cursor, replacement) {
+                panic("skyline overlap update failed")
+            }
+            break;
+        }
+    }
+    cursor = 0;
+    while cursor + 1 < skyline.len() {
+        let current = match skyline.get(cursor) {
+            Some(value) => value,
+            None => panic("skyline merge node disappeared"),
+        };
+        let next = match skyline.get(cursor + 1) {
+            Some(value) => value,
+            None => panic("skyline merge successor disappeared"),
+        };
+        if current.y == next.y {
+            let merged = SkylineNode {
+                x: current.x,
+                y: current.y,
+                width: current.width + next.width,
+            };
+            if !skyline.set(cursor, merged) {
+                panic("skyline merge update failed")
+            }
+            match skyline.remove(cursor + 1) {
+                Some(_) => {},
+                None => panic("skyline merge removal failed"),
+            }
+        } else {
+            cursor += 1;
+        }
+    }
+    Ok(())
+}
+
+fn sort_sources(values: &mut [SourceRect], count: usize) {
+    if count < 2 { return; }
+    let mut start = count / 2;
+    while start > 0 {
+        start -= 1;
+        sift_sources(values, start, count);
+    }
+    let mut end = count;
+    while end > 1 {
+        end -= 1;
+        let first = values[0];
+        values[0] = values[end];
+        values[end] = first;
+        sift_sources(values, 0, end);
+    }
+    let mut left: usize = 0;
+    let mut right = count - 1;
+    while left < right {
+        let value = values[left];
+        values[left] = values[right];
+        values[right] = value;
+        left += 1;
+        right -= 1;
+    }
+}
+
+fn sift_sources(values: &mut [SourceRect], root: usize, end: usize) {
+    let mut parent = root;
+    while parent < end / 2 {
+        let left = parent * 2 + 1;
+        let right = left + 1;
+        let mut greatest = left;
+        if right < end && source_less(values[left], values[right]) {
+            greatest = right;
+        }
+        if !source_less(values[parent], values[greatest]) {
+            return;
+        }
+        let value = values[parent];
+        values[parent] = values[greatest];
+        values[greatest] = value;
+        parent = greatest;
+    }
+}
+
+fn source_less(left: SourceRect, right: SourceRect) -> bool {
+    let left_max = if left.width > left.height { left.width } else { left.height };
+    let right_max = if right.width > right.height { right.width } else { right.height };
+    if left_max != right_max { return left_max < right_max; }
+    let left_area = left.width as u64 * left.height as u64;
+    let right_area = right.width as u64 * right.height as u64;
+    if left_area != right_area { return left_area < right_area; }
+    if left.height != right.height { return left.height < right.height; }
+    if left.width != right.width { return left.width < right.width; }
+    left.source_index > right.source_index
+}
+
+fn overlaps(left: Placement, right: Placement) -> bool {
+    left.x < right.x + right.width
+        && right.x < left.x + left.width
+        && left.y < right.y + right.height
+        && right.y < left.y + left.height
+}
+
+@test
+fn skyline_should_pack_in_bounds_without_overlap() {
+    let allocator = general_allocator();
+    let sources: [SourceRect; 6] = [
+        SourceRect { source_index: 0, width: 20, height: 12 },
+        SourceRect { source_index: 1, width: 8, height: 30 },
+        SourceRect { source_index: 2, width: 16, height: 16 },
+        SourceRect { source_index: 3, width: 9, height: 7 },
+        SourceRect { source_index: 4, width: 11, height: 10 },
+        SourceRect { source_index: 5, width: 4, height: 4 },
+    ];
+    let mut layout = match pack(&allocator, 64, 64, 1, &sources) {
+        Ok(value) => value,
+        Err(_) => panic("valid skyline layout failed"),
+    };
+    defer layout.release();
+    assert(layout.len() == 6);
+    let placements = layout.placements();
+    let mut index: usize = 0;
+    while index < len(placements) {
+        let placement = placements[index];
+        assert(placement.x + placement.width <= 64);
+        assert(placement.y + placement.height <= 64);
+        let mut other = index + 1;
+        while other < len(placements) {
+            assert(!overlaps(placement, placements[other]));
+            other += 1;
+        }
+        index += 1;
+    }
+}
+
+@test
+fn skyline_should_be_deterministic_and_report_capacity_failure() {
+    let allocator = general_allocator();
+    let sources: [SourceRect; 4] = [
+        SourceRect { source_index: 0, width: 8, height: 8 },
+        SourceRect { source_index: 1, width: 8, height: 8 },
+        SourceRect { source_index: 2, width: 8, height: 8 },
+        SourceRect { source_index: 3, width: 8, height: 8 },
+    ];
+    let mut first = match pack(&allocator, 32, 32, 1, &sources) {
+        Ok(value) => value,
+        Err(_) => panic("first skyline layout failed"),
+    };
+    defer first.release();
+    let mut second = match pack(&allocator, 32, 32, 1, &sources) {
+        Ok(value) => value,
+        Err(_) => panic("second skyline layout failed"),
+    };
+    defer second.release();
+    let first_values = first.placements();
+    let second_values = second.placements();
+    let mut index: usize = 0;
+    while index < len(first_values) {
+        assert(first_values[index] == second_values[index]);
+        index += 1;
+    }
+    assert(match pack(&allocator, 8, 8, 1, &sources) {
+        Err(LayoutError::SourceTooLarge) => true,
+        Err(LayoutError::AtlasFull) => true,
+        Ok(mut value) => { value.release(); false },
+        _ => false,
+    });
+}

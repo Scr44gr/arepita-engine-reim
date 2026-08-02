@@ -1,0 +1,12 @@
+[package]
+name = "media-codecs"
+version = "0.1.0"
+edition = "2026"
+
+[dependencies]
+
+[profile.debug]
+optimization = 0
+
+[profile.release]
+optimization = 3

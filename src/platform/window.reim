@@ -1,0 +1,104 @@
+from sdl3 import Event, Subsystems, Window;
+import sdl3::events as events;
+import sdl3::init as init;
+import sdl3::raw::constants as constants;
+
+/// Recoverable window-host initialization failures.
+@derive(Copy, Clone, Debug, Eq)
+pub enum WindowHostError {
+    Released,
+    SubsystemInitializationFailed,
+    WindowCreationFailed,
+}
+
+/// Owns the SDL event/video reference and its primary window.
+///
+/// `release` always destroys the window before releasing SDL subsystems.
+pub struct WindowHost {
+    subsystems: Subsystems,
+    window: Window,
+    released: bool,
+}
+
+impl WindowHost {
+    /// Creates a visible, resizable, high-density application window.
+    pub fn create(
+        title: cstr,
+        width: i32,
+        height: i32,
+    ) -> Result<WindowHost, WindowHostError> {
+        let mut subsystems = match Subsystems::init(
+            init::VIDEO | init::EVENTS | init::GAMEPAD,
+        ) {
+            Ok(value) => value,
+            Err(_) => {
+                return Err(WindowHostError::SubsystemInitializationFailed);
+            },
+        };
+        let window = match Window::create(
+            title,
+            width,
+            height,
+            constants::SDL_WINDOW_RESIZABLE | constants::SDL_WINDOW_HIGH_PIXEL_DENSITY,
+        ) {
+            Ok(value) => value,
+            Err(_) => {
+                subsystems.release();
+                return Err(WindowHostError::WindowCreationFailed);
+            },
+        };
+        Ok(WindowHost {
+            subsystems: subsystems,
+            window: window,
+            released: false,
+        })
+    }
+
+    /// Borrows the primary window.
+    pub fn window(&self) -> Result<&Window, WindowHostError> {
+        if self.released {
+            Err(WindowHostError::Released)
+        } else {
+            Ok(&self.window)
+        }
+    }
+
+    /// Mutably borrows the primary window for title or size changes.
+    pub fn window_mut(&mut self) -> Result<&mut Window, WindowHostError> {
+        if self.released {
+            Err(WindowHostError::Released)
+        } else {
+            Ok(&mut self.window)
+        }
+    }
+
+    /// Borrows the initialized native subsystems for other platform owners.
+    ///
+    /// Resources created from this borrow, such as `Gamepads`, must be
+    /// released before the host.
+    pub fn subsystems(&self) -> Result<&Subsystems, WindowHostError> {
+        if self.released {
+            Err(WindowHostError::Released)
+        } else {
+            Ok(&self.subsystems)
+        }
+    }
+
+    /// Removes one queued SDL event without blocking.
+    pub fn poll_event(&self) -> Option<Event> {
+        if self.released { None } else { events::poll() }
+    }
+
+    /// Returns whether the host has crossed its final release barrier.
+    pub fn is_released(&self) -> bool { self.released }
+
+    /// Destroys the window and releases the SDL subsystem reference.
+    pub fn release(&mut self) {
+        if self.released {
+            return;
+        }
+        self.window.release();
+        self.subsystems.release();
+        self.released = true;
+    }
+}

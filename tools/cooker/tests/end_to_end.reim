@@ -1,0 +1,187 @@
+from std::alloc import AllocError, general_allocator;
+from std::binary import read_u32_le;
+from std::fs import FileBuffer, canonicalize, create, open, remove_file, write_string;
+from std::slice import len;
+from std::string import String;
+
+from self::pathing import parent;
+from self::pipeline import CookError, cook;
+from self::source import SourceError, read_bounded;
+
+const IMAGE_PATH: str = "arepita-cooker-e2e.png";
+const AUDIO_PATH: str = "arepita-cooker-e2e.wav";
+const MANIFEST_PATH: str = "arepita-cooker-e2e.toml";
+const OUTPUT_PATH: str = "arepita-cooker-e2e.apack";
+
+fn main() -> i32 {
+    remove_if_present(IMAGE_PATH);
+    remove_if_present(AUDIO_PATH);
+    remove_if_present(MANIFEST_PATH);
+    remove_if_present(OUTPUT_PATH);
+    defer remove_if_present(IMAGE_PATH);
+    defer remove_if_present(AUDIO_PATH);
+    defer remove_if_present(MANIFEST_PATH);
+    defer remove_if_present(OUTPUT_PATH);
+
+    let png: [u8; 68] = [
+        137, 80, 78, 71, 13, 10, 26, 10,
+        0, 0, 0, 13, 73, 72, 68, 82,
+        0, 0, 0, 1, 0, 0, 0, 1,
+        8, 4, 0, 0, 0, 181, 28, 12,
+        2, 0, 0, 0, 11, 73, 68, 65,
+        84, 120, 218, 99, 100, 248, 15, 0,
+        1, 5, 1, 1, 39, 24, 227, 102,
+        0, 0, 0, 0, 73, 69, 78, 68,
+        174, 66, 96, 130,
+    ];
+    let wave: [u8; 48] = [
+        82, 73, 70, 70, 40, 0, 0, 0,
+        87, 65, 86, 69, 102, 109, 116, 32,
+        16, 0, 0, 0, 1, 0, 1, 0,
+        64, 31, 0, 0, 128, 62, 0, 0,
+        2, 0, 16, 0, 100, 97, 116, 97,
+        4, 0, 0, 0, 0, 128, 255, 127,
+    ];
+    if !write_bytes(IMAGE_PATH, &png) || !write_bytes(AUDIO_PATH, &wave) {
+        return 1;
+    }
+    let manifest = "[[atlases]]\nid = \"test/atlas\"\nwidth = 8\nheight = 8\npadding = 1\n\n[[atlases.sprites]]\nid = \"test/pixel-a\"\npath = \"arepita-cooker-e2e.png\"\nsource_x = 0\nsource_y = 0\nsource_width = 1\nsource_height = 1\n\n[[atlases.sprites]]\nid = \"test/pixel-b\"\npath = \"arepita-cooker-e2e.png\"\nsource_x = 0\nsource_y = 0\nsource_width = 1\nsource_height = 1\n\n[[atlases.sprites]]\nid = \"test/pixel-c\"\npath = \"arepita-cooker-e2e.png\"\nsource_x = 0\nsource_y = 0\nsource_width = 1\nsource_height = 1\n\n[[atlases.sprites]]\nid = \"test/pixel-d\"\npath = \"arepita-cooker-e2e.png\"\nsource_x = 0\nsource_y = 0\nsource_width = 1\nsource_height = 1\n\n[[audio]]\nid = \"test/sound\"\npath = \"arepita-cooker-e2e.wav\"\n";
+    if match write_string(MANIFEST_PATH, manifest) {
+        Ok(_) => false,
+        Err(_) => true,
+    } {
+        return 2;
+    }
+
+    let allocator = general_allocator();
+    let mut canonical = match canonicalize(MANIFEST_PATH, &allocator) {
+        Ok(value) => value,
+        Err(_) => { return 20; },
+    };
+    let copied_root: Result<String, AllocError> = {
+        let path = canonical.as_str();
+        match parent(path) {
+            Some(value) => String::from(&allocator, value),
+            None => Err(std::alloc::AllocError::OutOfMemory),
+        }
+    };
+    canonical.release();
+    let mut root = match copied_root {
+        Ok(value) => value,
+        Err(_) => { return 21; },
+    };
+    let probe = {
+        let path = root.as_str();
+        read_bounded(&allocator, path, IMAGE_PATH, 1_024)
+    };
+    let probe_code = match probe {
+        Ok(value) => { value.deinit(); 0 },
+        Err(SourceError::InvalidPath) => 22,
+        Err(SourceError::OutsideRoot) => 23,
+        Err(SourceError::NotRegularFile) => 24,
+        Err(SourceError::SourceTooLarge) => 25,
+        Err(SourceError::OutOfMemory) => 26,
+        Err(SourceError::ReadFailed) => 27,
+        _ => 28,
+    };
+    root.release();
+    if probe_code != 0 { return probe_code; }
+    match cook(&allocator, MANIFEST_PATH, OUTPUT_PATH) {
+        Ok(_) => {},
+        Err(CookError::ManifestPath) => { return 30; },
+        Err(CookError::ManifestTooLarge) => { return 31; },
+        Err(CookError::ManifestRead) => { return 32; },
+        Err(CookError::ManifestInvalid) => { return 33; },
+        Err(CookError::OutputPath) => { return 34; },
+        Err(CookError::AtlasInvalidDimensions) => { return 35; },
+        Err(CookError::AtlasSource) => { return 36; },
+        Err(CookError::AtlasDecode) => { return 37; },
+        Err(CookError::AtlasLayout) => { return 38; },
+        Err(CookError::AtlasComposite) => { return 39; },
+        Err(CookError::AtlasFailed) => { return 40; },
+        Err(CookError::AudioFailed) => { return 41; },
+        Err(CookError::PackFailed) => { return 42; },
+        Err(CookError::OutOfMemory) => { return 43; },
+        _ => { return 44; },
+    }
+    let mut first = match read_all(&allocator, OUTPUT_PATH) {
+        Some(value) => value,
+        None => { return 4; },
+    };
+    let count = {
+        let bytes = first.as_bytes();
+        read_u32_le(bytes, 16)
+    };
+    let count = match count {
+        Some(value) => value,
+        None => {
+            first.release();
+            return 5;
+        },
+    };
+    if count != 6 {
+        first.release();
+        return 6;
+    }
+
+    // A second build must replace the destination and remain byte-identical.
+    match cook(&allocator, MANIFEST_PATH, OUTPUT_PATH) {
+        Ok(_) => {},
+        Err(_) => {
+            first.release();
+            return 7;
+        },
+    }
+    let mut second = match read_all(&allocator, OUTPUT_PATH) {
+        Some(value) => value,
+        None => {
+            first.release();
+            return 8;
+        },
+    };
+    let same = {
+        let left = first.as_bytes();
+        let right = second.as_bytes();
+        bytes_equal(left, right)
+    };
+    first.release();
+    second.release();
+    if same { 0 } else { 9 }
+}
+
+fn write_bytes(path: str, bytes: &[u8]) -> bool {
+    let mut file = match create(path) {
+        Ok(value) => value,
+        Err(_) => { return false; },
+    };
+    let result = file.write_bytes(bytes);
+    file.deinit();
+    match result { Ok(_) => true, Err(_) => false }
+}
+
+fn read_all(
+    allocator: &std::alloc::Allocator,
+    path: str,
+) -> Option<FileBuffer> {
+    let mut file = match open(path) {
+        Ok(value) => value,
+        Err(_) => { return None; },
+    };
+    let read = file.read_to_end(allocator);
+    file.deinit();
+    match read { Ok(value) => Some(value), Err(_) => None }
+}
+
+fn bytes_equal(left: &[u8], right: &[u8]) -> bool {
+    if len(left) != len(right) { return false; }
+    let mut index: usize = 0;
+    while index < len(left) {
+        if left[index] != right[index] { return false; }
+        index += 1;
+    }
+    true
+}
+
+fn remove_if_present(path: str) {
+    match remove_file(path) { Ok(_) => {}, Err(_) => {} }
+}

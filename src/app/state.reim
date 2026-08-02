@@ -1,0 +1,87 @@
+/// One applied state change at an explicit schedule barrier.
+@derive(Copy, Clone, Debug)
+pub struct StateTransition<S> {
+    pub previous: S,
+    pub current: S,
+    pub revision: u64,
+}
+
+/// Deferred finite-state resource for scenes and gameplay modes.
+///
+/// Requests do not mutate the active state until `apply` is called. This keeps
+/// all systems in one stage on a consistent state and gives exit/enter logic a
+/// deterministic barrier.
+pub struct StateMachine<S> {
+    current: S,
+    pending: Option<S>,
+    revision: u64,
+}
+
+impl<S: Copy + Eq> StateMachine<S> {
+    pub fn new(initial: S) -> StateMachine<S> {
+        StateMachine { current: initial, pending: None, revision: 0 }
+    }
+
+    pub fn current(&self) -> S { self.current }
+    pub fn pending(&self) -> Option<S> { self.pending }
+    pub fn revision(&self) -> u64 { self.revision }
+    pub fn is(&self, state: S) -> bool { self.current == state }
+
+    /// Requests a state for the next barrier and returns the replaced request.
+    pub fn request(&mut self, next: S) -> Option<S> {
+        let previous = self.pending;
+        self.pending = Some(next);
+        previous
+    }
+
+    pub fn cancel(&mut self) -> Option<S> {
+        let previous = self.pending;
+        self.pending = None;
+        previous
+    }
+
+    /// Applies the pending request, returning `None` for no-op transitions.
+    pub fn apply(&mut self) -> Option<StateTransition<S>> {
+        let next = self.pending?;
+        self.pending = None;
+        if next == self.current {
+            return None;
+        }
+        let previous = self.current;
+        self.current = next;
+        self.revision = self.revision.wrapping_add(1);
+        Some(StateTransition {
+            previous: previous,
+            current: next,
+            revision: self.revision,
+        })
+    }
+}
+
+@derive(Copy, Clone, Debug, Eq)
+enum TestScene {
+    Menu,
+    World,
+}
+
+@test
+fn state_machine_should_apply_only_at_explicit_barriers() {
+    let mut state = StateMachine::new(TestScene::Menu);
+    assert(state.is(TestScene::Menu));
+    let _ = state.request(TestScene::World);
+    assert(state.is(TestScene::Menu));
+    let transition = match state.apply() {
+        Some(value) => value,
+        None => panic("requested state transition was ignored"),
+    };
+    assert(transition.previous == TestScene::Menu);
+    assert(transition.current == TestScene::World);
+    assert(transition.revision == 1);
+    assert(state.is(TestScene::World));
+    let _ = state.request(TestScene::World);
+    assert(match state.apply() {
+        Some(_) => false,
+        None => true,
+    });
+    assert(state.revision() == 1);
+}

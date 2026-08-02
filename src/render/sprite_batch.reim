@@ -1,0 +1,618 @@
+from std::alloc import AllocError, Allocator, general_allocator;
+from std::binary import to_f32_bits;
+from std::collections import Vec;
+from std::math import cosine, sine;
+
+const SOLID_MATERIAL_INDEX: u16 = 65_535;
+
+/// Recoverable failures on a frame-stable sprite batch.
+@derive(Copy, Clone, Debug, Eq)
+pub enum BatchError {
+    CapacityExceeded,
+}
+
+/// Recoverable failures while ordering a transparent sprite batch.
+@derive(Copy, Clone, Debug, Eq)
+pub enum SortError {
+    ScratchNotPrepared,
+    NonFiniteDepth,
+}
+
+/// Normalized UV rectangle inside a sprite atlas.
+@derive(Copy, Clone, Debug)
+pub struct AtlasRegion {
+    pub min_x: f32,
+    pub min_y: f32,
+    pub max_x: f32,
+    pub max_y: f32,
+}
+
+impl AtlasRegion {
+    /// Selects the complete atlas.
+    pub fn full() -> AtlasRegion {
+        AtlasRegion { min_x: 0.0, min_y: 0.0, max_x: 1.0, max_y: 1.0 }
+    }
+
+    /// Converts a validated pixel rectangle to normalized UV coordinates.
+    pub fn from_pixels(
+        atlas_width: u32,
+        atlas_height: u32,
+        x: u32,
+        y: u32,
+        width: u32,
+        height: u32,
+    ) -> Option<AtlasRegion> {
+        if atlas_width == 0
+            || atlas_height == 0
+            || x > atlas_width
+            || y > atlas_height
+            || width > atlas_width - x
+            || height > atlas_height - y
+        {
+            return None;
+        }
+        Some(AtlasRegion {
+            min_x: x as f32 / atlas_width as f32,
+            min_y: y as f32 / atlas_height as f32,
+            max_x: (x + width) as f32 / atlas_width as f32,
+            max_y: (y + height) as f32 / atlas_height as f32,
+        })
+    }
+}
+
+/// Linear color multiplier applied to a sampled sprite.
+@derive(Copy, Clone, Debug)
+pub struct SpriteColor {
+    pub r: f32,
+    pub g: f32,
+    pub b: f32,
+    pub a: f32,
+}
+
+impl SpriteColor {
+    pub fn rgba(r: f32, g: f32, b: f32, a: f32) -> SpriteColor {
+        SpriteColor { r: r, g: g, b: b, a: a }
+    }
+
+    pub fn white() -> SpriteColor {
+        SpriteColor::rgba(1.0, 1.0, 1.0, 1.0)
+    }
+}
+
+/// One GPU-ready sprite instance.
+///
+/// Instances are plain 16-byte-aligned data and contain handles/indices rather
+/// than owning textures or strings.
+@repr(C)
+@align(16)
+@derive(Pod, Debug)
+pub struct SpriteInstance {
+    pub position_x: f32,
+    pub position_y: f32,
+    pub size_x: f32,
+    pub size_y: f32,
+    pub rotation_sine: f32,
+    pub rotation_cosine: f32,
+    pub uv_min_x: f32,
+    pub uv_min_y: f32,
+    pub uv_max_x: f32,
+    pub uv_max_y: f32,
+    pub color_r: f32,
+    pub color_g: f32,
+    pub color_b: f32,
+    pub color_a: f32,
+    pub material_data: u16,
+    pub material_index: u16,
+    pub depth: f32,
+}
+
+impl SpriteInstance {
+    /// Creates an unrotated white sprite using the complete atlas.
+    pub fn new(
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+    ) -> SpriteInstance {
+        SpriteInstance {
+            position_x: x,
+            position_y: y,
+            size_x: width,
+            size_y: height,
+            rotation_sine: 0.0,
+            rotation_cosine: 1.0,
+            uv_min_x: 0.0,
+            uv_min_y: 0.0,
+            uv_max_x: 1.0,
+            uv_max_y: 1.0,
+            color_r: 1.0,
+            color_g: 1.0,
+            color_b: 1.0,
+            color_a: 1.0,
+            material_data: 0,
+            material_index: 0,
+            depth: 0.0,
+        }
+    }
+
+    /// Creates an untextured solid-color instance.
+    ///
+    /// The sprite pipeline bypasses atlas sampling for this reserved material,
+    /// so rectangles do not depend on a white pixel in the active atlas.
+    pub fn solid(
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+        color: SpriteColor,
+    ) -> SpriteInstance {
+        let mut value = SpriteInstance::new(x, y, width, height)
+            .with_color(color);
+        value.material_index = SOLID_MATERIAL_INDEX;
+        value
+    }
+
+    /// Selects a normalized atlas region.
+    pub fn with_region(self, region: AtlasRegion) -> SpriteInstance {
+        let mut value = self;
+        value.uv_min_x = region.min_x;
+        value.uv_min_y = region.min_y;
+        value.uv_max_x = region.max_x;
+        value.uv_max_y = region.max_y;
+        value
+    }
+
+    /// Applies a linear RGBA color multiplier.
+    pub fn with_color(self, color: SpriteColor) -> SpriteInstance {
+        let mut value = self;
+        value.color_r = color.r;
+        value.color_g = color.g;
+        value.color_b = color.b;
+        value.color_a = color.a;
+        value
+    }
+
+    /// Sets clockwise rotation in radians.
+    pub fn with_rotation(self, radians: f32) -> SpriteInstance {
+        let mut value = self;
+        value.rotation_sine = sine(radians);
+        value.rotation_cosine = cosine(radians);
+        value
+    }
+
+    /// Sets clip-space depth used by later sorting/depth layers.
+    pub fn with_depth(self, depth: f32) -> SpriteInstance {
+        let mut value = self;
+        value.depth = depth;
+        value
+    }
+
+    /// Selects a material slot for later material batching.
+    pub fn with_material(self, material: u16) -> SpriteInstance {
+        let mut value = self;
+        value.material_index = material;
+        value
+    }
+
+    /// Supplies one application-defined 16-bit value to the active material.
+    ///
+    /// The value occupies the low half of shader location 4. The engine does
+    /// not interpret it, so custom material shaders can use it for compact
+    /// indices, flags, or quantized coordinates without widening the stable
+    /// 64-byte instance ABI.
+    pub fn with_material_data(self, data: u16) -> SpriteInstance {
+        let mut value = self;
+        value.material_data = data;
+        value
+    }
+}
+
+@test
+fn solid_sprite_should_use_the_reserved_material() {
+    let instance = SpriteInstance::solid(
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        SpriteColor::rgba(0.2, 0.3, 0.4, 1.0),
+    );
+    assert(instance.material_index == SOLID_MATERIAL_INDEX);
+    assert(instance.color_g == 0.3);
+}
+
+@test
+fn sprite_rotation_should_precompute_identity_basis() {
+    let instance = SpriteInstance::new(0.0, 0.0, 1.0, 1.0)
+        .with_rotation(0.0);
+    assert(instance.rotation_sine == 0.0);
+    assert(instance.rotation_cosine == 1.0);
+}
+
+@test
+fn material_data_should_not_change_the_instance_abi() {
+    let instance = SpriteInstance::new(0.0, 0.0, 1.0, 1.0)
+        .with_material(7)
+        .with_material_data(48_321);
+    assert(instance.material_index == 7);
+    assert(instance.material_data == 48_321);
+}
+
+fn test_sprite(depth: f32) -> SpriteInstance {
+    SpriteInstance::new(0.0, 0.0, 16.0, 16.0).with_depth(depth)
+}
+
+@test
+fn atlas_region_should_validate_pixel_bounds() {
+    let region = match AtlasRegion::from_pixels(256, 128, 64, 32, 64, 32) {
+        Some(value) => value,
+        None => panic("valid atlas region was rejected"),
+    };
+    assert(region.min_x == 0.25);
+    assert(region.min_y == 0.25);
+    assert(region.max_x == 0.5);
+    assert(region.max_y == 0.5);
+    assert(match AtlasRegion::from_pixels(16, 16, 15, 0, 2, 1) {
+        Some(_) => false,
+        None => true,
+    });
+}
+
+@test
+fn sprite_batch_should_reuse_prepared_capacity_between_frames() {
+    let allocator = general_allocator();
+    let mut batch = match SpriteBatch::with_capacity(&allocator, 2) {
+        Ok(value) => value,
+        Err(_) => panic("sprite batch allocation failed"),
+    };
+    defer batch.deinit();
+
+    let reserved = batch.allocated_bytes();
+    match batch.push(test_sprite(0.0)) {
+        Ok(_) => {},
+        Err(_) => panic("first sprite insert failed"),
+    }
+    match batch.push(test_sprite(1.0)) {
+        Ok(_) => {},
+        Err(_) => panic("second sprite insert failed"),
+    }
+    assert(batch.len() == 2);
+
+    batch.clear();
+    assert(batch.len() == 0);
+    assert(batch.allocated_bytes() == reserved);
+    match batch.push(test_sprite(2.0)) {
+        Ok(_) => {},
+        Err(_) => panic("reused sprite insert failed"),
+    }
+    assert(batch.len() == 1);
+    assert(batch.allocated_bytes() == reserved);
+}
+
+/// Reusable CPU-side instance batch.
+///
+/// Call `prepare` during loading, then `clear` and `push` every frame without
+/// allocating while the prepared capacity is respected.
+pub struct SpriteBatch {
+    instances: Vec<SpriteInstance>,
+    sort_scratch: Vec<SpriteInstance>,
+    sort_counts: Vec<usize>,
+    sort_offsets: Vec<usize>,
+}
+
+impl SpriteBatch {
+    /// Creates a batch prepared for at least `capacity` sprites.
+    pub fn with_capacity(
+        allocator: &Allocator,
+        capacity: usize,
+    ) -> Result<SpriteBatch, AllocError> {
+        let created: Result<Vec<SpriteInstance>, AllocError> =
+            Vec::with_capacity(allocator, capacity);
+        let mut instances = created?;
+        let scratch_result: Result<Vec<SpriteInstance>, AllocError> =
+            Vec::new(allocator);
+        let mut sort_scratch = match scratch_result {
+            Ok(value) => value,
+            Err(error) => {
+                instances.release();
+                return Err(error);
+            },
+        };
+        let counts_result: Result<Vec<usize>, AllocError> = Vec::new(allocator);
+        let mut sort_counts = match counts_result {
+            Ok(value) => value,
+            Err(error) => {
+                sort_scratch.release();
+                instances.release();
+                return Err(error);
+            },
+        };
+        let offsets_result: Result<Vec<usize>, AllocError> = Vec::new(allocator);
+        let sort_offsets = match offsets_result {
+            Ok(value) => value,
+            Err(error) => {
+                sort_counts.release();
+                sort_scratch.release();
+                instances.release();
+                return Err(error);
+            },
+        };
+        Ok(SpriteBatch {
+            instances: instances,
+            sort_scratch: sort_scratch,
+            sort_counts: sort_counts,
+            sort_offsets: sort_offsets,
+        })
+    }
+
+    /// Ensures that `additional` more instances fit without growth.
+    pub fn reserve(&mut self, additional: usize) -> Result<(), AllocError> {
+        self.instances.reserve(additional)
+    }
+
+    /// Prepares scratch storage for stable transparent ordering.
+    ///
+    /// Call this during loading. Sorting later returns an error instead of
+    /// growing storage when more live instances are present than prepared.
+    pub fn prepare_sorting(&mut self, capacity: usize) -> Result<(), AllocError> {
+        if capacity > self.sort_scratch.capacity() {
+            self.sort_scratch.reserve(capacity)?;
+        }
+        if self.sort_counts.len() < 256 {
+            self.sort_counts.reserve(256 - self.sort_counts.len())?;
+            while self.sort_counts.len() < 256 {
+                if !self.sort_counts.push_within_capacity(0 as usize) {
+                    panic("sprite sort count reservation became inconsistent")
+                }
+            }
+        }
+        if self.sort_offsets.len() < 256 {
+            self.sort_offsets.reserve(256 - self.sort_offsets.len())?;
+            while self.sort_offsets.len() < 256 {
+                if !self.sort_offsets.push_within_capacity(0 as usize) {
+                    panic("sprite sort offset reservation became inconsistent")
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Appends one instance.
+    pub fn push(&mut self, instance: SpriteInstance) -> Result<(), AllocError> {
+        self.instances.push(instance)
+    }
+
+    /// Appends without allocating or changing capacity.
+    pub fn push_prepared(
+        &mut self,
+        instance: SpriteInstance,
+    ) -> Result<(), BatchError> {
+        if self.instances.push_within_capacity(instance) {
+            Ok(())
+        } else {
+            Err(BatchError::CapacityExceeded)
+        }
+    }
+
+    /// Starts a new frame while retaining storage.
+    pub fn clear(&mut self) {
+        self.instances.clear();
+        self.sort_scratch.clear();
+    }
+
+    /// Stably orders transparent sprites from far to near in linear time.
+    ///
+    /// Larger depth values are drawn first and lower values are drawn last.
+    /// Equal depths preserve submission order. Four byte-wise radix passes use
+    /// only scratch storage prepared by `prepare_sorting`.
+    pub fn sort_back_to_front(&mut self) -> Result<(), SortError> {
+        let length = self.instances.len();
+        if length < 2 {
+            return Ok(());
+        }
+        if self.sort_scratch.capacity() < length
+            || self.sort_counts.len() != 256
+            || self.sort_offsets.len() != 256
+        {
+            return Err(SortError::ScratchNotPrepared);
+        }
+        let mut index: usize = 0;
+        while index < length {
+            let instance = match self.instances.get(index) {
+                Some(value) => value,
+                None => panic("sprite batch length became inconsistent"),
+            };
+            if !depth_is_finite(instance.depth) {
+                self.sort_scratch.clear();
+                return Err(SortError::NonFiniteDepth);
+            }
+            if !self.sort_scratch.push_within_capacity(instance) {
+                panic("prepared sprite sort scratch became inconsistent")
+            }
+            index += 1;
+        }
+        radix_depth_pass(self, false, 0);
+        radix_depth_pass(self, true, 8);
+        radix_depth_pass(self, false, 16);
+        radix_depth_pass(self, true, 24);
+        self.sort_scratch.clear();
+        Ok(())
+    }
+
+    /// Returns the number of queued instances.
+    pub fn len(&self) -> usize {
+        self.instances.len()
+    }
+
+    /// Returns the number of instances that fit without allocation.
+    pub fn capacity(&self) -> usize {
+        self.instances.capacity()
+    }
+
+    /// Returns the contiguous upload source.
+    pub fn instances(&self) -> &[SpriteInstance] {
+        self.instances.as_slice()
+    }
+
+    /// Returns bytes reserved for instances.
+    pub fn allocated_bytes(&self) -> usize {
+        self.instances.allocated_bytes() + self.sort_scratch.allocated_bytes()
+            + self.sort_counts.allocated_bytes()
+            + self.sort_offsets.allocated_bytes()
+    }
+
+    /// Releases instance storage.
+    pub fn deinit(self) {
+        let mut owned = self;
+        owned.instances.release();
+        owned.sort_scratch.release();
+        owned.sort_counts.release();
+        owned.sort_offsets.release();
+    }
+}
+
+fn depth_is_finite(value: f32) -> bool {
+    to_f32_bits(value) & 0x7f80_0000 != 0x7f80_0000
+}
+
+fn descending_depth_key(value: f32) -> u32 {
+    let bits = to_f32_bits(value);
+    let ascending: u32 = if bits & 0x8000_0000 != 0 {
+        bits ^ 0xffff_ffff
+    } else {
+        bits ^ 0x8000_0000
+    };
+    ascending ^ 0xffff_ffff
+}
+
+fn radix_depth_pass(batch: &mut SpriteBatch, from_scratch: bool, shift: u32) {
+    let length = batch.instances.len();
+    let mut index: usize = 0;
+    while index < 256 {
+        let _ = batch.sort_counts.set(index, 0 as usize);
+        let _ = batch.sort_offsets.set(index, 0 as usize);
+        index += 1;
+    }
+    index = 0;
+    while index < length {
+        let instance: SpriteInstance = if from_scratch {
+            match batch.sort_scratch.get(index) {
+                Some(value) => value,
+                None => panic("sprite sort source became inconsistent"),
+            }
+        } else {
+            match batch.instances.get(index) {
+                Some(value) => value,
+                None => panic("sprite sort source became inconsistent"),
+            }
+        };
+        let key = descending_depth_key(instance.depth);
+        let digit = ((key >> shift) & 0xff) as usize;
+        let count = match batch.sort_counts.get(digit) {
+            Some(value) => value,
+            None => panic("sprite sort count became inconsistent"),
+        };
+        let _ = batch.sort_counts.set(digit, count + 1);
+        index += 1;
+    }
+    index = 1;
+    while index < 256 {
+        let previous_offset = match batch.sort_offsets.get(index - 1) {
+            Some(value) => value,
+            None => panic("sprite sort offset became inconsistent"),
+        };
+        let previous_count = match batch.sort_counts.get(index - 1) {
+            Some(value) => value,
+            None => panic("sprite sort count became inconsistent"),
+        };
+        let _ = batch.sort_offsets.set(index, previous_offset + previous_count);
+        index += 1;
+    }
+    index = 0;
+    while index < length {
+        let instance: SpriteInstance = if from_scratch {
+            match batch.sort_scratch.get(index) {
+                Some(value) => value,
+                None => panic("sprite sort source became inconsistent"),
+            }
+        } else {
+            match batch.instances.get(index) {
+                Some(value) => value,
+                None => panic("sprite sort source became inconsistent"),
+            }
+        };
+        let key = descending_depth_key(instance.depth);
+        let digit = ((key >> shift) & 0xff) as usize;
+        let target = match batch.sort_offsets.get(digit) {
+            Some(value) => value,
+            None => panic("sprite sort offset became inconsistent"),
+        };
+        let stored = if from_scratch {
+            batch.instances.set(target, instance)
+        } else {
+            batch.sort_scratch.set(target, instance)
+        };
+        if !stored {
+            panic("sprite sort destination became inconsistent")
+        }
+        let _ = batch.sort_offsets.set(digit, target + 1);
+        index += 1;
+    }
+}
+
+@test
+fn sprite_batch_should_stably_sort_transparency_back_to_front() {
+    let allocator = general_allocator();
+    let mut batch = match SpriteBatch::with_capacity(&allocator, 4) {
+        Ok(value) => value,
+        Err(_) => panic("sprite batch allocation failed"),
+    };
+    defer batch.deinit();
+    match batch.prepare_sorting(4) {
+        Ok(_) => {},
+        Err(_) => panic("sprite sort scratch allocation failed"),
+    }
+    match batch.push(test_sprite(0.2).with_material(1)) {
+        Ok(_) => {},
+        Err(_) => panic("first sprite insert failed"),
+    }
+    match batch.push(test_sprite(-0.8).with_material(2)) {
+        Ok(_) => {},
+        Err(_) => panic("second sprite insert failed"),
+    }
+    match batch.push(test_sprite(0.2).with_material(3)) {
+        Ok(_) => {},
+        Err(_) => panic("third sprite insert failed"),
+    }
+    match batch.sort_back_to_front() {
+        Ok(_) => {},
+        Err(_) => panic("prepared sprite sort failed"),
+    }
+    let ordered = batch.instances();
+    assert(ordered[0].material_index == 1);
+    assert(ordered[1].material_index == 3);
+    assert(ordered[2].material_index == 2);
+}
+
+@test
+fn sprite_sort_should_fail_before_mutation_without_scratch() {
+    let allocator = general_allocator();
+    let mut batch = match SpriteBatch::with_capacity(&allocator, 2) {
+        Ok(value) => value,
+        Err(_) => panic("sprite batch allocation failed"),
+    };
+    defer batch.deinit();
+    match batch.push(test_sprite(-0.5)) {
+        Ok(_) => {},
+        Err(_) => panic("first sprite insert failed"),
+    }
+    match batch.push(test_sprite(0.5)) {
+        Ok(_) => {},
+        Err(_) => panic("second sprite insert failed"),
+    }
+    assert(match batch.sort_back_to_front() {
+        Err(SortError::ScratchNotPrepared) => true,
+        _ => false,
+    });
+    assert(batch.instances()[0].depth == -0.5);
+    assert(batch.instances()[1].depth == 0.5);
+}

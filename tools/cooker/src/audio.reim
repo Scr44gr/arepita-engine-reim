@@ -1,0 +1,110 @@
+from std::alloc import AllocError, Allocator;
+from std::binary import to_f32_bits;
+from std::collections import Vec;
+
+from media_codecs import CodecLimits, DecodedAudio;
+from self::asset_manifest import AudioDefinition, AudioSettings, Limits;
+from self::pack import AssetKind, PackEntry;
+from self::source import read_bounded;
+
+/// Recoverable failures while preparing one audio asset.
+@derive(Copy, Clone, Debug, Eq)
+pub enum AudioCookError {
+    SourceFailed,
+    DecodeFailed,
+    SizeOverflow,
+    OutOfMemory,
+}
+
+/// Decodes one manifest audio source into deterministic stereo `f32` bytes.
+pub fn cook(
+    allocator: &Allocator,
+    root: str,
+    definition: &AudioDefinition,
+    settings: &AudioSettings,
+    limits: &Limits,
+) -> Result<PackEntry, AudioCookError> {
+    let source = match read_bounded(
+        allocator,
+        root,
+        definition.path.as_str(),
+        limits.max_source_bytes,
+    ) {
+        Ok(value) => value,
+        Err(_) => { return Err(AudioCookError::SourceFailed); },
+    };
+    let codec_limits = CodecLimits {
+        max_source_bytes: limits.max_source_bytes,
+        max_decoded_bytes: limits.max_decoded_bytes as u64,
+        max_dimension: limits.max_image_dimension,
+    };
+    let decoded = {
+        let bytes = source.as_bytes();
+        DecodedAudio::decode(bytes, settings.sample_rate, codec_limits)
+    };
+    source.deinit();
+    let audio = match decoded {
+        Ok(value) => value,
+        Err(_) => { return Err(AudioCookError::DecodeFailed); },
+    };
+    let sample_rate = audio.sample_rate();
+    let channels = audio.channels();
+    let frames = audio.frames();
+    let copied = audio.samples(allocator);
+    audio.deinit();
+    let mut samples = match copied {
+        Ok(value) => value,
+        Err(_) => { return Err(AudioCookError::OutOfMemory); },
+    };
+    let sample_length: usize = samples.len();
+    let sample_length_u64 = sample_length as u64;
+    if sample_length_u64 > 0xffff_ffff_ffff_ffff / 4 {
+        samples.release();
+        return Err(AudioCookError::SizeOverflow);
+    }
+    let byte_length_u64 = sample_length_u64 * 4;
+    let byte_length = byte_length_u64 as usize;
+    if byte_length as u64 != byte_length_u64 {
+        samples.release();
+        return Err(AudioCookError::SizeOverflow);
+    }
+    let created: Result<Vec<u8>, AllocError> = Vec::with_capacity(allocator, byte_length);
+    let mut payload = match created {
+        Ok(value) => value,
+        Err(_) => {
+            samples.release();
+            return Err(AudioCookError::OutOfMemory);
+        },
+    };
+    let mut index: usize = 0;
+    while index < samples.len() {
+        let value = match samples.get(index) {
+            Some(sample) => sample,
+            None => panic("decoded audio index escaped initialized storage"),
+        };
+        let bits = to_f32_bits(value);
+        if !payload.push_within_capacity(bits as u8)
+            || !payload.push_within_capacity((bits >> 8) as u8)
+            || !payload.push_within_capacity((bits >> 16) as u8)
+            || !payload.push_within_capacity((bits >> 24) as u8)
+        {
+            panic("prepared audio payload capacity was unavailable")
+        }
+        index += 1;
+    }
+    samples.release();
+    let id = match definition.id.clone_in(allocator) {
+        Ok(value) => value,
+        Err(_) => {
+            payload.release();
+            return Err(AudioCookError::OutOfMemory);
+        },
+    };
+    let mut metadata: [u32; 10] = [0; 10];
+    metadata[0] = sample_rate;
+    metadata[1] = channels;
+    metadata[2] = frames as u32;
+    metadata[3] = (frames >> 32) as u32;
+    metadata[4] = 1;
+    Ok(PackEntry::new(AssetKind::Audio, id, payload, metadata))
+}

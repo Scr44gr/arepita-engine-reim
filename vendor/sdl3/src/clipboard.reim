@@ -1,0 +1,50 @@
+import self::raw::functions as sdl;
+
+/// A recoverable clipboard operation failure.
+pub enum ClipboardError {
+    ReadFailed,
+    WriteFailed,
+}
+
+/// UTF-8 clipboard text allocated by SDL.
+pub struct ClipboardText {
+    data: *mut c_char,
+}
+
+impl ClipboardText {
+    /// Returns a borrowed NUL-terminated UTF-8 view.
+    pub fn as_cstr(&self) -> cstr {
+        self.data as cstr
+    }
+
+    /// Releases the text through SDL's matching allocator.
+    pub fn deinit(self) {
+        unsafe {
+            sdl::SDL_free(self.data as *mut ());
+        }
+    }
+}
+
+/// Returns whether the clipboard currently contains non-empty text.
+pub fn has_text() -> bool {
+    unsafe { sdl::SDL_HasClipboardText() }
+}
+
+/// Copies UTF-8 text from the clipboard into SDL-owned memory.
+pub fn get_text() -> Result<ClipboardText, ClipboardError> {
+    let data = unsafe { sdl::SDL_GetClipboardText() };
+    if data as usize == 0 {
+        Err(ClipboardError::ReadFailed)
+    } else {
+        Ok(ClipboardText { data: data })
+    }
+}
+
+/// Replaces the clipboard text with `text`.
+pub fn set_text(text: cstr) -> Result<(), ClipboardError> {
+    if unsafe { sdl::SDL_SetClipboardText(text as *const c_char) } {
+        Ok(())
+    } else {
+        Err(ClipboardError::WriteFailed)
+    }
+}

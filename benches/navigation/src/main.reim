@@ -1,0 +1,121 @@
+from arepita_engine::navigation import GridPoint, NavigationGrid, PathFinder;
+from std::alloc import AllocError, general_allocator;
+from std::io import println;
+from std::string import String;
+from std::time import Instant;
+
+const GRID_SIZE: u32 = 128;
+const SEARCH_COUNT: usize = 2_000;
+
+fn open_coordinate(value: u32) -> u32 {
+    if value % 16 == 8 { value + 1 } else { value }
+}
+
+fn endpoints(index: usize) -> (GridPoint, GridPoint) {
+    let start_x = open_coordinate((index * 17 % GRID_SIZE as usize) as u32);
+    let start_y = (index * 31 % GRID_SIZE as usize) as u32;
+    let goal_x = open_coordinate((index * 67 + 43) as u32 % GRID_SIZE);
+    let goal_y = ((index * 89 + 17) as u32) % GRID_SIZE;
+    (
+        GridPoint::new(start_x, start_y),
+        GridPoint::new(goal_x, goal_y),
+    )
+}
+
+fn run_searches(finder: &mut PathFinder, grid: &NavigationGrid, count: usize) -> Option<u64> {
+    let mut checksum: u64 = 0;
+    let mut index: usize = 0;
+    while index < count {
+        let pair = endpoints(index);
+        let report = match finder.find_path(grid, pair.0, pair.1) {
+            Ok(value) => value,
+            Err(_) => {
+                return None;
+            },
+        };
+        checksum = checksum
+            .wrapping_add(report.length as u64)
+            .wrapping_add(report.visited as u64)
+            .wrapping_add(report.cost as u64);
+        index += 1;
+    }
+    Some(checksum)
+}
+
+fn print_measurement(
+    nanoseconds: u64,
+    checksum: u64,
+    grid_bytes: usize,
+    search_bytes: usize,
+) -> Result<(), AllocError> {
+    let allocator = general_allocator();
+    let mut message = String::with_capacity(&allocator, 192)?;
+    defer message.release();
+    message.push_format(
+        f"prepared A* searches: {nanoseconds} ns, searches={SEARCH_COUNT}, checksum={checksum}, grid={grid_bytes} bytes, scratch={search_bytes} bytes",
+    )?;
+    match println(message.as_str()) {
+        Ok(_) => {},
+        Err(_) => {},
+    }
+    Ok(())
+}
+
+fn run() -> Result<i32, AllocError> {
+    let allocator = general_allocator();
+    let mut grid = match NavigationGrid::filled(
+        &allocator,
+        GRID_SIZE,
+        GRID_SIZE,
+        1.0,
+    ) {
+        Ok(value) => value,
+        Err(_) => {
+            return Ok(10);
+        },
+    };
+    defer grid.release();
+    let mut wall_x: u32 = 8;
+    while wall_x < GRID_SIZE {
+        let mut y: u32 = 0;
+        while y < GRID_SIZE {
+            if y % 16 != 7 {
+                let _ = grid.set_blocked(GridPoint::new(wall_x, y), true);
+            }
+            y += 1;
+        }
+        wall_x += 16;
+    }
+    let mut finder = PathFinder::with_capacity(&allocator, grid.len())?;
+    defer finder.release();
+    let search_bytes = finder.allocated_bytes();
+    let grid_bytes = grid.allocated_bytes();
+
+    match run_searches(&mut finder, &grid, 100) {
+        Some(_) => {},
+        None => {
+            return Ok(11);
+        },
+    }
+    let start = Instant::now();
+    let checksum = match run_searches(&mut finder, &grid, SEARCH_COUNT) {
+        Some(value) => value,
+        None => {
+            return Ok(12);
+        },
+    };
+    let duration = start.elapsed();
+    let nanoseconds = duration.as_nanoseconds();
+    if finder.allocated_bytes() != search_bytes {
+        return Ok(13);
+    }
+    print_measurement(nanoseconds, checksum, grid_bytes, search_bytes)?;
+    Ok(0)
+}
+
+fn main() -> i32 {
+    match run() {
+        Ok(code) => code,
+        Err(_) => 1,
+    }
+}

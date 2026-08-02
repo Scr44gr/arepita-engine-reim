@@ -1,0 +1,1214 @@
+from std::alloc import AllocError, Allocator;
+from std::binary import to_f32_bits;
+from std::collections import Vec;
+from std::job import JobPool, JobPoolConfig, chunk_len, parallel_for_mut;
+from std::slice import len;
+from std::string import String, char_count, equals;
+from std::thread import available_parallelism;
+
+from media_codecs import CodecLimits, Font, decode_rgba8, probe_rgba8;
+from self::asset_manifest import AtlasDefinition, Limits;
+from self::compositor import blit_alpha_extruded, blit_region_extruded;
+from self::pack import AssetKind, PackEntry, PackWriter, hash_id;
+from self::skyline import AtlasLayout, Placement, SourceRect, pack;
+from self::source import read_bounded, read_canonical_bounded, resolve_bounded;
+
+const SOURCE_SPRITE: u8 = 0;
+const SOURCE_GLYPH: u8 = 1;
+
+/// Recoverable failures while preparing one atlas and its dependent assets.
+@derive(Copy, Clone, Debug, Eq)
+pub enum AtlasCookError {
+    InvalidDimensions,
+    SourceFailed,
+    DecodeFailed,
+    FontFailed,
+    LayoutFailed,
+    CompositeFailed,
+    SizeOverflow,
+    OutOfMemory,
+    PackFailed,
+}
+
+struct RasterSource {
+    kind: u8,
+    definition_index: usize,
+    font_index: usize,
+    glyph_index: usize,
+    width: u32,
+    height: u32,
+    source_x: u32,
+    source_y: u32,
+    source_width: u32,
+    source_height: u32,
+    coverage: Vec<u8>,
+}
+
+impl RasterSource {
+    pub fn release(&mut self) { self.coverage.release(); }
+}
+
+@derive(Copy)
+struct GlyphRecord {
+    codepoint: u32,
+    x: u32,
+    y: u32,
+    width: u32,
+    height: u32,
+    xmin: i32,
+    ymin: i32,
+    advance_width: f32,
+    advance_height: f32,
+}
+
+struct PreparedFont {
+    ascent: f32,
+    descent: f32,
+    line_gap: f32,
+    new_line_size: f32,
+    glyphs: Vec<GlyphRecord>,
+}
+
+impl PreparedFont {
+    pub fn release(&mut self) { self.glyphs.release(); }
+}
+
+@derive(Copy)
+struct SourceMetadata {
+    kind: u8,
+    definition_index: usize,
+    font_index: usize,
+    glyph_index: usize,
+    width: u32,
+    height: u32,
+    source_x: u32,
+    source_y: u32,
+    source_width: u32,
+    source_height: u32,
+}
+
+struct DecodeTask {
+    allocator: Allocator,
+    path: String,
+    limits: CodecLimits,
+    expected_width: u32,
+    expected_height: u32,
+    definition_index: usize,
+    pixels: Vec<u8>,
+    status: u8,
+}
+
+impl DecodeTask {
+    pub fn release(&mut self) {
+        self.path.release();
+        self.pixels.release();
+    }
+}
+
+struct PreparedAtlas {
+    sources: Vec<RasterSource>,
+    fonts: Vec<PreparedFont>,
+    released: bool,
+}
+
+impl PreparedAtlas {
+    fn empty(allocator: &Allocator) -> PreparedAtlas {
+        PreparedAtlas {
+            sources: Vec::empty(allocator),
+            fonts: Vec::empty(allocator),
+            released: false,
+        }
+    }
+
+    fn release(&mut self) {
+        if self.released { return; }
+        let mut index: usize = 0;
+        while index < self.sources.len() {
+            match self.sources.get_mut(index) {
+                Some(value) => value.release(),
+                None => panic("atlas source cleanup index escaped its table"),
+            }
+            index += 1;
+        }
+        self.sources.release();
+        index = 0;
+        while index < self.fonts.len() {
+            match self.fonts.get_mut(index) {
+                Some(value) => value.release(),
+                None => panic("prepared font cleanup index escaped its table"),
+            }
+            index += 1;
+        }
+        self.fonts.release();
+        self.released = true;
+    }
+}
+
+/// Prepares and inserts one deterministic atlas, its sprite regions, and fonts.
+pub fn cook_into(
+    writer: &mut PackWriter,
+    allocator: &Allocator,
+    root: str,
+    definition: &AtlasDefinition,
+    limits: &Limits,
+) -> Result<(), AtlasCookError> {
+    let atlas_bytes = checked_rgba_bytes(definition.width, definition.height)?;
+    if definition.width == 0
+        || definition.height == 0
+        || definition.width > limits.max_image_dimension
+        || definition.height > limits.max_image_dimension
+        || atlas_bytes as u64 > limits.max_decoded_bytes as u64
+    {
+        return Err(AtlasCookError::InvalidDimensions);
+    }
+    let prepared = prepare(allocator, root, definition, limits);
+    let mut prepared = match prepared {
+        Ok(value) => value,
+        Err(error) => { return Err(error); },
+    };
+    let result = compose_and_insert(
+        writer,
+        allocator,
+        root,
+        definition,
+        limits,
+        atlas_bytes,
+        &mut prepared,
+    );
+    prepared.release();
+    result
+}
+
+fn prepare(
+    allocator: &Allocator,
+    root: str,
+    definition: &AtlasDefinition,
+    limits: &Limits,
+) -> Result<PreparedAtlas, AtlasCookError> {
+    let mut prepared = PreparedAtlas::empty(allocator);
+    let native_limits = codec_limits(limits);
+    let mut sprite_index: usize = 0;
+    while sprite_index < definition.sprites.len() {
+        let sprite = match definition.sprites.get_ref(sprite_index) {
+            Some(value) => value,
+            None => panic("sprite definition index escaped its table"),
+        };
+        let dimensions = match cached_sheet_dimensions(
+            definition,
+            &prepared.sources,
+            sprite_index,
+        ) {
+            Some(value) => value,
+            None => match probe_sheet_dimensions(
+                allocator,
+                root,
+                sprite.path.as_str(),
+                limits,
+                native_limits,
+            ) {
+                Ok(value) => value,
+                Err(error) => {
+                    prepared.release();
+                    return Err(error);
+                },
+            },
+        };
+        let sheet_width = dimensions[0];
+        let sheet_height = dimensions[1];
+        if sheet_width == 0 || sheet_height == 0 {
+            prepared.release();
+            return Err(AtlasCookError::InvalidDimensions);
+        }
+        let zero: u32 = 0;
+        let source_x: u32 = if sprite.uses_source_region() {
+            sprite.source_x
+        } else {
+            zero
+        };
+        let source_y: u32 = if sprite.uses_source_region() {
+            sprite.source_y
+        } else {
+            zero
+        };
+        let width = if sprite.uses_source_region() {
+            sprite.source_width
+        } else {
+            sheet_width
+        };
+        let height = if sprite.uses_source_region() {
+            sprite.source_height
+        } else {
+            sheet_height
+        };
+        if source_x > sheet_width
+            || source_y > sheet_height
+            || width == 0
+            || height == 0
+            || width > sheet_width - source_x
+            || height > sheet_height - source_y
+        {
+            prepared.release();
+            return Err(AtlasCookError::InvalidDimensions);
+        }
+        if match prepared.sources.reserve(1) { Ok(_) => false, Err(_) => true } {
+            prepared.release();
+            return Err(AtlasCookError::OutOfMemory);
+        }
+        let source = RasterSource {
+            kind: SOURCE_SPRITE,
+            definition_index: sprite_index,
+            font_index: 0,
+            glyph_index: 0,
+            width: width,
+            height: height,
+            source_x: source_x,
+            source_y: source_y,
+            source_width: sheet_width,
+            source_height: sheet_height,
+            coverage: Vec::empty(allocator),
+        };
+        if !prepared.sources.push_within_capacity(source) {
+            panic("reserved sprite source capacity was unavailable")
+        }
+        sprite_index += 1;
+    }
+
+    let mut font_index: usize = 0;
+    while font_index < definition.fonts.len() {
+        if match prepared.fonts.reserve(1) { Ok(_) => false, Err(_) => true } {
+            prepared.release();
+            return Err(AtlasCookError::OutOfMemory);
+        }
+        let font_definition = match definition.fonts.get_ref(font_index) {
+            Some(value) => value,
+            None => panic("font definition index escaped its table"),
+        };
+        let source = match read_bounded(
+            allocator,
+            root,
+            font_definition.path.as_str(),
+            limits.max_source_bytes,
+        ) {
+            Ok(value) => value,
+            Err(_) => {
+                prepared.release();
+                return Err(AtlasCookError::SourceFailed);
+            },
+        };
+        let opened = {
+            let bytes = source.as_bytes();
+            Font::open(bytes, native_limits)
+        };
+        source.deinit();
+        let mut font = match opened {
+            Ok(value) => value,
+            Err(_) => {
+                prepared.release();
+                return Err(AtlasCookError::FontFailed);
+            },
+        };
+        let metrics = font.metrics(font_definition.pixel_size);
+        let metrics = match metrics {
+            Ok(value) => value,
+            Err(_) => {
+                font.release();
+                prepared.release();
+                return Err(AtlasCookError::FontFailed);
+            },
+        };
+        let mut characters = match unique_sorted_characters(
+            allocator,
+            font_definition.characters.as_str(),
+        ) {
+            Ok(value) => value,
+            Err(_) => {
+                font.release();
+                prepared.release();
+                return Err(AtlasCookError::OutOfMemory);
+            },
+        };
+        let glyph_capacity = characters.len();
+        let created: Result<Vec<GlyphRecord>, AllocError> =
+            Vec::with_capacity(allocator, glyph_capacity);
+        let mut records = match created {
+            Ok(value) => value,
+            Err(_) => {
+                characters.release();
+                font.release();
+                prepared.release();
+                return Err(AtlasCookError::OutOfMemory);
+            },
+        };
+        let mut character_index: usize = 0;
+        while character_index < characters.len() {
+            let character = match characters.get(character_index) {
+                Some(value) => value,
+                None => panic("font character index escaped its table"),
+            };
+            let rasterized = font.rasterize(
+                character,
+                font_definition.pixel_size,
+                native_limits,
+            );
+            let mut glyph = match rasterized {
+                Ok(value) => value,
+                Err(_) => {
+                    records.release();
+                    characters.release();
+                    font.release();
+                    prepared.release();
+                    return Err(AtlasCookError::FontFailed);
+                },
+            };
+            let width = glyph.width();
+            let height = glyph.height();
+            let mut source_index: usize = 0;
+            if width > 0 && height > 0 {
+                if match prepared.sources.reserve(1) { Ok(_) => false, Err(_) => true } {
+                    glyph.release();
+                    records.release();
+                    characters.release();
+                    font.release();
+                    prepared.release();
+                    return Err(AtlasCookError::OutOfMemory);
+                }
+                let coverage = glyph.coverage(allocator);
+                let coverage = match coverage {
+                    Ok(value) => value,
+                    Err(_) => {
+                        glyph.release();
+                        records.release();
+                        characters.release();
+                        font.release();
+                        prepared.release();
+                        return Err(AtlasCookError::OutOfMemory);
+                    },
+                };
+                source_index = prepared.sources.len();
+                let source = RasterSource {
+                    kind: SOURCE_GLYPH,
+                    definition_index: 0,
+                    font_index: font_index,
+                    glyph_index: records.len(),
+                    width: width,
+                    height: height,
+                    source_x: 0,
+                    source_y: 0,
+                    source_width: width,
+                    source_height: height,
+                    coverage: coverage,
+                };
+                if !prepared.sources.push_within_capacity(source) {
+                    panic("reserved glyph source capacity was unavailable")
+                }
+            }
+            let record = GlyphRecord {
+                codepoint: glyph.codepoint(),
+                x: 0,
+                y: 0,
+                width: width,
+                height: height,
+                xmin: glyph.xmin(),
+                ymin: glyph.ymin(),
+                advance_width: glyph.advance_width(),
+                advance_height: glyph.advance_height(),
+            };
+            glyph.release();
+            if !records.push_within_capacity(record) {
+                panic("prepared glyph record capacity was unavailable")
+            }
+            if width > 0 && height > 0 && source_index >= prepared.sources.len() {
+                panic("glyph source was not retained")
+            }
+            character_index += 1;
+        }
+        characters.release();
+        font.release();
+        let prepared_font = PreparedFont {
+            ascent: metrics.ascent,
+            descent: metrics.descent,
+            line_gap: metrics.line_gap,
+            new_line_size: metrics.new_line_size,
+            glyphs: records,
+        };
+        if !prepared.fonts.push_within_capacity(prepared_font) {
+            panic("reserved prepared font capacity was unavailable")
+        }
+        font_index += 1;
+    }
+    Ok(prepared)
+}
+
+fn cached_sheet_dimensions(
+    definition: &AtlasDefinition,
+    sources: &Vec<RasterSource>,
+    sprite_index: usize,
+) -> Option<[u32; 2]> {
+    let sprite = definition.sprites.get_ref(sprite_index)?;
+    let mut previous: usize = 0;
+    while previous < sprite_index {
+        let candidate = definition.sprites.get_ref(previous)?;
+        if equals(candidate.path.as_str(), sprite.path.as_str()) {
+            let source = sources.get_ref(previous)?;
+            return Some([source.source_width, source.source_height]);
+        }
+        previous += 1;
+    }
+    None
+}
+
+fn probe_sheet_dimensions(
+    allocator: &Allocator,
+    root: str,
+    path: str,
+    limits: &Limits,
+    native_limits: CodecLimits,
+) -> Result<[u32; 2], AtlasCookError> {
+    let source = match read_bounded(
+        allocator,
+        root,
+        path,
+        limits.max_source_bytes,
+    ) {
+        Ok(value) => value,
+        Err(_) => { return Err(AtlasCookError::SourceFailed); },
+    };
+    let probed = {
+        let bytes = source.as_bytes();
+        probe_rgba8(bytes, native_limits)
+    };
+    source.deinit();
+    match probed {
+        Ok(value) => Ok([value.width, value.height]),
+        Err(_) => Err(AtlasCookError::DecodeFailed),
+    }
+}
+
+fn compose_and_insert(
+    writer: &mut PackWriter,
+    allocator: &Allocator,
+    root: str,
+    definition: &AtlasDefinition,
+    limits: &Limits,
+    atlas_bytes: usize,
+    prepared: &mut PreparedAtlas,
+) -> Result<(), AtlasCookError> {
+    if prepared.sources.is_empty() {
+        let atlas = zeroed_bytes(allocator, atlas_bytes)?;
+        let placements: [Placement; 0] = [];
+        return insert_entries(
+            writer,
+            allocator,
+            definition,
+            prepared,
+            atlas,
+            &placements,
+        );
+    }
+    let created: Result<Vec<SourceRect>, AllocError> =
+        Vec::with_capacity(allocator, prepared.sources.len());
+    let mut rectangles = match created {
+        Ok(value) => value,
+        Err(_) => { return Err(AtlasCookError::OutOfMemory); },
+    };
+    let mut index: usize = 0;
+    while index < prepared.sources.len() {
+        let source = match prepared.sources.get_ref(index) {
+            Some(value) => value,
+            None => panic("atlas source index escaped its table"),
+        };
+        let rectangle = SourceRect {
+            source_index: index,
+            width: source.width,
+            height: source.height,
+        };
+        if !rectangles.push_within_capacity(rectangle) {
+            panic("prepared atlas rectangle capacity was unavailable")
+        }
+        index += 1;
+    }
+    let layout = {
+        let sources = rectangles.as_slice();
+        pack(
+            allocator,
+            definition.width,
+            definition.height,
+            definition.padding,
+            sources,
+        )
+    };
+    rectangles.release();
+    let mut layout = match layout {
+        Ok(value) => value,
+        Err(_) => { return Err(AtlasCookError::LayoutFailed); },
+    };
+    let mut atlas = match zeroed_bytes(allocator, atlas_bytes) {
+        Ok(value) => value,
+        Err(error) => {
+            layout.release();
+            return Err(error);
+        },
+    };
+    let native_limits = codec_limits(limits);
+    index = 0;
+    while index < layout.len() {
+        let placement = match layout.get(index) {
+            Some(value) => value,
+            None => panic("atlas placement index escaped its table"),
+        };
+        let source = source_metadata(&prepared.sources, placement.source_index);
+        let kind = source.kind;
+        let definition_index = source.definition_index;
+        let font_index = source.font_index;
+        let glyph_index = source.glyph_index;
+        let width = source.width;
+        let height = source.height;
+        if kind == SOURCE_GLYPH {
+            let composed = {
+                let source = match prepared.sources.get_ref(placement.source_index) {
+                    Some(value) => value,
+                    None => panic("glyph source disappeared during composition"),
+                };
+                blit_alpha_extruded(
+                    &mut atlas,
+                    definition.width,
+                    definition.height,
+                    source.coverage.as_slice(),
+                    width,
+                    height,
+                    placement,
+                    definition.padding,
+                )
+            };
+            if match composed { Ok(_) => false, Err(_) => true } {
+                atlas.release();
+                layout.release();
+                return Err(AtlasCookError::CompositeFailed);
+            }
+            let font = match prepared.fonts.get_mut(font_index) {
+                Some(value) => value,
+                None => panic("glyph font index escaped its table"),
+            };
+            let mut glyph = match font.glyphs.get(glyph_index) {
+                Some(value) => value,
+                None => panic("glyph record index escaped its table"),
+            };
+            glyph.x = placement.x;
+            glyph.y = placement.y;
+            if !font.glyphs.set(glyph_index, glyph) {
+                panic("glyph record update escaped its table")
+            }
+        } else if kind != SOURCE_SPRITE {
+            atlas.release();
+            layout.release();
+            return Err(AtlasCookError::CompositeFailed);
+        }
+        index += 1;
+    }
+
+    if definition.sprites.len() > 0 {
+        let mut workers = available_parallelism();
+        if workers > definition.sprites.len() {
+            workers = definition.sprites.len();
+        }
+        if workers > 32 { workers = 32; }
+        if workers == 0 { workers = 1; }
+        let pool = JobPool::init(allocator, JobPoolConfig::fixed(workers));
+        let mut pool = match pool {
+            Ok(value) => value,
+            Err(_) => {
+                atlas.release();
+                layout.release();
+                return Err(AtlasCookError::DecodeFailed);
+            },
+        };
+        let decoded = decode_and_compose_sprites(
+            &pool,
+            allocator,
+            root,
+            definition,
+            limits,
+            native_limits,
+            &layout,
+            &prepared.sources,
+            &mut atlas,
+        );
+        pool.deinit();
+        match decoded {
+            Ok(_) => {},
+            Err(error) => {
+                atlas.release();
+                layout.release();
+                return Err(error);
+            },
+        }
+    }
+    let inserted = {
+        let placements = layout.placements();
+        insert_entries(
+            writer,
+            allocator,
+            definition,
+            prepared,
+            atlas,
+            placements,
+        )
+    };
+    layout.release();
+    inserted
+}
+
+fn decode_and_compose_sprites(
+    pool: &JobPool,
+    allocator: &Allocator,
+    root: str,
+    definition: &AtlasDefinition,
+    limits: &Limits,
+    native_limits: CodecLimits,
+    layout: &AtlasLayout,
+    sources: &Vec<RasterSource>,
+    atlas: &mut Vec<u8>,
+) -> Result<(), AtlasCookError> {
+    let mut tasks: Vec<DecodeTask> = Vec::empty(allocator);
+    let mut pending_bytes: u64 = 0;
+    let batch_limit = limits.max_parallel_decode_bytes as u64;
+    let mut index: usize = 0;
+    while index < definition.sprites.len() {
+        if !sprite_path_seen_before(definition, index) {
+            let source = source_metadata(sources, index);
+            let decoded_bytes = checked_rgba_bytes(
+                source.source_width,
+                source.source_height,
+            )? as u64;
+            let batch_would_overflow = match pending_bytes.checked_add(decoded_bytes) {
+                Some(total) => total > batch_limit,
+                None => true,
+            };
+            if !tasks.is_empty() && batch_would_overflow {
+                let completed = execute_decode_batch(
+                    pool,
+                    definition,
+                    layout,
+                    sources,
+                    &mut tasks,
+                    atlas,
+                );
+                release_decode_tasks(&mut tasks);
+                tasks.release();
+                match completed {
+                    Ok(_) => {},
+                    Err(error) => { return Err(error); },
+                }
+                tasks = Vec::empty(allocator);
+                pending_bytes = 0;
+            }
+            let sprite = match definition.sprites.get_ref(index) {
+                Some(value) => value,
+                None => panic("decode sprite definition escaped its table"),
+            };
+            match tasks.reserve(1) {
+                Ok(_) => {},
+                Err(_) => {
+                    release_decode_tasks(&mut tasks);
+                    tasks.release();
+                    return Err(AtlasCookError::OutOfMemory);
+                },
+            }
+            let path = match resolve_bounded(
+                allocator,
+                root,
+                sprite.path.as_str(),
+                limits.max_source_bytes,
+            ) {
+                Ok(value) => value,
+                Err(_) => {
+                    release_decode_tasks(&mut tasks);
+                    tasks.release();
+                    return Err(AtlasCookError::SourceFailed);
+                },
+            };
+            let task = DecodeTask {
+                allocator: *allocator,
+                path: path,
+                limits: native_limits,
+                expected_width: source.source_width,
+                expected_height: source.source_height,
+                definition_index: index,
+                pixels: Vec::empty(allocator),
+                status: 1,
+            };
+            if !tasks.push_within_capacity(task) {
+                panic("reserved decode task capacity was unavailable")
+            }
+            pending_bytes = match pending_bytes.checked_add(decoded_bytes) {
+                Some(total) => total,
+                None => {
+                    release_decode_tasks(&mut tasks);
+                    tasks.release();
+                    return Err(AtlasCookError::SizeOverflow);
+                },
+            };
+        }
+        index += 1;
+    }
+    if !tasks.is_empty() {
+        let completed = execute_decode_batch(
+            pool,
+            definition,
+            layout,
+            sources,
+            &mut tasks,
+            atlas,
+        );
+        release_decode_tasks(&mut tasks);
+        tasks.release();
+        match completed {
+            Ok(_) => {},
+            Err(error) => { return Err(error); },
+        }
+    } else {
+        tasks.release();
+    }
+    Ok(())
+}
+
+fn sprite_path_seen_before(
+    definition: &AtlasDefinition,
+    sprite_index: usize,
+) -> bool {
+    let sprite = match definition.sprites.get_ref(sprite_index) {
+        Some(value) => value,
+        None => { return false; },
+    };
+    let mut previous: usize = 0;
+    while previous < sprite_index {
+        let candidate = match definition.sprites.get_ref(previous) {
+            Some(value) => value,
+            None => { return false; },
+        };
+        if equals(candidate.path.as_str(), sprite.path.as_str()) {
+            return true;
+        }
+        previous += 1;
+    }
+    false
+}
+
+fn execute_decode_batch(
+    pool: &JobPool,
+    definition: &AtlasDefinition,
+    layout: &AtlasLayout,
+    sources: &Vec<RasterSource>,
+    tasks: &mut Vec<DecodeTask>,
+    atlas: &mut Vec<u8>,
+) -> Result<(), AtlasCookError> {
+    let decoded = {
+        let values = tasks.as_mut_slice();
+        parallel_for_mut(pool, values, decode_task_chunk, 1)
+    };
+    match decoded {
+        Ok(_) => {},
+        Err(_) => { return Err(AtlasCookError::DecodeFailed); },
+    }
+    let mut index: usize = 0;
+    while index < tasks.len() {
+        let task = match tasks.get_ref(index) {
+            Some(value) => value,
+            None => panic("decoded task index escaped its table"),
+        };
+        if task.status != 0 {
+            return Err(AtlasCookError::DecodeFailed);
+        }
+        let task_definition = match definition.sprites.get_ref(task.definition_index) {
+            Some(value) => value,
+            None => panic("decoded task definition escaped its table"),
+        };
+        let mut placement_index: usize = 0;
+        while placement_index < layout.len() {
+            let placement = match layout.get(placement_index) {
+                Some(value) => value,
+                None => panic("decode placement index escaped its table"),
+            };
+            let source = source_metadata(sources, placement.source_index);
+            if source.kind == SOURCE_SPRITE {
+                let sprite = match definition.sprites.get_ref(
+                    source.definition_index,
+                ) {
+                    Some(value) => value,
+                    None => panic("region definition escaped its table"),
+                };
+                if equals(sprite.path.as_str(), task_definition.path.as_str()) {
+                    let composed = blit_region_extruded(
+                        atlas,
+                        definition.width,
+                        definition.height,
+                        task.pixels.as_slice(),
+                        task.expected_width,
+                        task.expected_height,
+                        source.source_x,
+                        source.source_y,
+                        source.width,
+                        source.height,
+                        placement,
+                        definition.padding,
+                    );
+                    match composed {
+                        Ok(_) => {},
+                        Err(_) => {
+                            return Err(AtlasCookError::CompositeFailed);
+                        },
+                    }
+                }
+            }
+            placement_index += 1;
+        }
+        index += 1;
+    }
+    Ok(())
+}
+
+fn decode_task_chunk(tasks: &mut [DecodeTask]) {
+    let mut index: usize = 0;
+    let length = chunk_len(tasks);
+    while index < length {
+        decode_one_task(&mut tasks[index]);
+        index += 1;
+    }
+}
+
+fn decode_one_task(task: &mut DecodeTask) {
+    task.status = 1;
+    let encoded = {
+        let path = task.path.as_str();
+        read_canonical_bounded(
+            &task.allocator,
+            path,
+            task.limits.max_source_bytes,
+        )
+    };
+    let encoded = match encoded {
+        Ok(value) => value,
+        Err(_) => { return; },
+    };
+    let decoded = {
+        let bytes = encoded.as_bytes();
+        decode_rgba8(&task.allocator, bytes, task.limits)
+    };
+    encoded.deinit();
+    let mut image = match decoded {
+        Ok(value) => value,
+        Err(_) => { return; },
+    };
+    if image.width() != task.expected_width || image.height() != task.expected_height {
+        image.release();
+        return;
+    }
+    task.pixels.release();
+    task.pixels = image.into_pixels();
+    task.status = 0;
+}
+
+fn release_decode_tasks(tasks: &mut Vec<DecodeTask>) {
+    let mut index: usize = 0;
+    while index < tasks.len() {
+        match tasks.get_mut(index) {
+            Some(value) => value.release(),
+            None => panic("decode task cleanup index escaped its table"),
+        }
+        index += 1;
+    }
+}
+
+fn insert_entries(
+    writer: &mut PackWriter,
+    allocator: &Allocator,
+    definition: &AtlasDefinition,
+    prepared: &mut PreparedAtlas,
+    atlas: Vec<u8>,
+    placements: &[Placement],
+) -> Result<(), AtlasCookError> {
+    let mut atlas = atlas;
+    let atlas_hash = {
+        let id = definition.id.as_str();
+        hash_id(id.bytes())
+    };
+    let atlas_hash_low = atlas_hash as u32;
+    let atlas_hash_high = (atlas_hash >> 32) as u32;
+    let region_count = definition.sprites.len() as u64;
+    if region_count > 4_294_967_295 {
+        atlas.release();
+        return Err(AtlasCookError::SizeOverflow);
+    }
+    let atlas_id = match definition.id.clone_in(allocator) {
+        Ok(value) => value,
+        Err(_) => {
+            atlas.release();
+            return Err(AtlasCookError::OutOfMemory);
+        },
+    };
+    let mut atlas_metadata: [u32; 10] = [0; 10];
+    atlas_metadata[0] = definition.width;
+    atlas_metadata[1] = definition.height;
+    atlas_metadata[2] = 1;
+    atlas_metadata[3] = region_count as u32;
+    let atlas_entry = PackEntry::new(
+        AssetKind::Atlas,
+        atlas_id,
+        atlas,
+        atlas_metadata,
+    );
+    match writer.push(atlas_entry) {
+        Ok(_) => {},
+        Err(_) => { return Err(AtlasCookError::PackFailed); },
+    }
+
+    let mut index: usize = 0;
+    while index < prepared.sources.len() {
+        let source = source_metadata(&prepared.sources, index);
+        if source.kind == SOURCE_SPRITE {
+            let sprite = match definition.sprites.get_ref(source.definition_index) {
+                Some(value) => value,
+                None => panic("region definition index escaped its table"),
+            };
+            let mut id = match sprite.id.clone_in(allocator) {
+                Ok(value) => value,
+                Err(_) => { return Err(AtlasCookError::OutOfMemory); },
+            };
+            let placement = find_placement(placements, index);
+            let placement = match placement {
+                Some(value) => value,
+                None => {
+                    id.release();
+                    return Err(AtlasCookError::CompositeFailed);
+                },
+            };
+            let mut metadata: [u32; 10] = [0; 10];
+            metadata[0] = atlas_hash_low;
+            metadata[1] = atlas_hash_high;
+            metadata[2] = placement.x;
+            metadata[3] = placement.y;
+            metadata[4] = placement.width;
+            metadata[5] = placement.height;
+            let entry = PackEntry::new(
+                AssetKind::Region,
+                id,
+                Vec::empty(allocator),
+                metadata,
+            );
+            match writer.push(entry) {
+                Ok(_) => {},
+                Err(_) => { return Err(AtlasCookError::PackFailed); },
+            }
+        }
+        index += 1;
+    }
+
+    index = 0;
+    while index < prepared.fonts.len() {
+        let font = match prepared.fonts.get_ref(index) {
+            Some(value) => value,
+            None => panic("font entry index escaped its table"),
+        };
+        let mut payload = encode_glyphs(allocator, font.glyphs.as_slice())?;
+        let definition = match definition.fonts.get_ref(index) {
+            Some(value) => value,
+            None => panic("font definition index escaped its table"),
+        };
+        let id = match definition.id.clone_in(allocator) {
+            Ok(value) => value,
+            Err(_) => {
+                payload.release();
+                return Err(AtlasCookError::OutOfMemory);
+            },
+        };
+        let mut metadata: [u32; 10] = [0; 10];
+        metadata[0] = atlas_hash_low;
+        metadata[1] = atlas_hash_high;
+        metadata[2] = to_f32_bits(definition.pixel_size);
+        metadata[3] = font.glyphs.len() as u32;
+        metadata[4] = to_f32_bits(font.ascent);
+        metadata[5] = to_f32_bits(font.descent);
+        metadata[6] = to_f32_bits(font.line_gap);
+        metadata[7] = to_f32_bits(font.new_line_size);
+        metadata[8] = 40;
+        let entry = PackEntry::new(AssetKind::Font, id, payload, metadata);
+        match writer.push(entry) {
+            Ok(_) => {},
+            Err(_) => { return Err(AtlasCookError::PackFailed); },
+        }
+        index += 1;
+    }
+    Ok(())
+}
+
+fn find_placement(
+    placements: &[Placement],
+    source_index: usize,
+) -> Option<Placement> {
+    let mut index: usize = 0;
+    while index < len(placements) {
+        let value = placements[index];
+        if value.source_index == source_index {
+            return Some(value);
+        }
+        index += 1;
+    }
+    None
+}
+
+fn source_metadata(
+    sources: &Vec<RasterSource>,
+    index: usize,
+) -> SourceMetadata {
+    let source = match sources.get_ref(index) {
+        Some(value) => value,
+        None => panic("atlas source metadata index escaped its table"),
+    };
+    SourceMetadata {
+        kind: source.kind,
+        definition_index: source.definition_index,
+        font_index: source.font_index,
+        glyph_index: source.glyph_index,
+        width: source.width,
+        height: source.height,
+        source_x: source.source_x,
+        source_y: source.source_y,
+        source_width: source.source_width,
+        source_height: source.source_height,
+    }
+}
+
+fn unique_sorted_characters(
+    allocator: &Allocator,
+    value: str,
+) -> Result<Vec<char>, AllocError> {
+    let created: Result<Vec<char>, AllocError> =
+        Vec::with_capacity(allocator, char_count(value));
+    let mut characters = created?;
+    for character in value.chars() {
+        let mut duplicate = false;
+        let mut index: usize = 0;
+        while index < characters.len() {
+            duplicate = match characters.get(index) {
+                Some(existing) => existing == character,
+                None => panic("font character index escaped its table"),
+            };
+            if duplicate { break; }
+            index += 1;
+        }
+        if !duplicate && !characters.push_within_capacity(character) {
+            panic("prepared character capacity was unavailable")
+        }
+    }
+    let mut index: usize = 1;
+    while index < characters.len() {
+        let value = match characters.get(index) {
+            Some(value) => value,
+            None => panic("font sort index escaped its table"),
+        };
+        let mut cursor = index;
+        while cursor > 0 {
+            let previous = match characters.get(cursor - 1) {
+                Some(value) => value,
+                None => panic("font sort predecessor escaped its table"),
+            };
+            if previous as u32 <= value as u32 { break; }
+            if !characters.set(cursor, previous) {
+                panic("font sort shift escaped its table")
+            }
+            cursor -= 1;
+        }
+        if !characters.set(cursor, value) {
+            panic("font sort target escaped its table")
+        }
+        index += 1;
+    }
+    Ok(characters)
+}
+
+fn encode_glyphs(
+    allocator: &Allocator,
+    glyphs: &[GlyphRecord],
+) -> Result<Vec<u8>, AtlasCookError> {
+    let count = len(glyphs) as u64;
+    if count > 0xffff_ffff_ffff_ffff / 40 {
+        return Err(AtlasCookError::SizeOverflow);
+    }
+    let byte_length_u64 = count * 40;
+    let byte_length = byte_length_u64 as usize;
+    if byte_length as u64 != byte_length_u64 {
+        return Err(AtlasCookError::SizeOverflow);
+    }
+    let created: Result<Vec<u8>, AllocError> = Vec::with_capacity(allocator, byte_length);
+    let mut output = match created {
+        Ok(value) => value,
+        Err(_) => { return Err(AtlasCookError::OutOfMemory); },
+    };
+    let mut index: usize = 0;
+    while index < len(glyphs) {
+        let glyph = glyphs[index];
+        push_u32(&mut output, glyph.codepoint);
+        push_u32(&mut output, glyph.x);
+        push_u32(&mut output, glyph.y);
+        push_u32(&mut output, glyph.width);
+        push_u32(&mut output, glyph.height);
+        push_u32(&mut output, glyph.xmin as u32);
+        push_u32(&mut output, glyph.ymin as u32);
+        push_u32(&mut output, to_f32_bits(glyph.advance_width));
+        push_u32(&mut output, to_f32_bits(glyph.advance_height));
+        push_u32(&mut output, 0);
+        index += 1;
+    }
+    Ok(output)
+}
+
+fn push_u32(output: &mut Vec<u8>, value: u32) {
+    if !output.push_within_capacity(value as u8)
+        || !output.push_within_capacity((value >> 8) as u8)
+        || !output.push_within_capacity((value >> 16) as u8)
+        || !output.push_within_capacity((value >> 24) as u8)
+    {
+        panic("prepared glyph payload capacity was unavailable")
+    }
+}
+
+fn zeroed_bytes(
+    allocator: &Allocator,
+    length: usize,
+) -> Result<Vec<u8>, AtlasCookError> {
+    let created: Result<Vec<u8>, AllocError> = Vec::with_capacity(allocator, length);
+    let mut output = match created {
+        Ok(value) => value,
+        Err(_) => { return Err(AtlasCookError::OutOfMemory); },
+    };
+    let mut index: usize = 0;
+    while index < length {
+        if !output.push_within_capacity(0) {
+            panic("prepared atlas capacity was unavailable")
+        }
+        index += 1;
+    }
+    Ok(output)
+}
+
+fn checked_rgba_bytes(width: u32, height: u32) -> Result<usize, AtlasCookError> {
+    let pixels = width as u64 * height as u64;
+    if pixels > 0xffff_ffff_ffff_ffff / 4 {
+        return Err(AtlasCookError::SizeOverflow);
+    }
+    let bytes = pixels * 4;
+    let converted = bytes as usize;
+    if converted as u64 == bytes {
+        Ok(converted)
+    } else {
+        Err(AtlasCookError::SizeOverflow)
+    }
+}
+
+fn codec_limits(limits: &Limits) -> CodecLimits {
+    CodecLimits {
+        max_source_bytes: limits.max_source_bytes,
+        max_decoded_bytes: limits.max_decoded_bytes as u64,
+        max_dimension: limits.max_image_dimension,
+    }
+}

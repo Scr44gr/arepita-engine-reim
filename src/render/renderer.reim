@@ -1,0 +1,217 @@
+from sdl3 import Window;
+from self::context import ClearColor, GpuContext, PresentationMode, RendererError;
+from self::sprite_batch import SpriteBatch;
+from self::sprite_renderer import RenderReport, SpriteRenderer;
+from wgpu_sdl3 import WindowSurface, create_window_surface;
+
+/// High-level renderer that owns presentation resources in dependency order.
+///
+/// The SDL window remains owned by `WindowHost`. This object owns the surface,
+/// GPU context, and sprite pipeline, which prevents applications from
+/// accidentally releasing a device before its buffers or surface.
+pub struct Renderer {
+    surface: WindowSurface,
+    context: GpuContext,
+    sprites: SpriteRenderer,
+    released: bool,
+}
+
+/// Immutable renderer creation policy.
+@derive(Copy, Clone, Debug, Eq)
+pub struct RendererConfig {
+    sprite_capacity: usize,
+    presentation_mode: PresentationMode,
+}
+
+impl RendererConfig {
+    /// Creates a FIFO renderer configuration with fixed sprite capacity.
+    pub fn new(sprite_capacity: usize) -> RendererConfig {
+        RendererConfig {
+            sprite_capacity: sprite_capacity,
+            presentation_mode: PresentationMode::Fifo,
+        }
+    }
+
+    /// Selects a presentation mode. Creation fails when it is unsupported.
+    pub fn with_presentation_mode(
+        self,
+        presentation_mode: PresentationMode,
+    ) -> RendererConfig {
+        let mut config = self;
+        config.presentation_mode = presentation_mode;
+        config
+    }
+
+    /// Returns the prepared no-growth sprite capacity.
+    pub fn sprite_capacity(&self) -> usize { self.sprite_capacity }
+
+    /// Returns the requested presentation mode.
+    pub fn presentation_mode(&self) -> PresentationMode {
+        self.presentation_mode
+    }
+}
+
+impl Renderer {
+    /// Creates a renderer and reserves a fixed no-growth sprite capacity.
+    pub fn create(
+        window: &Window,
+        sprite_capacity: usize,
+    ) -> Result<Renderer, RendererError> {
+        Renderer::create_with_config(window, RendererConfig::new(sprite_capacity))
+    }
+
+    /// Creates a renderer from an explicit immutable configuration.
+    pub fn create_with_config(
+        window: &Window,
+        config: RendererConfig,
+    ) -> Result<Renderer, RendererError> {
+        let mut surface = match create_window_surface(window) {
+            Ok(value) => value,
+            Err(_) => {
+                return Err(RendererError::SurfaceCreationFailed);
+            },
+        };
+        let mut context = match GpuContext::create_with_presentation_mode(
+            &mut surface,
+            config.presentation_mode,
+        ) {
+            Ok(value) => value,
+            Err(error) => {
+                surface.release();
+                return Err(error);
+            },
+        };
+        let sprites = match SpriteRenderer::create(
+            &context,
+            config.sprite_capacity,
+        ) {
+            Ok(value) => value,
+            Err(error) => {
+                context.release(&mut surface);
+                surface.release();
+                return Err(error);
+            },
+        };
+        Ok(Renderer {
+            surface: surface,
+            context: context,
+            sprites: sprites,
+            released: false,
+        })
+    }
+
+    /// Replaces the sprite material shader without recreating the surface,
+    /// device, atlas texture, or instance buffer.
+    ///
+    /// Applications should call this during loading before frame submission.
+    pub fn set_sprite_shader(
+        &mut self,
+        shader_source: str,
+    ) -> Result<(), RendererError> {
+        if self.released {
+            return Err(RendererError::Released);
+        }
+        self.sprites.set_shader(&self.context, shader_source)
+    }
+
+    /// Reconfigures the presentation surface after a size or density change.
+    pub fn resize(&mut self) -> Result<(), RendererError> {
+        if self.released {
+            return Err(RendererError::Released);
+        }
+        self.context.resize(&mut self.surface)
+    }
+
+    /// Draws one packed sprite batch and reports the submitted work.
+    pub fn draw_sprites(
+        &self,
+        batch: &SpriteBatch,
+        clear: ClearColor,
+    ) -> Result<RenderReport, RendererError> {
+        if self.released {
+            return Err(RendererError::Released);
+        }
+        self.sprites.draw(&self.context, &self.surface, batch, clear)
+    }
+
+    /// Grows persistent instance storage outside frame-critical work.
+    pub fn reserve_sprites(
+        &mut self,
+        capacity: usize,
+    ) -> Result<(), RendererError> {
+        if self.released {
+            return Err(RendererError::Released);
+        }
+        self.sprites.reserve(&self.context, capacity)
+    }
+
+    /// Replaces the active sprite atlas from tightly packed sRGB RGBA8 pixels.
+    pub fn set_sprite_atlas_rgba8(
+        &mut self,
+        width: u32,
+        height: u32,
+        pixels: &[u8],
+    ) -> Result<(), RendererError> {
+        if self.released {
+            return Err(RendererError::Released);
+        }
+        self.sprites.set_atlas_rgba8(
+            &self.context,
+            width,
+            height,
+            pixels,
+        )
+    }
+
+    /// Returns persistent GPU buffer memory tracked by the renderer.
+    pub fn allocated_gpu_bytes(&self) -> u64 {
+        if self.released { 0 } else { self.sprites.allocated_bytes() }
+    }
+
+    /// Returns the drawable width in physical pixels.
+    pub fn width(&self) -> u32 {
+        self.context.width()
+    }
+
+    /// Returns the drawable height in physical pixels.
+    pub fn height(&self) -> u32 {
+        self.context.height()
+    }
+
+    /// Returns whether presentation is paused for a zero-sized window.
+    pub fn is_suspended(&self) -> bool {
+        self.context.is_suspended()
+    }
+
+    /// Returns the active presentation policy.
+    pub fn presentation_mode(&self) -> PresentationMode {
+        self.context.presentation_mode()
+    }
+
+    /// Returns whether this renderer has crossed its final release barrier.
+    pub fn is_released(&self) -> bool {
+        self.released
+    }
+
+    /// Releases pipeline, buffer, device, surface, and platform objects once.
+    pub fn release(&mut self) {
+        if self.released {
+            return;
+        }
+        self.sprites.release();
+        self.context.release(&mut self.surface);
+        self.surface.release();
+        self.released = true;
+    }
+}
+
+@test
+fn renderer_config_should_default_to_fifo_and_preserve_explicit_mode() {
+    let default = RendererConfig::new(2_048);
+    assert(default.sprite_capacity() == 2_048);
+    assert(default.presentation_mode() == PresentationMode::Fifo);
+
+    let immediate = default.with_presentation_mode(PresentationMode::Immediate);
+    assert(immediate.sprite_capacity() == 2_048);
+    assert(immediate.presentation_mode() == PresentationMode::Immediate);
+}

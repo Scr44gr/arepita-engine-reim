@@ -1,0 +1,837 @@
+from std::alloc import AllocError, Allocator, general_allocator;
+from std::checksum import crc32;
+from std::collections import HashMap, Vec;
+from std::fs import File, create, open, remove_file, replace_file;
+from std::slice import byte_range, len;
+from std::string import String, contains, ends_with, equals;
+
+const HEADER_SIZE: u32 = 64;
+const ENTRY_SIZE: u64 = 96;
+const DATA_ALIGNMENT: u64 = 16;
+const MAX_ID_BYTES: usize = 128;
+
+@derive(Copy, Clone, Debug, Eq)
+pub enum PackError {
+    OutOfMemory,
+    InvalidId,
+    DuplicateId,
+    HashCollision,
+    EmptyPack,
+    TooManyEntries,
+    SizeOverflow,
+    PackTooLarge,
+    TemporaryPathConflict,
+    FileCreateFailed,
+    FileWriteFailed,
+    FileSyncFailed,
+    PublishFailed,
+}
+
+@derive(Copy, Clone, Debug, Eq)
+pub enum AssetKind {
+    Atlas,
+    Region,
+    Audio,
+    Font,
+}
+
+/// One owned payload and its fixed metadata record.
+pub struct PackEntry {
+    kind: AssetKind,
+    id: String,
+    data: Vec<u8>,
+    metadata: [u32; 10],
+}
+
+impl PackEntry {
+    /// Transfers an owned ID and payload into one pack entry.
+    pub fn new(
+        kind: AssetKind,
+        id: String,
+        data: Vec<u8>,
+        metadata: [u32; 10],
+    ) -> PackEntry {
+        PackEntry {
+            kind: kind,
+            id: id,
+            data: data,
+            metadata: metadata,
+        }
+    }
+
+    pub fn id(&self) -> str { self.id.as_str() }
+    pub fn data(&self) -> &[u8] { self.data.as_slice() }
+
+    /// Releases all nested allocations and makes repeated cleanup inert.
+    pub fn release(&mut self) {
+        self.id.release();
+        self.data.release();
+    }
+}
+
+/// Deterministic APACK writer with explicit limits and cleanup.
+pub struct PackWriter {
+    allocator: Allocator,
+    entries: Vec<PackEntry>,
+    hashes: HashMap<u64, usize>,
+    payload_bytes: u64,
+    max_pack_bytes: u64,
+    released: bool,
+}
+
+impl PackWriter {
+    pub fn with_limit(
+        allocator: &Allocator,
+        max_pack_bytes: u64,
+    ) -> PackWriter {
+        PackWriter {
+            allocator: *allocator,
+            entries: Vec::empty(allocator),
+            hashes: HashMap::empty(allocator),
+            payload_bytes: 0,
+            max_pack_bytes: max_pack_bytes,
+            released: false,
+        }
+    }
+
+    pub fn len(&self) -> usize { self.entries.len() }
+
+    /// Adds one entry transactionally. The entry is released on any error.
+    pub fn push(&mut self, entry: PackEntry) -> Result<(), PackError> {
+        let mut entry = entry;
+        let valid = {
+            let id = entry.id.as_str();
+            valid_id(id)
+        };
+        if self.released || !valid {
+            entry.release();
+            return Err(PackError::InvalidId);
+        }
+        let hash = {
+            let id = entry.id.as_str();
+            hash_id(id.bytes())
+        };
+        match self.hashes.get(hash) {
+            Some(index) => {
+                let same = match self.entries.get_ref(index) {
+                    Some(existing) => equals(existing.id.as_str(), entry.id.as_str()),
+                    None => false,
+                };
+                entry.release();
+                if same {
+                    return Err(PackError::DuplicateId);
+                }
+                return Err(PackError::HashCollision);
+            },
+            None => {},
+        }
+        let data_len = entry.data.len() as u64;
+        let payload_bytes = match self.payload_bytes.checked_add(data_len) {
+            Some(value) => value,
+            None => {
+                entry.release();
+                return Err(PackError::SizeOverflow);
+            },
+        };
+        if payload_bytes > self.max_pack_bytes {
+            entry.release();
+            return Err(PackError::PackTooLarge);
+        }
+        match self.entries.reserve(1) {
+            Ok(_) => {},
+            Err(_) => {
+                entry.release();
+                return Err(PackError::OutOfMemory);
+            },
+        }
+        match self.hashes.reserve(1) {
+            Ok(_) => {},
+            Err(_) => {
+                entry.release();
+                return Err(PackError::OutOfMemory);
+            },
+        }
+        let index = self.entries.len();
+        if !self.entries.push_within_capacity(entry) {
+            panic("reserved pack entry capacity was not available")
+        }
+        match self.hashes.insert(hash, index) {
+            Ok(None) => {},
+            Ok(Some(_)) => panic("validated pack hash changed during insertion"),
+            Err(_) => panic("reserved pack hash capacity was not available"),
+            _ => panic("unexpected pack hash insertion result"),
+        }
+        self.payload_bytes = payload_bytes;
+        Ok(())
+    }
+
+    /// Serializes the current entries and atomically publishes the result.
+    ///
+    /// `temporary_path` must name a dedicated sibling file. It is removed on
+    /// every failed write and after a failed publication.
+    pub fn write_atomic(
+        &self,
+        output_path: str,
+        temporary_path: str,
+    ) -> Result<(), PackError> {
+        if equals(output_path, temporary_path) {
+            return Err(PackError::TemporaryPathConflict);
+        }
+        if self.entries.is_empty() {
+            return Err(PackError::EmptyPack);
+        }
+        let mut order = build_order(self)?;
+        let written = {
+            let values = order.as_slice();
+            write_pack_file(self, values, temporary_path)
+        };
+        order.deinit();
+        match written {
+            Ok(_) => {},
+            Err(error) => {
+                remove_if_present(temporary_path);
+                return Err(error);
+            },
+        }
+        match replace_file(temporary_path, output_path) {
+            Ok(_) => Ok(()),
+            Err(_) => {
+                remove_if_present(temporary_path);
+                Err(PackError::PublishFailed)
+            },
+        }
+    }
+
+    /// Releases entry payloads, index storage, and writer metadata once.
+    pub fn release(&mut self) {
+        if self.released {
+            return;
+        }
+        let mut index: usize = 0;
+        while index < self.entries.len() {
+            match self.entries.get_mut(index) {
+                Some(value) => value.release(),
+                None => panic("pack cleanup index escaped the entry table"),
+            }
+            index += 1;
+        }
+        self.entries.release();
+        self.hashes.release();
+        self.payload_bytes = 0;
+        self.released = true;
+    }
+}
+
+pub fn valid_id(id: str) -> bool {
+    let bytes = id.bytes();
+    let length = len(bytes);
+    if length == 0 || length > MAX_ID_BYTES {
+        return false;
+    }
+    let first = bytes[0];
+    if !is_lowercase_ascii(first) && !is_digit_ascii(first) {
+        return false;
+    }
+    let mut index: usize = 0;
+    while index < length {
+        let value = bytes[index];
+        if !is_lowercase_ascii(value)
+            && !is_digit_ascii(value)
+            && value != '.' as u8
+            && value != '_' as u8
+            && value != '-' as u8
+            && value != '/' as u8
+        {
+            return false;
+        }
+        index += 1;
+    }
+    !contains(id, "..") && !contains(id, "//") && !ends_with(id, "/")
+}
+
+/// Stable FNV-1a identity shared with the runtime pack reader.
+pub fn hash_id(bytes: &[u8]) -> u64 {
+    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+    let mut index: usize = 0;
+    while index < len(bytes) {
+        hash ^= bytes[index] as u64;
+        hash = fnv_multiply(hash);
+        index += 1;
+    }
+    hash
+}
+
+fn fnv_multiply(value: u64) -> u64 {
+    let mask: u64 = 0xffff_ffff;
+    let factor: u64 = 435;
+    let low = value & mask;
+    let high = value >> 32;
+    let low_product = low * factor;
+    let high_product = (high * factor) & mask;
+    let shifted_high = high_product << 32;
+    let shifted_prime = value << 40;
+    let partial = low_product.wrapping_add(shifted_high);
+    partial.wrapping_add(shifted_prime)
+}
+
+fn is_lowercase_ascii(value: u8) -> bool {
+    value >= 'a' as u8 && value <= 'z' as u8
+}
+
+fn is_digit_ascii(value: u8) -> bool {
+    value >= '0' as u8 && value <= '9' as u8
+}
+
+fn kind_code(kind: AssetKind) -> u32 {
+    match kind {
+        AssetKind::Atlas => 1,
+        AssetKind::Region => 2,
+        AssetKind::Audio => 3,
+        AssetKind::Font => 4,
+    }
+}
+
+fn build_order(writer: &PackWriter) -> Result<Vec<usize>, PackError> {
+    if writer.entries.len() as u64 > 4_294_967_295 {
+        return Err(PackError::TooManyEntries);
+    }
+    let created: Result<Vec<usize>, AllocError> = Vec::with_capacity(
+        &writer.allocator,
+        writer.entries.len(),
+    );
+    let mut order = match created {
+        Ok(value) => value,
+        Err(_) => { return Err(PackError::OutOfMemory); },
+    };
+    let mut index: usize = 0;
+    while index < writer.entries.len() {
+        if !order.push_within_capacity(index) {
+            panic("prepared pack ordering capacity was not available")
+        }
+        index += 1;
+    }
+    {
+        let length = order.len();
+        let values = order.as_mut_slice();
+        heap_sort(values, length, &writer.entries);
+    }
+    Ok(order)
+}
+
+fn entry_less(left: usize, right: usize, entries: &Vec<PackEntry>) -> bool {
+    let left_entry = match entries.get_ref(left) {
+        Some(value) => value,
+        None => panic("pack ordering index escaped the entry table"),
+    };
+    let right_entry = match entries.get_ref(right) {
+        Some(value) => value,
+        None => panic("pack ordering index escaped the entry table"),
+    };
+    let left_hash = {
+        let id = left_entry.id.as_str();
+        hash_id(id.bytes())
+    };
+    let right_hash = {
+        let id = right_entry.id.as_str();
+        hash_id(id.bytes())
+    };
+    if left_hash != right_hash {
+        return left_hash < right_hash;
+    }
+    lexical_less(left_entry.id.as_str(), right_entry.id.as_str())
+}
+
+fn lexical_less(left: str, right: str) -> bool {
+    let left_bytes = left.bytes();
+    let right_bytes = right.bytes();
+    let shortest = if len(left_bytes) < len(right_bytes) {
+        len(left_bytes)
+    } else {
+        len(right_bytes)
+    };
+    let mut index: usize = 0;
+    while index < shortest {
+        if left_bytes[index] != right_bytes[index] {
+            return left_bytes[index] < right_bytes[index];
+        }
+        index += 1;
+    }
+    len(left_bytes) < len(right_bytes)
+}
+
+fn heap_sort(
+    order: &mut [usize],
+    length: usize,
+    entries: &Vec<PackEntry>,
+) {
+    if length < 2 {
+        return;
+    }
+    let mut start = length / 2;
+    while start > 0 {
+        start -= 1;
+        let mut parent = start;
+        while parent < length / 2 {
+            let left = parent * 2 + 1;
+            let right = left + 1;
+            let mut greatest = left;
+            if right < length
+                && entry_less(order[left], order[right], entries)
+            {
+                greatest = right;
+            }
+            if !entry_less(order[parent], order[greatest], entries) {
+                break;
+            }
+            let value = order[parent];
+            order[parent] = order[greatest];
+            order[greatest] = value;
+            parent = greatest;
+        }
+    }
+    let mut end = length;
+    while end > 1 {
+        end -= 1;
+        let value = order[0];
+        order[0] = order[end];
+        order[end] = value;
+        let mut parent: usize = 0;
+        while parent < end / 2 {
+            let left = parent * 2 + 1;
+            let right = left + 1;
+            let mut greatest = left;
+            if right < end
+                && entry_less(order[left], order[right], entries)
+            {
+                greatest = right;
+            }
+            if !entry_less(order[parent], order[greatest], entries) {
+                break;
+            }
+            let next = order[parent];
+            order[parent] = order[greatest];
+            order[greatest] = next;
+            parent = greatest;
+        }
+    }
+}
+
+fn write_pack_file(
+    writer: &PackWriter,
+    order: &[usize],
+    path: str,
+) -> Result<(), PackError> {
+    let layout = pack_layout(writer, order)?;
+    let mut file = match create(path) {
+        Ok(value) => value,
+        Err(_) => { return Err(PackError::FileCreateFailed); },
+    };
+    let result = write_pack(writer, order, &layout, &mut file);
+    match result {
+        Ok(_) => {
+            match file.sync_all() {
+                Ok(_) => {
+                    file.deinit();
+                    Ok(())
+                },
+                Err(_) => {
+                    file.deinit();
+                    Err(PackError::FileSyncFailed)
+                },
+            }
+        },
+        Err(error) => {
+            file.deinit();
+            Err(error)
+        },
+    }
+}
+
+@derive(Copy)
+struct PackLayout {
+    table_offset: u64,
+    table_len: u64,
+    names_offset: u64,
+    names_len: u64,
+    data_offset: u64,
+    file_len: u64,
+}
+
+fn pack_layout(
+    writer: &PackWriter,
+    order: &[usize],
+) -> Result<PackLayout, PackError> {
+    let entry_count = len(order) as u64;
+    let table_offset = HEADER_SIZE as u64;
+    let table_len = checked_multiply(entry_count, ENTRY_SIZE)?;
+    let names_offset = checked_add(table_offset, table_len)?;
+    let mut names_len: u64 = 0;
+    let mut data_len: u64 = 0;
+    let mut index: usize = 0;
+    while index < len(order) {
+        let entry = match writer.entries.get_ref(order[index]) {
+            Some(value) => value,
+            None => panic("pack entry index escaped the entry table"),
+        };
+        names_len = checked_add(names_len, entry.id.len() as u64)?;
+        data_len = checked_add(
+            align_up(data_len, DATA_ALIGNMENT)?,
+            entry.data.len() as u64,
+        )?;
+        index += 1;
+    }
+    let data_offset = align_up(
+        checked_add(names_offset, names_len)?,
+        DATA_ALIGNMENT,
+    )?;
+    let file_len = checked_add(data_offset, data_len)?;
+    if file_len > writer.max_pack_bytes {
+        return Err(PackError::PackTooLarge);
+    }
+    Ok(PackLayout {
+        table_offset: table_offset,
+        table_len: table_len,
+        names_offset: names_offset,
+        names_len: names_len,
+        data_offset: data_offset,
+        file_len: file_len,
+    })
+}
+
+fn write_pack(
+    writer: &PackWriter,
+    order: &[usize],
+    layout: &PackLayout,
+    file: &mut File,
+) -> Result<(), PackError> {
+    let magic: [u8; 8] = [65, 82, 69, 80, 65, 67, 75, 0];
+    write_bytes(file, &magic)?;
+    write_u16(file, 1)?;
+    write_u16(file, 0)?;
+    write_u32(file, HEADER_SIZE)?;
+    write_u32(file, len(order) as u32)?;
+    write_u32(file, 0)?;
+    write_u64(file, layout.table_offset)?;
+    write_u64(file, layout.table_len)?;
+    write_u64(file, layout.names_offset)?;
+    write_u64(file, layout.data_offset)?;
+    write_u64(file, layout.file_len)?;
+
+    let mut name_cursor: u64 = 0;
+    let mut data_cursor: u64 = 0;
+    let mut index: usize = 0;
+    while index < len(order) {
+        let entry = match writer.entries.get_ref(order[index]) {
+            Some(value) => value,
+            None => panic("pack entry index escaped the entry table"),
+        };
+        let entry_data_offset = align_up(data_cursor, DATA_ALIGNMENT)?;
+        write_u32(file, kind_code(entry.kind))?;
+        write_u32(file, 0)?;
+        let entry_hash = {
+            let id = entry.id.as_str();
+            hash_id(id.bytes())
+        };
+        write_u64(file, entry_hash)?;
+        write_u64(file, name_cursor)?;
+        write_u32(file, entry.id.len() as u32)?;
+        write_u32(file, 0)?;
+        write_u64(file, checked_add(layout.data_offset, entry_data_offset)?)?;
+        write_u64(file, entry.data.len() as u64)?;
+        write_u32(file, crc32(entry.data.as_slice()))?;
+        write_u32(file, 0)?;
+        let mut metadata_index: usize = 0;
+        while metadata_index < 10 {
+            write_u32(file, entry.metadata[metadata_index])?;
+            metadata_index += 1;
+        }
+        name_cursor = checked_add(name_cursor, entry.id.len() as u64)?;
+        data_cursor = checked_add(entry_data_offset, entry.data.len() as u64)?;
+        index += 1;
+    }
+
+    index = 0;
+    while index < len(order) {
+        let entry = match writer.entries.get_ref(order[index]) {
+            Some(value) => value,
+            None => panic("pack entry index escaped the entry table"),
+        };
+        {
+            let id = entry.id.as_str();
+            write_bytes(file, id.bytes())?;
+        }
+        index += 1;
+    }
+    let names_end = checked_add(layout.names_offset, layout.names_len)?;
+    write_padding(file, layout.data_offset - names_end)?;
+
+    let mut written: u64 = 0;
+    index = 0;
+    while index < len(order) {
+        let entry = match writer.entries.get_ref(order[index]) {
+            Some(value) => value,
+            None => panic("pack entry index escaped the entry table"),
+        };
+        let aligned = align_up(written, DATA_ALIGNMENT)?;
+        write_padding(file, aligned - written)?;
+        write_bytes(file, entry.data.as_slice())?;
+        written = checked_add(aligned, entry.data.len() as u64)?;
+        index += 1;
+    }
+    match file.flush() {
+        Ok(_) => Ok(()),
+        Err(_) => Err(PackError::FileWriteFailed),
+    }
+}
+
+fn checked_add(left: u64, right: u64) -> Result<u64, PackError> {
+    match left.checked_add(right) {
+        Some(value) => Ok(value),
+        None => Err(PackError::SizeOverflow),
+    }
+}
+
+fn checked_multiply(left: u64, right: u64) -> Result<u64, PackError> {
+    if left != 0 && right > 0xffff_ffff_ffff_ffff / left {
+        Err(PackError::SizeOverflow)
+    } else {
+        Ok(left * right)
+    }
+}
+
+fn align_up(value: u64, alignment: u64) -> Result<u64, PackError> {
+    let adjustment = alignment - 1;
+    Ok(checked_add(value, adjustment)? & !adjustment)
+}
+
+fn write_bytes(file: &mut File, bytes: &[u8]) -> Result<(), PackError> {
+    match file.write_bytes(bytes) {
+        Ok(_) => Ok(()),
+        Err(_) => Err(PackError::FileWriteFailed),
+    }
+}
+
+fn write_u8(file: &mut File, value: u8) -> Result<(), PackError> {
+    let bytes: [u8; 1] = [value];
+    write_bytes(file, &bytes)
+}
+
+fn write_u16(file: &mut File, value: u16) -> Result<(), PackError> {
+    let bytes: [u8; 2] = [value as u8, (value >> 8) as u8];
+    write_bytes(file, &bytes)
+}
+
+fn write_u32(file: &mut File, value: u32) -> Result<(), PackError> {
+    let bytes: [u8; 4] = [
+        value as u8,
+        (value >> 8) as u8,
+        (value >> 16) as u8,
+        (value >> 24) as u8,
+    ];
+    write_bytes(file, &bytes)
+}
+
+fn write_u64(file: &mut File, value: u64) -> Result<(), PackError> {
+    let bytes: [u8; 8] = [
+        value as u8,
+        (value >> 8) as u8,
+        (value >> 16) as u8,
+        (value >> 24) as u8,
+        (value >> 32) as u8,
+        (value >> 40) as u8,
+        (value >> 48) as u8,
+        (value >> 56) as u8,
+    ];
+    write_bytes(file, &bytes)
+}
+
+fn write_padding(file: &mut File, length: u64) -> Result<(), PackError> {
+    if length > 15 {
+        return Err(PackError::SizeOverflow);
+    }
+    let zeroes: [u8; 16] = [0; 16];
+    let amount = length as usize;
+    if amount == 0 {
+        return Ok(());
+    }
+    let bytes = match byte_range(&zeroes, 0, amount) {
+        Some(value) => value,
+        None => { return Err(PackError::SizeOverflow); },
+    };
+    write_bytes(file, bytes)
+}
+
+fn remove_if_present(path: str) {
+    match remove_file(path) {
+        Ok(_) => {},
+        Err(_) => {},
+    }
+}
+
+fn bytes_equal(left: &[u8], right: &[u8]) -> bool {
+    if len(left) != len(right) {
+        return false;
+    }
+    let mut index: usize = 0;
+    while index < len(left) {
+        if left[index] != right[index] {
+            return false;
+        }
+        index += 1;
+    }
+    true
+}
+
+fn test_entry(
+    allocator: &Allocator,
+    kind: AssetKind,
+    id: str,
+    bytes: &[u8],
+    metadata: [u32; 10],
+) -> PackEntry {
+    let name = match String::from(allocator, id) {
+        Ok(value) => value,
+        Err(_) => panic("test ID allocation failed"),
+    };
+    let created: Result<Vec<u8>, AllocError> = Vec::with_capacity(allocator, len(bytes));
+    let mut data = match created {
+        Ok(value) => value,
+        Err(_) => panic("test payload allocation failed"),
+    };
+    let mut index: usize = 0;
+    while index < len(bytes) {
+        if !data.push_within_capacity(bytes[index]) {
+            panic("test payload capacity changed")
+        }
+        index += 1;
+    }
+    PackEntry::new(kind, name, data, metadata)
+}
+
+@test
+fn ids_and_hashes_should_match_the_runtime_contract() {
+    assert(valid_id("world/grass_01"));
+    assert(!valid_id("../secret"));
+    assert(!valid_id("World/grass"));
+    assert(!valid_id("world//grass"));
+    assert(hash_id("world/grass".bytes()) == 0x9357_1c7e_fd81_d16e);
+}
+
+@test
+fn pack_output_should_be_independent_of_insertion_order() {
+    let allocator = general_allocator();
+    let first_path = "arepita_cooker_first.apack";
+    let first_temporary = "arepita_cooker_first.apack.tmp";
+    let second_path = "arepita_cooker_second.apack";
+    let second_temporary = "arepita_cooker_second.apack.tmp";
+    remove_if_present(first_path);
+    remove_if_present(first_temporary);
+    remove_if_present(second_path);
+    remove_if_present(second_temporary);
+    defer remove_if_present(first_path);
+    defer remove_if_present(first_temporary);
+    defer remove_if_present(second_path);
+    defer remove_if_present(second_temporary);
+
+    let mut first = PackWriter::with_limit(&allocator, 1_048_576);
+    defer first.release();
+    let audio: [u8; 8] = [0; 8];
+    let empty: [u8; 0] = [];
+    match first.push(test_entry(
+        &allocator,
+        AssetKind::Audio,
+        "audio/step",
+        &audio,
+        [48_000, 2, 1, 0, 1, 0, 0, 0, 0, 0],
+    )) { Ok(_) => {}, Err(_) => panic("first audio insertion failed"), }
+    match first.push(test_entry(
+        &allocator,
+        AssetKind::Region,
+        "world/grass",
+        &empty,
+        [1, 2, 3, 4, 5, 6, 0, 0, 0, 0],
+    )) { Ok(_) => {}, Err(_) => panic("first region insertion failed"), }
+    match first.write_atomic(first_path, first_temporary) {
+        Ok(_) => {},
+        Err(_) => panic("first pack write failed"),
+    }
+
+    let mut second = PackWriter::with_limit(&allocator, 1_048_576);
+    defer second.release();
+    match second.push(test_entry(
+        &allocator,
+        AssetKind::Region,
+        "world/grass",
+        &empty,
+        [1, 2, 3, 4, 5, 6, 0, 0, 0, 0],
+    )) { Ok(_) => {}, Err(_) => panic("second region insertion failed"), }
+    match second.push(test_entry(
+        &allocator,
+        AssetKind::Audio,
+        "audio/step",
+        &audio,
+        [48_000, 2, 1, 0, 1, 0, 0, 0, 0, 0],
+    )) { Ok(_) => {}, Err(_) => panic("second audio insertion failed"), }
+    match second.write_atomic(second_path, second_temporary) {
+        Ok(_) => {},
+        Err(_) => panic("second pack write failed"),
+    }
+
+    let mut first_file = match open(first_path) {
+        Ok(value) => value,
+        Err(_) => panic("first pack open failed"),
+    };
+    defer first_file.deinit();
+    let first_bytes = match first_file.read_to_end(&allocator) {
+        Ok(value) => value,
+        Err(_) => panic("first pack read failed"),
+    };
+    defer first_bytes.deinit();
+    let mut second_file = match open(second_path) {
+        Ok(value) => value,
+        Err(_) => panic("second pack open failed"),
+    };
+    defer second_file.deinit();
+    let second_bytes = match second_file.read_to_end(&allocator) {
+        Ok(value) => value,
+        Err(_) => panic("second pack read failed"),
+    };
+    defer second_bytes.deinit();
+    assert(bytes_equal(first_bytes.as_bytes(), second_bytes.as_bytes()));
+}
+
+@test
+fn writer_should_reject_duplicate_ids_and_oversized_payloads() {
+    let allocator = general_allocator();
+    let empty: [u8; 0] = [];
+    let mut writer = PackWriter::with_limit(&allocator, 3);
+    defer writer.release();
+    match writer.push(test_entry(
+        &allocator,
+        AssetKind::Region,
+        "world/grass",
+        &empty,
+        [0; 10],
+    )) { Ok(_) => {}, Err(_) => panic("initial entry failed"), }
+    assert(match writer.push(test_entry(
+        &allocator,
+        AssetKind::Region,
+        "world/grass",
+        &empty,
+        [0; 10],
+    )) {
+        Err(PackError::DuplicateId) => true,
+        _ => false,
+    });
+    let too_large: [u8; 4] = [1, 2, 3, 4];
+    assert(match writer.push(test_entry(
+        &allocator,
+        AssetKind::Audio,
+        "audio/large",
+        &too_large,
+        [0; 10],
+    )) {
+        Err(PackError::PackTooLarge) => true,
+        _ => false,
+    });
+}

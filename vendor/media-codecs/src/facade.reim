@@ -1,0 +1,517 @@
+from std::alloc import AllocError, Allocator;
+from std::collections import Vec;
+from std::slice import bytes_as_ptr, len;
+
+import self::raw as raw;
+
+/// Recoverable media decoding failures.
+@derive(Copy, Clone, Debug, Eq)
+pub enum CodecError {
+    InvalidArgument,
+    Unsupported,
+    DecodeFailed,
+    LimitExceeded,
+    BufferTooSmall,
+    InvalidHandle,
+    NativePanic,
+    OutOfMemory,
+    IncompatibleLibrary,
+    UnknownStatus,
+}
+
+/// Explicit limits applied before and during every decode.
+@derive(Copy, Clone, Debug, Eq)
+pub struct CodecLimits {
+    pub max_source_bytes: u64,
+    pub max_decoded_bytes: u64,
+    pub max_dimension: u32,
+}
+
+impl CodecLimits {
+    /// Returns conservative defaults suitable for offline asset tools.
+    pub fn standard() -> CodecLimits {
+        CodecLimits {
+            max_source_bytes: 64 * 1024 * 1024,
+            max_decoded_bytes: 512 * 1024 * 1024,
+            max_dimension: 8_192,
+        }
+    }
+
+    fn native(&self) -> raw::MediaCodecLimits {
+        raw::MediaCodecLimits {
+            // The versioned C layout contains two u32 fields, two u64 fields,
+            // and two trailing u32 fields. Its size is fixed on every target.
+            struct_size: 32,
+            api_version: raw::API_VERSION,
+            max_source_bytes: self.max_source_bytes,
+            max_decoded_bytes: self.max_decoded_bytes,
+            max_dimension: self.max_dimension,
+            reserved: 0,
+        }
+    }
+}
+
+/// Allocator-owned tightly packed RGBA8 image.
+pub struct DecodedImage {
+    width: u32,
+    height: u32,
+    row_bytes: u32,
+    pixels: Vec<u8>,
+}
+
+/// Exact RGBA8 requirements reported without allocating decoded pixels.
+@derive(Copy, Clone, Debug, Eq)
+pub struct ImageInfo {
+    pub width: u32,
+    pub height: u32,
+    pub row_bytes: u32,
+    pub byte_len: u64,
+}
+
+impl DecodedImage {
+    /// Returns the image width in pixels.
+    pub fn width(&self) -> u32 { self.width }
+
+    /// Returns the image height in pixels.
+    pub fn height(&self) -> u32 { self.height }
+
+    /// Returns the tightly packed byte stride of one row.
+    pub fn row_bytes(&self) -> u32 { self.row_bytes }
+
+    /// Borrows every decoded RGBA8 byte.
+    pub fn pixels(&self) -> &[u8] { self.pixels.as_slice() }
+
+    /// Returns the reserved pixel storage in bytes.
+    pub fn allocated_bytes(&self) -> usize { self.pixels.allocated_bytes() }
+
+    /// Transfers the tightly packed RGBA8 storage to the caller.
+    pub fn into_pixels(self) -> Vec<u8> { self.pixels }
+
+    /// Releases all image storage through its original allocator.
+    pub fn deinit(self) { self.pixels.deinit(); }
+
+    /// Releases image storage in place and makes repeated cleanup a no-op.
+    pub fn release(&mut self) {
+        self.pixels.release();
+        self.width = 0;
+        self.height = 0;
+        self.row_bytes = 0;
+    }
+}
+
+/// Horizontal line metrics at one font pixel size.
+@derive(Copy, Clone, Debug)
+pub struct FontMetrics {
+    pub ascent: f32,
+    pub descent: f32,
+    pub line_gap: f32,
+    pub new_line_size: f32,
+}
+
+/// One parsed font owned by the native codec boundary.
+pub struct Font {
+    handle: u64,
+}
+
+impl Font {
+    /// Parses a font from borrowed bytes without exposing a native pointer.
+    pub fn open(source: &[u8], limits: CodecLimits) -> Result<Font, CodecError> {
+        ensure_compatible()?;
+        let native_limits = limits.native();
+        let mut handle: u64 = 0;
+        let status = unsafe {
+            raw::media_codec_font_open(
+                bytes_as_ptr(source),
+                len(source),
+                &native_limits as *const raw::MediaCodecLimits,
+                &mut handle as *mut u64,
+            )
+        };
+        status_result(status)?;
+        Ok(Font { handle: handle })
+    }
+
+    /// Reads line metrics for `pixel_size` without allocating.
+    pub fn metrics(&self, pixel_size: f32) -> Result<FontMetrics, CodecError> {
+        let mut output = empty_font_metrics();
+        let status = unsafe {
+            raw::media_codec_font_metrics(
+                self.handle,
+                pixel_size,
+                &mut output as *mut raw::MediaFontMetrics,
+            )
+        };
+        status_result(status)?;
+        Ok(FontMetrics {
+            ascent: output.ascent,
+            descent: output.descent,
+            line_gap: output.line_gap,
+            new_line_size: output.new_line_size,
+        })
+    }
+
+    /// Rasterizes one Unicode scalar into an owned alpha-coverage resource.
+    pub fn rasterize(
+        &self,
+        value: char,
+        pixel_size: f32,
+        limits: CodecLimits,
+    ) -> Result<Glyph, CodecError> {
+        let native_limits = limits.native();
+        let mut handle: u64 = 0;
+        let mut output = empty_glyph_info();
+        let status = unsafe {
+            raw::media_codec_font_rasterize(
+                self.handle,
+                value as u32,
+                pixel_size,
+                &native_limits as *const raw::MediaCodecLimits,
+                &mut handle as *mut u64,
+                &mut output as *mut raw::MediaGlyphInfo,
+            )
+        };
+        status_result(status)?;
+        Ok(Glyph { handle: handle, info: output })
+    }
+
+    /// Releases this font handle. Existing glyph handles remain valid.
+    pub fn deinit(self) {
+        unsafe { raw::media_codec_font_close(self.handle); }
+    }
+
+    /// Releases this font in place and makes repeated cleanup a no-op.
+    pub fn release(&mut self) {
+        if self.handle != 0 {
+            unsafe { raw::media_codec_font_close(self.handle); }
+            self.handle = 0;
+        }
+    }
+}
+
+/// One rasterized glyph and its native-owned alpha coverage.
+pub struct Glyph {
+    handle: u64,
+    info: raw::MediaGlyphInfo,
+}
+
+impl Glyph {
+    /// Returns the Unicode scalar represented by this glyph.
+    pub fn codepoint(&self) -> u32 { self.info.codepoint }
+
+    /// Returns the alpha bitmap width in pixels.
+    pub fn width(&self) -> u32 { self.info.width }
+
+    /// Returns the alpha bitmap height in pixels.
+    pub fn height(&self) -> u32 { self.info.height }
+
+    /// Returns the horizontal bitmap offset from the glyph origin.
+    pub fn xmin(&self) -> i32 { self.info.xmin }
+
+    /// Returns the vertical bitmap offset from the glyph baseline.
+    pub fn ymin(&self) -> i32 { self.info.ymin }
+
+    /// Returns the horizontal cursor advance in pixels.
+    pub fn advance_width(&self) -> f32 { self.info.advance_width }
+
+    /// Returns the vertical cursor advance in pixels.
+    pub fn advance_height(&self) -> f32 { self.info.advance_height }
+
+    /// Returns the exact alpha bitmap length in bytes.
+    pub fn bitmap_bytes(&self) -> u64 { self.info.bitmap_bytes }
+
+    /// Copies the alpha coverage into allocator-owned Reimer storage.
+    pub fn coverage(&self, allocator: &Allocator) -> Result<Vec<u8>, CodecError> {
+        let length = checked_length(self.info.bitmap_bytes)?;
+        let mut output = zeroed_bytes(allocator, length)?;
+        let destination = mut_byte_pointer(&mut output);
+        let status = unsafe {
+            raw::media_codec_glyph_copy(self.handle, destination, length)
+        };
+        match status_result(status) {
+            Ok(_) => Ok(output),
+            Err(error) => {
+                output.release();
+                Err(error)
+            },
+        }
+    }
+
+    /// Releases this native alpha-coverage resource.
+    pub fn deinit(self) {
+        unsafe { raw::media_codec_glyph_close(self.handle); }
+    }
+
+    /// Releases this glyph in place and makes repeated cleanup a no-op.
+    pub fn release(&mut self) {
+        if self.handle != 0 {
+            unsafe { raw::media_codec_glyph_close(self.handle); }
+            self.handle = 0;
+        }
+    }
+}
+
+/// One decoded interleaved stereo audio resource.
+pub struct DecodedAudio {
+    handle: u64,
+    info: raw::MediaAudioInfo,
+}
+
+impl DecodedAudio {
+    /// Decodes and resamples borrowed source bytes into finite stereo samples.
+    pub fn decode(
+        source: &[u8],
+        target_sample_rate: u32,
+        limits: CodecLimits,
+    ) -> Result<DecodedAudio, CodecError> {
+        ensure_compatible()?;
+        let native_limits = limits.native();
+        let mut handle: u64 = 0;
+        let mut output = empty_audio_info();
+        let status = unsafe {
+            raw::media_codec_audio_decode(
+                bytes_as_ptr(source),
+                len(source),
+                target_sample_rate,
+                &native_limits as *const raw::MediaCodecLimits,
+                &mut handle as *mut u64,
+                &mut output as *mut raw::MediaAudioInfo,
+            )
+        };
+        status_result(status)?;
+        Ok(DecodedAudio { handle: handle, info: output })
+    }
+
+    /// Returns the decoded sample rate in hertz.
+    pub fn sample_rate(&self) -> u32 { self.info.sample_rate }
+
+    /// Returns the interleaved channel count, currently always two.
+    pub fn channels(&self) -> u32 { self.info.channels }
+
+    /// Returns the number of stereo sample frames.
+    pub fn frames(&self) -> u64 { self.info.frames }
+
+    /// Returns the total number of interleaved `f32` samples.
+    pub fn sample_count(&self) -> u64 { self.info.sample_count }
+
+    /// Copies all interleaved stereo samples into Reimer-owned storage.
+    pub fn samples(&self, allocator: &Allocator) -> Result<Vec<f32>, CodecError> {
+        let length = checked_length(self.info.sample_count)?;
+        let mut output = zeroed_samples(allocator, length)?;
+        let destination = mut_sample_pointer(&mut output);
+        let status = unsafe {
+            raw::media_codec_audio_copy(self.handle, destination, length)
+        };
+        match status_result(status) {
+            Ok(_) => Ok(output),
+            Err(error) => {
+                output.release();
+                Err(error)
+            },
+        }
+    }
+
+    /// Releases the native decoded sample storage.
+    pub fn deinit(self) {
+        unsafe { raw::media_codec_audio_close(self.handle); }
+    }
+
+    /// Releases decoded audio in place and makes repeated cleanup a no-op.
+    pub fn release(&mut self) {
+        if self.handle != 0 {
+            unsafe { raw::media_codec_audio_close(self.handle); }
+            self.handle = 0;
+        }
+    }
+}
+
+/// Decodes one image into allocator-owned RGBA8 bytes.
+pub fn decode_rgba8(
+    allocator: &Allocator,
+    source: &[u8],
+    limits: CodecLimits,
+) -> Result<DecodedImage, CodecError> {
+    ensure_compatible()?;
+    let native_limits = limits.native();
+    let mut info = empty_image_info();
+    let probe_status = unsafe {
+        raw::media_codec_image_probe(
+            bytes_as_ptr(source),
+            len(source),
+            &native_limits as *const raw::MediaCodecLimits,
+            &mut info as *mut raw::MediaImageInfo,
+        )
+    };
+    status_result(probe_status)?;
+    let length = checked_length(info.byte_len)?;
+    let mut pixels = zeroed_bytes(allocator, length)?;
+    let destination = mut_byte_pointer(&mut pixels);
+    let decode_status = unsafe {
+        raw::media_codec_image_decode_rgba8(
+            bytes_as_ptr(source),
+            len(source),
+            &native_limits as *const raw::MediaCodecLimits,
+            destination,
+            length,
+        )
+    };
+    match status_result(decode_status) {
+        Ok(_) => Ok(DecodedImage {
+            width: info.width,
+            height: info.height,
+            row_bytes: info.row_bytes,
+            pixels: pixels,
+        }),
+        Err(error) => {
+            pixels.release();
+            Err(error)
+        },
+    }
+}
+
+/// Reads image dimensions and RGBA8 storage requirements without decoding.
+pub fn probe_rgba8(
+    source: &[u8],
+    limits: CodecLimits,
+) -> Result<ImageInfo, CodecError> {
+    ensure_compatible()?;
+    let native_limits = limits.native();
+    let mut info = empty_image_info();
+    let status = unsafe {
+        raw::media_codec_image_probe(
+            bytes_as_ptr(source),
+            len(source),
+            &native_limits as *const raw::MediaCodecLimits,
+            &mut info as *mut raw::MediaImageInfo,
+        )
+    };
+    status_result(status)?;
+    Ok(ImageInfo {
+        width: info.width,
+        height: info.height,
+        row_bytes: info.row_bytes,
+        byte_len: info.byte_len,
+    })
+}
+
+/// Reports whether the loaded native library implements this package ABI.
+pub fn is_compatible() -> bool {
+    unsafe { raw::media_codec_api_version() } == raw::API_VERSION
+}
+
+fn ensure_compatible() -> Result<(), CodecError> {
+    if is_compatible() { Ok(()) } else { Err(CodecError::IncompatibleLibrary) }
+}
+
+fn status_result(status: u32) -> Result<(), CodecError> {
+    if status == raw::STATUS_OK {
+        Ok(())
+    } else if status == raw::STATUS_INVALID_ARGUMENT {
+        Err(CodecError::InvalidArgument)
+    } else if status == raw::STATUS_UNSUPPORTED {
+        Err(CodecError::Unsupported)
+    } else if status == raw::STATUS_DECODE_FAILED {
+        Err(CodecError::DecodeFailed)
+    } else if status == raw::STATUS_LIMIT_EXCEEDED {
+        Err(CodecError::LimitExceeded)
+    } else if status == raw::STATUS_BUFFER_TOO_SMALL {
+        Err(CodecError::BufferTooSmall)
+    } else if status == raw::STATUS_NOT_FOUND {
+        Err(CodecError::InvalidHandle)
+    } else if status == raw::STATUS_PANICKED {
+        Err(CodecError::NativePanic)
+    } else {
+        Err(CodecError::UnknownStatus)
+    }
+}
+
+fn checked_length(value: u64) -> Result<usize, CodecError> {
+    let converted = value as usize;
+    if converted as u64 == value { Ok(converted) } else { Err(CodecError::LimitExceeded) }
+}
+
+fn zeroed_bytes(
+    allocator: &Allocator,
+    length: usize,
+) -> Result<Vec<u8>, CodecError> {
+    let created: Result<Vec<u8>, AllocError> = Vec::with_capacity(allocator, length);
+    let mut output = match created {
+        Ok(value) => value,
+        Err(_) => { return Err(CodecError::OutOfMemory); },
+    };
+    let mut index: usize = 0;
+    while index < length {
+        if !output.push_within_capacity(0) {
+            panic("prepared codec byte capacity was unavailable")
+        }
+        index += 1;
+    }
+    Ok(output)
+}
+
+fn zeroed_samples(
+    allocator: &Allocator,
+    length: usize,
+) -> Result<Vec<f32>, CodecError> {
+    let created: Result<Vec<f32>, AllocError> = Vec::with_capacity(allocator, length);
+    let mut output = match created {
+        Ok(value) => value,
+        Err(_) => { return Err(CodecError::OutOfMemory); },
+    };
+    let mut index: usize = 0;
+    while index < length {
+        if !output.push_within_capacity(0.0) {
+            panic("prepared codec sample capacity was unavailable")
+        }
+        index += 1;
+    }
+    Ok(output)
+}
+
+fn mut_byte_pointer(values: &mut Vec<u8>) -> *mut u8 {
+    if values.len() == 0 {
+        0 as usize as *mut u8
+    } else {
+        &mut values.as_mut_slice()[0] as *mut u8
+    }
+}
+
+fn mut_sample_pointer(values: &mut Vec<f32>) -> *mut f32 {
+    if values.len() == 0 {
+        0 as usize as *mut f32
+    } else {
+        &mut values.as_mut_slice()[0] as *mut f32
+    }
+}
+
+fn empty_image_info() -> raw::MediaImageInfo {
+    raw::MediaImageInfo { struct_size: 0, width: 0, height: 0, row_bytes: 0, byte_len: 0 }
+}
+
+fn empty_font_metrics() -> raw::MediaFontMetrics {
+    raw::MediaFontMetrics { struct_size: 0, ascent: 0.0, descent: 0.0, line_gap: 0.0, new_line_size: 0.0 }
+}
+
+fn empty_glyph_info() -> raw::MediaGlyphInfo {
+    raw::MediaGlyphInfo {
+        struct_size: 0,
+        codepoint: 0,
+        width: 0,
+        height: 0,
+        xmin: 0,
+        ymin: 0,
+        advance_width: 0.0,
+        advance_height: 0.0,
+        bitmap_bytes: 0,
+    }
+}
+
+fn empty_audio_info() -> raw::MediaAudioInfo {
+    raw::MediaAudioInfo {
+        struct_size: 0,
+        sample_rate: 0,
+        channels: 0,
+        reserved: 0,
+        frames: 0,
+        sample_count: 0,
+    }
+}

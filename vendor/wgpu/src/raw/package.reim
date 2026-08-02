@@ -1,0 +1,6 @@
+/// Generated WebGPU constants and enumeration values.
+pub import self::constants as constants;
+/// Generated standard WebGPU and wgpu-native functions.
+pub import self::functions as functions;
+/// Generated WebGPU ABI types.
+pub import self::types as types;

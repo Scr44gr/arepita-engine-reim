@@ -1,0 +1,4 @@
+/// SDL3-to-WebGPU native surface creation failures.
+pub from self::surface import Error, WindowSurface, create_surface, create_window_surface;
+/// Platform-neutral SDL3 surface integration.
+pub import self::surface as surface;

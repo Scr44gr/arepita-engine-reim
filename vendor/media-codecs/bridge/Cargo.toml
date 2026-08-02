@@ -1,0 +1,25 @@
+[package]
+name = "media-codecs-bridge"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[lib]
+name = "media_codecs"
+crate-type = ["cdylib"]
+
+[dependencies]
+fontdue = "0.9.4"
+image = { version = "0.25.10", default-features = false, features = ["png"] }
+symphonium = { version = "0.12.2", default-features = false, features = ["decode-native", "fft-resampler", "mp3", "ogg", "opt-simd", "pcm", "resampler", "vorbis", "wav"] }
+thiserror = "2.0"
+
+[lints.rust]
+missing_docs = "deny"
+unsafe_op_in_unsafe_fn = "deny"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }

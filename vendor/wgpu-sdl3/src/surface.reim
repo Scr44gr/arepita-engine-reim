@@ -1,0 +1,296 @@
+import std::c;
+from std::target import OperatingSystem, os;
+
+from sdl3 import Window;
+import sdl3::raw::constants as sdl_constants;
+import sdl3::raw::functions as sdl;
+import sdl3::raw::types as sdl_types;
+from wgpu import Adapter, Error as WgpuError, Instance, Surface as WgpuSurface;
+import wgpu::raw::constants as wgpu_constants;
+import wgpu::raw::types as types;
+
+/// Recoverable failures while adapting an SDL3 window to WebGPU.
+@derive(Copy, Clone, Debug, Eq)
+pub enum Error {
+    InstanceCreationFailed,
+    UnsupportedPlatform,
+    WindowPropertiesUnavailable,
+    NativeHandleUnavailable,
+    MetalViewCreationFailed,
+    SurfaceCreationFailed,
+}
+
+/// Creates an SDL-backed WebGPU surface with its own native instance.
+///
+/// The returned surface retains the instance and borrows `window`; release it
+/// before destroying the window.
+pub fn create_window_surface(window: &Window) -> Result<WindowSurface, Error> {
+    let instance = match Instance::create() {
+        Ok(value) => value,
+        Err(_) => {
+            return Err(Error::InstanceCreationFailed);
+        },
+    };
+    create_surface(window, instance)
+}
+
+/// An owning WebGPU surface and any platform object required to keep it valid.
+///
+/// The SDL window and WebGPU instance may be used normally while this object
+/// exists. Destroy this object before destroying the SDL window.
+pub struct WindowSurface {
+    window: &Window,
+    surface: WgpuSurface,
+    metal_view: sdl_types::SDL_MetalView,
+}
+
+impl WindowSurface {
+    /// Borrows the platform-neutral WebGPU surface.
+    pub fn surface(&self) -> &WgpuSurface {
+        &self.surface
+    }
+
+    /// Mutably borrows the surface for configuration changes.
+    pub fn surface_mut(&mut self) -> &mut WgpuSurface {
+        &mut self.surface
+    }
+
+    /// Returns the native WebGPU surface handle for adapter selection.
+    pub fn as_raw(&self) -> types::WGPUSurface {
+        self.surface.as_raw()
+    }
+
+    /// Borrows the SDL window whose native surface this object retains.
+    pub fn window(&self) -> &Window {
+        self.window
+    }
+
+    /// Requests an adapter capable of presenting to this surface.
+    pub fn request_adapter(&self) -> Result<Adapter, WgpuError> {
+        self.surface.request_adapter()
+    }
+
+    /// Releases the surface and optional Metal view in place.
+    pub fn release(&mut self) {
+        self.surface.release();
+        if !c::is_null_mut(self.metal_view) {
+            unsafe {
+                sdl::SDL_Metal_DestroyView(self.metal_view);
+            }
+            self.metal_view = c::null<()>();
+        }
+    }
+
+    /// Releases the WebGPU surface and then its optional SDL Metal view.
+    pub fn deinit(self) {
+        let metal_view = self.metal_view;
+        self.surface.deinit();
+        if !c::is_null_mut(metal_view) {
+            unsafe {
+                sdl::SDL_Metal_DestroyView(metal_view);
+            }
+        }
+    }
+}
+
+/// Creates a WebGPU presentation surface for an SDL3 window.
+pub fn create_surface(
+    window: &Window,
+    instance: Instance,
+) -> Result<WindowSurface, Error> {
+    match os() {
+        OperatingSystem::Windows => create_windows_surface(window, instance),
+        OperatingSystem::Linux => create_linux_surface(window, instance),
+        OperatingSystem::MacOs => create_macos_surface(window, instance),
+        OperatingSystem::FreeBsd => Err(Error::UnsupportedPlatform),
+        OperatingSystem::Other => Err(Error::UnsupportedPlatform),
+    }
+}
+
+fn create_windows_surface(
+    window: &Window,
+    instance: Instance,
+) -> Result<WindowSurface, Error> {
+    defer instance.deinit();
+    let properties = window_properties(window)?;
+    let hinstance = unsafe {
+        sdl::SDL_GetPointerProperty(
+            properties,
+            sdl_constants::SDL_PROP_WINDOW_WIN32_INSTANCE_POINTER
+                as *const c::Char,
+            c::null<()>(),
+        )
+    };
+    let hwnd = unsafe {
+        sdl::SDL_GetPointerProperty(
+            properties,
+            sdl_constants::SDL_PROP_WINDOW_WIN32_HWND_POINTER
+                as *const c::Char,
+            c::null<()>(),
+        )
+    };
+    if c::is_null_mut(hinstance) || c::is_null_mut(hwnd) {
+        return Err(Error::NativeHandleUnavailable);
+    }
+
+    let mut source = types::WGPUSurfaceSourceWindowsHWND {
+        chain: surface_chain(wgpu_constants::WGPUSType_SurfaceSourceWindowsHWND),
+        hinstance: hinstance,
+        hwnd: hwnd,
+    };
+    let surface = create_wgpu_surface(
+        instance.clone_ref(),
+        &mut source.chain as *mut types::WGPUChainedStruct,
+    )?;
+    Ok(WindowSurface {
+        window: window,
+        surface: surface,
+        metal_view: c::null<()>(),
+    })
+}
+
+fn create_linux_surface(
+    window: &Window,
+    instance: Instance,
+) -> Result<WindowSurface, Error> {
+    defer instance.deinit();
+    let properties = window_properties(window)?;
+    let wayland_display = unsafe {
+        sdl::SDL_GetPointerProperty(
+            properties,
+            sdl_constants::SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER
+                as *const c::Char,
+            c::null<()>(),
+        )
+    };
+    let wayland_surface = unsafe {
+        sdl::SDL_GetPointerProperty(
+            properties,
+            sdl_constants::SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER
+                as *const c::Char,
+            c::null<()>(),
+        )
+    };
+    if !c::is_null_mut(wayland_display) && !c::is_null_mut(wayland_surface) {
+        let mut source = types::WGPUSurfaceSourceWaylandSurface {
+            chain: surface_chain(
+                wgpu_constants::WGPUSType_SurfaceSourceWaylandSurface,
+            ),
+            display: wayland_display,
+            surface: wayland_surface,
+        };
+        let surface = create_wgpu_surface(
+            instance.clone_ref(),
+            &mut source.chain as *mut types::WGPUChainedStruct,
+        )?;
+        return Ok(WindowSurface {
+            window: window,
+            surface: surface,
+            metal_view: c::null<()>(),
+        });
+    }
+
+    let display = unsafe {
+        sdl::SDL_GetPointerProperty(
+            properties,
+            sdl_constants::SDL_PROP_WINDOW_X11_DISPLAY_POINTER
+                as *const c::Char,
+            c::null<()>(),
+        )
+    };
+    let xwindow = unsafe {
+        sdl::SDL_GetNumberProperty(
+            properties,
+            sdl_constants::SDL_PROP_WINDOW_X11_WINDOW_NUMBER
+                as *const c::Char,
+            0,
+        )
+    };
+    if c::is_null_mut(display) || xwindow <= 0 {
+        return Err(Error::NativeHandleUnavailable);
+    }
+    let mut source = types::WGPUSurfaceSourceXlibWindow {
+        chain: surface_chain(wgpu_constants::WGPUSType_SurfaceSourceXlibWindow),
+        display: display,
+        window: xwindow as u64,
+    };
+    let surface = create_wgpu_surface(
+        instance.clone_ref(),
+        &mut source.chain as *mut types::WGPUChainedStruct,
+    )?;
+    Ok(WindowSurface {
+        window: window,
+        surface: surface,
+        metal_view: c::null<()>(),
+    })
+}
+
+fn create_macos_surface(
+    window: &Window,
+    instance: Instance,
+) -> Result<WindowSurface, Error> {
+    defer instance.deinit();
+    let metal_view = unsafe { sdl::SDL_Metal_CreateView(window.as_raw()) };
+    if c::is_null_mut(metal_view) {
+        return Err(Error::MetalViewCreationFailed);
+    }
+    let layer = unsafe { sdl::SDL_Metal_GetLayer(metal_view) };
+    if c::is_null_mut(layer) {
+        unsafe {
+            sdl::SDL_Metal_DestroyView(metal_view);
+        }
+        return Err(Error::NativeHandleUnavailable);
+    }
+
+    let mut source = types::WGPUSurfaceSourceMetalLayer {
+        chain: surface_chain(wgpu_constants::WGPUSType_SurfaceSourceMetalLayer),
+        layer: layer,
+    };
+    match create_wgpu_surface(
+        instance.clone_ref(),
+        &mut source.chain as *mut types::WGPUChainedStruct,
+    ) {
+        Ok(surface) => Ok(WindowSurface {
+            window: window,
+            surface: surface,
+            metal_view: metal_view,
+        }),
+        Err(error) => {
+            unsafe {
+                sdl::SDL_Metal_DestroyView(metal_view);
+            }
+            Err(error)
+        },
+    }
+}
+
+fn window_properties(window: &Window) -> Result<sdl_types::SDL_PropertiesID, Error> {
+    let properties = unsafe { sdl::SDL_GetWindowProperties(window.as_raw()) };
+    if properties == 0 {
+        Err(Error::WindowPropertiesUnavailable)
+    } else {
+        Ok(properties)
+    }
+}
+
+fn surface_chain(surface_type: types::WGPUSType) -> types::WGPUChainedStruct {
+    types::WGPUChainedStruct {
+        next: c::null<types::WGPUChainedStruct>(),
+        s_type: surface_type,
+    }
+}
+
+fn create_wgpu_surface(
+    instance: Instance,
+    chain: *mut types::WGPUChainedStruct,
+) -> Result<WgpuSurface, Error> {
+    defer instance.deinit();
+    let descriptor = types::WGPUSurfaceDescriptor {
+        next_in_chain: chain,
+        label: wgpu::empty_string_view(),
+    };
+    match instance.create_surface_with(&descriptor) {
+        Ok(surface) => Ok(surface),
+        Err(_) => Err(Error::SurfaceCreationFailed),
+    }
+}

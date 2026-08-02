@@ -1,0 +1,146 @@
+from std::alloc import AllocError, Allocator, general_allocator;
+from std::job import JobError, JobPool, JobPoolConfig, chunk_len, parallel_for_mut;
+from std::thread import available_parallelism;
+
+from self::entity import Entities;
+from self::store import Component, ComponentStore;
+from super::app import Resource;
+
+/// Owned worker pool for data-parallel component systems.
+///
+/// Workers are created once during application loading. Frame systems submit
+/// only disjoint packed slices and therefore do not require locks around ECS
+/// storage.
+@derive(Resource)
+pub struct WorkerPool {
+    pool: JobPool,
+    workers: usize,
+    released: bool,
+}
+
+impl WorkerPool {
+    /// Creates a pool sized from the operating system's current CPU quota.
+    ///
+    /// The detected value is captured once so the pool remains stable for the
+    /// application lifetime. Use `fixed` when a benchmark or platform policy
+    /// requires an exact worker count.
+    pub fn automatic(allocator: &Allocator) -> Result<WorkerPool, JobError> {
+        WorkerPool::fixed(allocator, available_parallelism())
+    }
+
+    /// Creates a fixed-size pool. A zero worker count is rejected by the job runtime.
+    pub fn fixed(
+        allocator: &Allocator,
+        workers: usize,
+    ) -> Result<WorkerPool, JobError> {
+        let pool = JobPool::init(allocator, JobPoolConfig::fixed(workers))?;
+        Ok(WorkerPool { pool: pool, workers: workers, released: false })
+    }
+
+    /// Runs an ordinary chunk function over disjoint packed component ranges.
+    ///
+    /// `minimum_chunk` is normalized to one. Use a measured value large enough
+    /// to amortize job dispatch for inexpensive component updates.
+    pub fn for_each_mut<T: Component>(
+        &self,
+        store: &mut ComponentStore<T>,
+        system: fn(&mut [T]) -> (),
+        minimum_chunk: usize,
+    ) -> Result<(), JobError> {
+        if self.released {
+            return Err(JobError::InvalidHandle);
+        }
+        let chunk: usize = if minimum_chunk == 0 {
+            1 as usize
+        } else {
+            minimum_chunk
+        };
+        parallel_for_mut(&self.pool, store.values_mut(), system, chunk)
+    }
+
+    /// Borrows the underlying pool for independent owned jobs.
+    pub fn job_pool(&self) -> &JobPool { &self.pool }
+
+    pub fn workers(&self) -> usize { self.workers }
+
+    /// Joins worker threads and releases the pool exactly once.
+    pub fn release(&mut self) {
+        if self.released {
+            return;
+        }
+        self.pool.deinit();
+        self.workers = 0;
+        self.released = true;
+    }
+}
+
+@derive(Copy, Component)
+struct ParallelValue {
+    value: i32,
+}
+
+fn double(values: &mut [ParallelValue]) {
+    let mut index: usize = 0;
+    let length = chunk_len(values);
+    while index < length {
+        let mut value = values[index];
+        value.value *= 2;
+        values[index] = value;
+        index += 1;
+    }
+}
+
+@test
+fn worker_pool_should_process_disjoint_component_chunks() {
+    let allocator = general_allocator();
+    let mut pool = match WorkerPool::fixed(&allocator, 2) {
+        Ok(value) => value,
+        Err(_) => panic("worker pool creation failed"),
+    };
+    defer pool.release();
+    let created: Result<ComponentStore<ParallelValue>, AllocError> =
+        ComponentStore::new(&allocator);
+    let mut store = match created {
+        Ok(value) => value,
+        Err(_) => panic("component store creation failed"),
+    };
+    defer store.deinit();
+    let mut entities = match Entities::new(&allocator) {
+        Ok(value) => value,
+        Err(_) => panic("entity registry creation failed"),
+    };
+    defer entities.deinit();
+
+    let mut index: i32 = 0;
+    while index < 128 {
+        let entity = match entities.spawn() {
+            Ok(value) => value,
+            Err(_) => panic("entity spawn failed"),
+        };
+        let component = ParallelValue { value: index };
+        match store.insert(entity, component) {
+            Ok(_) => {},
+            Err(_) => panic("component insert failed"),
+        }
+        index += 1;
+    }
+    match pool.for_each_mut(&mut store, double, 16) {
+        Ok(_) => {},
+        Err(_) => panic("parallel component system failed"),
+    }
+    let values = store.values();
+    assert(values[0].value == 0);
+    assert(values[63].value == 126);
+    assert(values[127].value == 254);
+}
+
+@test
+fn automatic_worker_pool_should_capture_a_nonzero_worker_count() {
+    let allocator = general_allocator();
+    let mut pool = match WorkerPool::automatic(&allocator) {
+        Ok(value) => value,
+        Err(_) => panic("automatic worker pool creation failed"),
+    };
+    defer pool.release();
+    assert(pool.workers() >= 1);
+}

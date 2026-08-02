@@ -1,0 +1,241 @@
+from std::alloc import AllocError, general_allocator;
+
+from self::sprite_batch import AtlasRegion, BatchError, SpriteBatch, SpriteColor, SpriteInstance;
+from super::app import Resource;
+from super::ecs import Component, ComponentStore, Entities, Entity;
+
+/// Camera resource using world units with a top-left-friendly positive Y axis.
+@derive(Copy, Resource)
+pub struct Camera2D {
+    pub center_x: f32,
+    pub center_y: f32,
+    pub viewport_width: f32,
+    pub viewport_height: f32,
+    pub zoom: f32,
+}
+
+impl Camera2D {
+    /// Creates a camera where one world unit equals one pixel at zoom 1.
+    pub fn new(viewport_width: f32, viewport_height: f32) -> Camera2D {
+        Camera2D {
+            center_x: viewport_width * 0.5,
+            center_y: viewport_height * 0.5,
+            viewport_width: viewport_width,
+            viewport_height: viewport_height,
+            zoom: 1.0,
+        }
+    }
+
+    /// Updates the physical viewport dimensions.
+    pub fn resize(&mut self, width: f32, height: f32) {
+        self.viewport_width = width;
+        self.viewport_height = height;
+    }
+
+    /// Converts a world-space sprite to the GPU's normalized coordinates.
+    pub fn project(
+        &self,
+        transform: Transform2D,
+        sprite: Sprite,
+    ) -> Option<SpriteInstance> {
+        if self.viewport_width <= 0.0
+            || self.viewport_height <= 0.0
+            || self.zoom <= 0.0
+        {
+            return None;
+        }
+        let half_width = self.viewport_width * 0.5 / self.zoom;
+        let half_height = self.viewport_height * 0.5 / self.zoom;
+        let clip_x = (transform.x - self.center_x) / half_width;
+        let clip_y = -(transform.y - self.center_y) / half_height;
+        let clip_width = sprite.width * transform.scale_x / half_width;
+        let clip_height = sprite.height * transform.scale_y / half_height;
+        Some(
+            SpriteInstance::new(clip_x, clip_y, clip_width, clip_height)
+                .with_rotation(-transform.rotation)
+                .with_region(sprite.region)
+                .with_color(sprite.color)
+                .with_material(sprite.material)
+                .with_depth(transform.depth),
+        )
+    }
+}
+
+/// World-space position, rotation, scale, and draw depth.
+@derive(Copy, Component)
+pub struct Transform2D {
+    pub x: f32,
+    pub y: f32,
+    pub rotation: f32,
+    pub scale_x: f32,
+    pub scale_y: f32,
+    pub depth: f32,
+}
+
+impl Transform2D {
+    pub fn at(x: f32, y: f32) -> Transform2D {
+        Transform2D {
+            x: x,
+            y: y,
+            rotation: 0.0,
+            scale_x: 1.0,
+            scale_y: 1.0,
+            depth: 0.0,
+        }
+    }
+
+    pub fn with_rotation(self, radians: f32) -> Transform2D {
+        let mut value = self;
+        value.rotation = radians;
+        value
+    }
+
+    pub fn with_scale(self, x: f32, y: f32) -> Transform2D {
+        let mut value = self;
+        value.scale_x = x;
+        value.scale_y = y;
+        value
+    }
+
+    pub fn with_depth(self, depth: f32) -> Transform2D {
+        let mut value = self;
+        value.depth = depth;
+        value
+    }
+}
+
+/// Atlas region, size, tint, and material for one renderable entity.
+@derive(Copy, Component)
+pub struct Sprite {
+    pub width: f32,
+    pub height: f32,
+    pub region: AtlasRegion,
+    pub color: SpriteColor,
+    pub material: u16,
+}
+
+impl Sprite {
+    pub fn new(width: f32, height: f32) -> Sprite {
+        Sprite {
+            width: width,
+            height: height,
+            region: AtlasRegion::full(),
+            color: SpriteColor::white(),
+            material: 0,
+        }
+    }
+
+    pub fn with_region(self, region: AtlasRegion) -> Sprite {
+        let mut value = self;
+        value.region = region;
+        value
+    }
+
+    pub fn with_color(self, color: SpriteColor) -> Sprite {
+        let mut value = self;
+        value.color = color;
+        value
+    }
+
+    pub fn with_material(self, material: u16) -> Sprite {
+        let mut value = self;
+        value.material = material;
+        value
+    }
+}
+
+/// Extracts matching ECS sprites into a prepared batch without allocation.
+pub fn extract_sprites(
+    transforms: &ComponentStore<Transform2D>,
+    sprites: &ComponentStore<Sprite>,
+    camera: &Camera2D,
+    batch: &mut SpriteBatch,
+) -> Result<usize, BatchError> {
+    let mut extracted: usize = 0;
+    let mut index: usize = 0;
+    while index < sprites.len() {
+        let entity = match sprites.entity_at(index) {
+            Some(value) => value,
+            None => panic("sprite entity index became inconsistent"),
+        };
+        let sprite = match sprites.get(entity) {
+            Some(value) => value,
+            None => panic("sprite value index became inconsistent"),
+        };
+        match transforms.get(entity) {
+            Some(transform) => match camera.project(transform, sprite) {
+                Some(instance) => {
+                    batch.push_prepared(instance)?;
+                    extracted += 1;
+                },
+                None => {},
+            },
+            None => {},
+        }
+        index += 1;
+    }
+    Ok(extracted)
+}
+
+@test
+fn extraction_should_project_matching_entities_without_growth() {
+    let allocator = general_allocator();
+    let mut entities = match Entities::new(&allocator) {
+        Ok(value) => value,
+        Err(_) => panic("entity registry allocation failed"),
+    };
+    defer entities.deinit();
+    let transforms_result: Result<ComponentStore<Transform2D>, AllocError> =
+        ComponentStore::new(&allocator);
+    let mut transforms = match transforms_result {
+        Ok(value) => value,
+        Err(_) => panic("transform store allocation failed"),
+    };
+    defer transforms.deinit();
+    let sprites_result: Result<ComponentStore<Sprite>, AllocError> =
+        ComponentStore::new(&allocator);
+    let mut sprites = match sprites_result {
+        Ok(value) => value,
+        Err(_) => panic("sprite store allocation failed"),
+    };
+    defer sprites.deinit();
+    let mut batch = match SpriteBatch::with_capacity(&allocator, 1) {
+        Ok(value) => value,
+        Err(_) => panic("sprite batch allocation failed"),
+    };
+    defer batch.deinit();
+
+    let entity = match entities.spawn() {
+        Ok(value) => value,
+        Err(_) => panic("entity spawn failed"),
+    };
+    let transform = Transform2D::at(160.0, 90.0);
+    match transforms.insert(entity, transform) {
+        Ok(_) => {},
+        Err(_) => panic("transform insert failed"),
+    }
+    let sprite = Sprite::new(32.0, 18.0);
+    match sprites.insert(entity, sprite) {
+        Ok(_) => {},
+        Err(_) => panic("sprite insert failed"),
+    }
+    let camera = Camera2D::new(320.0, 180.0);
+    let reserved = batch.allocated_bytes();
+    let extracted = match extract_sprites(
+        &transforms,
+        &sprites,
+        &camera,
+        &mut batch,
+    ) {
+        Ok(value) => value,
+        Err(_) => panic("sprite extraction failed"),
+    };
+    assert(extracted == 1);
+    assert(batch.len() == 1);
+    assert(batch.allocated_bytes() == reserved);
+    let instance = batch.instances()[0];
+    assert(instance.position_x == 0.0);
+    assert(instance.position_y == 0.0);
+    assert(instance.size_x == 0.2);
+    assert(instance.size_y == 0.2);
+}

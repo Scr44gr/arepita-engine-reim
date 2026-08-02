@@ -1,0 +1,123 @@
+from std::alloc import Allocator;
+from std::fs import FileBuffer, canonicalize, file_size, is_within, open;
+from std::string import String;
+
+from self::pathing import join;
+
+/// Recoverable source-resolution and bounded-read failures.
+@derive(Copy, Clone, Debug, Eq)
+pub enum SourceError {
+    InvalidPath,
+    OutsideRoot,
+    NotRegularFile,
+    SourceTooLarge,
+    OutOfMemory,
+    ReadFailed,
+}
+
+/// Reads one manifest-relative regular file after canonical containment checks.
+///
+/// Resolution happens before opening the canonical target, so a relative
+/// symlink or junction cannot redirect the read outside `root`.
+pub fn read_bounded(
+    allocator: &Allocator,
+    root: str,
+    relative: str,
+    max_bytes: u64,
+) -> Result<FileBuffer, SourceError> {
+    let resolved = resolve_bounded(allocator, root, relative, max_bytes)?;
+    let mut resolved = resolved;
+    let read = {
+        let path = resolved.as_str();
+        read_canonical_bounded(allocator, path, max_bytes)
+    };
+    resolved.release();
+    read
+}
+
+/// Resolves and validates one manifest-relative regular file path.
+///
+/// The returned path is canonical and allocator-owned, making it safe to send
+/// to a worker without retaining a scoped view into the manifest.
+pub fn resolve_bounded(
+    allocator: &Allocator,
+    root: str,
+    relative: str,
+    max_bytes: u64,
+) -> Result<String, SourceError> {
+    let mut joined = match join(allocator, root, relative) {
+        Ok(value) => value,
+        Err(_) => { return Err(SourceError::OutOfMemory); },
+    };
+    let resolved = {
+        let path = joined.as_str();
+        canonicalize(path, allocator)
+    };
+    let mut canonical = match resolved {
+        Ok(value) => value,
+        Err(_) => {
+            joined.release();
+            return Err(SourceError::InvalidPath);
+        },
+    };
+    joined.release();
+    let checked = {
+        let path = canonical.as_str();
+        is_within(root, path)
+    };
+    let contained = match checked {
+        Ok(value) => value,
+        Err(_) => {
+            canonical.release();
+            return Err(SourceError::InvalidPath);
+        },
+    };
+    if !contained {
+        canonical.release();
+        return Err(SourceError::OutsideRoot);
+    }
+    let inspected = {
+        let path = canonical.as_str();
+        file_size(path)
+    };
+    let size = match inspected {
+        Ok(value) => value,
+        Err(_) => {
+            canonical.release();
+            return Err(SourceError::NotRegularFile);
+        },
+    };
+    if size > max_bytes {
+        canonical.release();
+        return Err(SourceError::SourceTooLarge);
+    }
+    Ok(canonical)
+}
+
+/// Reads one already canonical regular path under an explicit byte limit.
+pub fn read_canonical_bounded(
+    allocator: &Allocator,
+    path: str,
+    max_bytes: u64,
+) -> Result<FileBuffer, SourceError> {
+    let size = match file_size(path) {
+        Ok(value) => value,
+        Err(_) => { return Err(SourceError::NotRegularFile); },
+    };
+    if size > max_bytes {
+        return Err(SourceError::SourceTooLarge);
+    }
+    let opened = {
+        open(path)
+    };
+    let mut file = match opened {
+        Ok(value) => value,
+        Err(_) => { return Err(SourceError::ReadFailed); },
+    };
+    let read = file.read_to_end(allocator);
+    file.deinit();
+    match read {
+        Ok(buffer) => Ok(buffer),
+        Err(_) => Err(SourceError::ReadFailed),
+    }
+}

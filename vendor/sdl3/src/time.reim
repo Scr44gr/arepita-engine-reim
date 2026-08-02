@@ -1,0 +1,32 @@
+import self::raw::functions as sdl;
+
+/// Returns milliseconds elapsed since SDL initialized.
+pub fn ticks() -> u64 {
+    unsafe { sdl::SDL_GetTicks() }
+}
+
+/// Returns nanoseconds elapsed since SDL initialized.
+pub fn ticks_ns() -> u64 {
+    unsafe { sdl::SDL_GetTicksNS() }
+}
+
+/// Suspends the current thread for at least `milliseconds` without busy-waiting.
+pub fn sleep(milliseconds: u32) {
+    unsafe {
+        sdl::SDL_Delay(milliseconds);
+    }
+}
+
+/// Suspends the current thread for at least `nanoseconds` without busy-waiting.
+pub fn sleep_ns(nanoseconds: u64) {
+    unsafe {
+        sdl::SDL_DelayNS(nanoseconds);
+    }
+}
+
+/// Suspends with SDL's higher-precision delay path.
+pub fn sleep_precise(nanoseconds: u64) {
+    unsafe {
+        sdl::SDL_DelayPrecise(nanoseconds);
+    }
+}

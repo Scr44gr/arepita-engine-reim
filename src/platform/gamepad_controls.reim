@@ -1,0 +1,36 @@
+from sdl3 import GamepadAxis, GamepadButton;
+import sdl3::gamepad as native;
+
+/// Standardized left-stick horizontal axis.
+pub const LEFT_X: GamepadAxis = native::AXIS_LEFT_X;
+/// Standardized left-stick vertical axis; positive values point down.
+pub const LEFT_Y: GamepadAxis = native::AXIS_LEFT_Y;
+/// Standardized right-stick horizontal axis.
+pub const RIGHT_X: GamepadAxis = native::AXIS_RIGHT_X;
+/// Standardized right-stick vertical axis; positive values point down.
+pub const RIGHT_Y: GamepadAxis = native::AXIS_RIGHT_Y;
+/// Left analog trigger in `0.0..=1.0`.
+pub const LEFT_TRIGGER: GamepadAxis = native::AXIS_LEFT_TRIGGER;
+/// Right analog trigger in `0.0..=1.0`.
+pub const RIGHT_TRIGGER: GamepadAxis = native::AXIS_RIGHT_TRIGGER;
+
+/// Bottom face button, independent of its printed glyph.
+pub const SOUTH: GamepadButton = native::BUTTON_SOUTH;
+/// Right face button, independent of its printed glyph.
+pub const EAST: GamepadButton = native::BUTTON_EAST;
+/// Left face button, independent of its printed glyph.
+pub const WEST: GamepadButton = native::BUTTON_WEST;
+/// Top face button, independent of its printed glyph.
+pub const NORTH: GamepadButton = native::BUTTON_NORTH;
+pub const BACK: GamepadButton = native::BUTTON_BACK;
+pub const GUIDE: GamepadButton = native::BUTTON_GUIDE;
+pub const START: GamepadButton = native::BUTTON_START;
+pub const LEFT_STICK: GamepadButton = native::BUTTON_LEFT_STICK;
+pub const RIGHT_STICK: GamepadButton = native::BUTTON_RIGHT_STICK;
+pub const LEFT_SHOULDER: GamepadButton = native::BUTTON_LEFT_SHOULDER;
+pub const RIGHT_SHOULDER: GamepadButton = native::BUTTON_RIGHT_SHOULDER;
+pub const DPAD_UP: GamepadButton = native::BUTTON_DPAD_UP;
+pub const DPAD_DOWN: GamepadButton = native::BUTTON_DPAD_DOWN;
+pub const DPAD_LEFT: GamepadButton = native::BUTTON_DPAD_LEFT;
+pub const DPAD_RIGHT: GamepadButton = native::BUTTON_DPAD_RIGHT;
+pub const TOUCHPAD: GamepadButton = native::BUTTON_TOUCHPAD;

@@ -1,0 +1,7 @@
+/// Axis-aligned geometry shared by collision, combat, and visibility systems.
+pub from self::aabb import Aabb;
+/// Prepared static-collider grid and allocation-free query scratch.
+pub from self::static_grid import ALL_LAYERS, CollisionError, CollisionQuery, ShapeHandle, StaticCollider, StaticCollisionWorld;
+
+pub import self::aabb as aabb;
+pub import self::static_grid as static_grid;

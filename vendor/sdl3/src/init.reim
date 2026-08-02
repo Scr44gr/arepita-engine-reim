@@ -1,0 +1,67 @@
+import self::raw::constants as constants;
+import self::raw::functions as sdl;
+import self::raw::types as types;
+
+/// SDL subsystem initialization failed.
+pub enum InitError {
+    InitializationFailed,
+}
+
+/// One reference-counted SDL subsystem initialization.
+///
+/// Each successful `init` must be paired with exactly one `deinit`.
+pub struct Subsystems {
+    flags: types::SDL_InitFlags,
+}
+
+impl Subsystems {
+    /// Initializes every subsystem selected by the OR-combined `flags`.
+    pub fn init(flags: types::SDL_InitFlags) -> Result<Subsystems, InitError> {
+        if unsafe { sdl::SDL_InitSubSystem(flags) } {
+            Ok(Subsystems { flags: flags })
+        } else {
+            Err(InitError::InitializationFailed)
+        }
+    }
+
+    /// Returns the flags whose initialization reference this value owns.
+    pub fn flags(&self) -> types::SDL_InitFlags {
+        self.flags
+    }
+
+    /// Returns whether this value owns every requested subsystem flag.
+    pub fn contains(&self, flags: types::SDL_InitFlags) -> bool {
+        (self.flags & flags) == flags
+    }
+
+    /// Releases the subsystem reference in place.
+    pub fn release(&mut self) {
+        if self.flags != 0 {
+            unsafe {
+                sdl::SDL_QuitSubSystem(self.flags);
+            }
+            self.flags = 0;
+        }
+    }
+
+    /// Releases this value's subsystem initialization reference.
+    pub fn deinit(self) {
+        unsafe {
+            sdl::SDL_QuitSubSystem(self.flags);
+        }
+    }
+}
+
+/// Returns the subset of `flags` that is currently initialized.
+pub fn initialized(flags: types::SDL_InitFlags) -> types::SDL_InitFlags {
+    unsafe { sdl::SDL_WasInit(flags) }
+}
+
+pub const AUDIO: types::SDL_InitFlags = constants::SDL_INIT_AUDIO;
+pub const VIDEO: types::SDL_InitFlags = constants::SDL_INIT_VIDEO;
+pub const JOYSTICK: types::SDL_InitFlags = constants::SDL_INIT_JOYSTICK;
+pub const HAPTIC: types::SDL_InitFlags = constants::SDL_INIT_HAPTIC;
+pub const GAMEPAD: types::SDL_InitFlags = constants::SDL_INIT_GAMEPAD;
+pub const EVENTS: types::SDL_InitFlags = constants::SDL_INIT_EVENTS;
+pub const SENSOR: types::SDL_InitFlags = constants::SDL_INIT_SENSOR;
+pub const CAMERA: types::SDL_InitFlags = constants::SDL_INIT_CAMERA;

@@ -1,0 +1,114 @@
+import self::raw::constants as constants;
+import self::raw::functions as sdl;
+import self::raw::types as types;
+from self::video import Window;
+
+/// A recoverable SDL OpenGL integration failure.
+pub enum GlError {
+    AttributeRejected,
+    ContextCreationFailed,
+    MakeCurrentFailed,
+    SwapIntervalRejected,
+    SwapFailed,
+    ContextDestructionFailed,
+}
+
+/// One SDL OpenGL context borrowing its window.
+///
+/// The borrow prevents the window from being destroyed before the context.
+pub struct GlContext {
+    window: &Window,
+    raw: types::SDL_GLContext,
+}
+
+impl GlContext {
+    /// Creates an OpenGL context using the attributes configured so far.
+    pub fn create(window: &Window) -> Result<GlContext, GlError> {
+        let raw = unsafe { sdl::SDL_GL_CreateContext(window.as_raw()) };
+        if raw as usize == 0 {
+            Err(GlError::ContextCreationFailed)
+        } else {
+            Ok(GlContext { window: window, raw: raw })
+        }
+    }
+
+    /// Makes this context current on its window for the calling thread.
+    pub fn make_current(&self) -> Result<(), GlError> {
+        if unsafe { sdl::SDL_GL_MakeCurrent(self.window.as_raw(), self.raw) } {
+            Ok(())
+        } else {
+            Err(GlError::MakeCurrentFailed)
+        }
+    }
+
+    /// Selects the swap interval for this context.
+    pub fn set_swap_interval(&self, interval: i32) -> Result<(), GlError> {
+        if unsafe { sdl::SDL_GL_SetSwapInterval(interval) } {
+            Ok(())
+        } else {
+            Err(GlError::SwapIntervalRejected)
+        }
+    }
+
+    /// Swaps the front and back buffers of the borrowed window.
+    pub fn swap(&self) -> Result<(), GlError> {
+        if unsafe { sdl::SDL_GL_SwapWindow(self.window.as_raw()) } {
+            Ok(())
+        } else {
+            Err(GlError::SwapFailed)
+        }
+    }
+
+    /// Returns the non-null native context handle for advanced raw calls.
+    pub fn as_raw(&self) -> types::SDL_GLContext {
+        self.raw
+    }
+
+    /// Returns the SDL window borrowed by this OpenGL context.
+    pub fn window(&self) -> &Window {
+        self.window
+    }
+
+    /// Destroys the context and releases its borrow of the window.
+    pub fn deinit(self) -> Result<(), GlError> {
+        if unsafe { sdl::SDL_GL_DestroyContext(self.raw) } {
+            Ok(())
+        } else {
+            Err(GlError::ContextDestructionFailed)
+        }
+    }
+}
+
+/// Configures one OpenGL context attribute before context creation.
+pub fn set_attribute(
+    attribute: types::SDL_GLAttr,
+    value: i32,
+) -> Result<(), GlError> {
+    if unsafe { sdl::SDL_GL_SetAttribute(attribute, value) } {
+        Ok(())
+    } else {
+        Err(GlError::AttributeRejected)
+    }
+}
+
+/// Resolves an OpenGL command for the context current on this thread.
+///
+/// The result is null when SDL cannot resolve `name`. It can be passed directly
+/// to the standalone `opengl` vendor's generated loader.
+pub fn get_proc_address(name: cstr) -> *const u8 {
+    unsafe { sdl::SDL_GL_GetProcAddress(name as *const c_char) } as *const u8
+}
+
+pub const CONTEXT_MAJOR_VERSION: types::SDL_GLAttr = constants::SDL_GL_CONTEXT_MAJOR_VERSION;
+pub const CONTEXT_MINOR_VERSION: types::SDL_GLAttr = constants::SDL_GL_CONTEXT_MINOR_VERSION;
+pub const CONTEXT_PROFILE_MASK: types::SDL_GLAttr = constants::SDL_GL_CONTEXT_PROFILE_MASK;
+pub const CONTEXT_FLAGS: types::SDL_GLAttr = constants::SDL_GL_CONTEXT_FLAGS;
+pub const DOUBLEBUFFER: types::SDL_GLAttr = constants::SDL_GL_DOUBLEBUFFER;
+pub const DEPTH_SIZE: types::SDL_GLAttr = constants::SDL_GL_DEPTH_SIZE;
+pub const STENCIL_SIZE: types::SDL_GLAttr = constants::SDL_GL_STENCIL_SIZE;
+
+pub const PROFILE_CORE: i32 = constants::SDL_GL_CONTEXT_PROFILE_CORE;
+pub const PROFILE_COMPATIBILITY: i32 = constants::SDL_GL_CONTEXT_PROFILE_COMPATIBILITY;
+pub const PROFILE_ES: i32 = constants::SDL_GL_CONTEXT_PROFILE_ES;
+pub const DEBUG_FLAG: i32 = constants::SDL_GL_CONTEXT_DEBUG_FLAG;
+pub const FORWARD_COMPATIBLE_FLAG: i32 = constants::SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG;

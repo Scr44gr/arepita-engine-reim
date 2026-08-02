@@ -1,0 +1,168 @@
+import self::raw::functions as sdl;
+import self::raw::types as types;
+
+/// Recoverable failures from SDL's window API.
+pub enum WindowError {
+    InvalidDimensions,
+    CreationFailed,
+    OperationFailed,
+}
+
+/// The logical size of an SDL window.
+@derive(Copy, Clone, Debug, Eq)
+pub struct WindowSize {
+    pub width: i32,
+    pub height: i32,
+}
+
+/// One owned SDL window.
+///
+/// Window operations and `deinit` must run on the thread that initialized the
+/// video subsystem. Dependent renderer, GPU, OpenGL, or Vulkan objects must be
+/// destroyed before the window.
+pub struct Window {
+    raw: *mut types::SDL_Window,
+}
+
+impl Window {
+    /// Creates a window using SDL window flags.
+    pub fn create(
+        title: cstr,
+        width: i32,
+        height: i32,
+        flags: types::SDL_WindowFlags,
+    ) -> Result<Window, WindowError> {
+        if width <= 0 || height <= 0 {
+            return Err(WindowError::InvalidDimensions);
+        }
+        let raw = unsafe {
+            sdl::SDL_CreateWindow(title as *const c_char, width, height, flags)
+        };
+        if raw as usize == 0 {
+            Err(WindowError::CreationFailed)
+        } else {
+            Ok(Window { raw: raw })
+        }
+    }
+
+    /// Returns SDL's stable identifier for this live window.
+    pub fn id(&self) -> types::SDL_WindowID {
+        unsafe { sdl::SDL_GetWindowID(self.raw) }
+    }
+
+    /// Returns the current SDL window flags.
+    pub fn flags(&self) -> types::SDL_WindowFlags {
+        unsafe { sdl::SDL_GetWindowFlags(self.raw) }
+    }
+
+    /// Returns SDL's borrowed NUL-terminated UTF-8 title.
+    ///
+    /// The view remains valid until the title changes or the window is
+    /// destroyed.
+    pub fn title(&self) -> cstr {
+        unsafe { sdl::SDL_GetWindowTitle(self.raw) } as cstr
+    }
+
+    /// Queries the logical window size.
+    pub fn size(&self) -> Result<WindowSize, WindowError> {
+        let mut width: i32 = 0;
+        let mut height: i32 = 0;
+        if unsafe {
+            sdl::SDL_GetWindowSize(
+                self.raw,
+                &mut width as *mut i32,
+                &mut height as *mut i32,
+            )
+        } {
+            Ok(WindowSize { width: width, height: height })
+        } else {
+            Err(WindowError::OperationFailed)
+        }
+    }
+
+    /// Queries the drawable size in physical pixels.
+    ///
+    /// Use this value for swapchain or render-target configuration on
+    /// high-density displays. It may differ from the logical window size.
+    pub fn pixel_size(&self) -> Result<WindowSize, WindowError> {
+        let mut width: i32 = 0;
+        let mut height: i32 = 0;
+        if unsafe {
+            sdl::SDL_GetWindowSizeInPixels(
+                self.raw,
+                &mut width as *mut i32,
+                &mut height as *mut i32,
+            )
+        } {
+            Ok(WindowSize { width: width, height: height })
+        } else {
+            Err(WindowError::OperationFailed)
+        }
+    }
+
+    /// Returns the ratio between drawable pixels and logical window units.
+    ///
+    /// SDL returns zero when the density cannot be queried. Callers should
+    /// treat that value as an operation failure or fall back to one.
+    pub fn pixel_density(&self) -> f32 {
+        unsafe { sdl::SDL_GetWindowPixelDensity(self.raw) }
+    }
+
+    /// Changes the window title.
+    pub fn set_title(&mut self, title: cstr) -> Result<(), WindowError> {
+        operation_result(unsafe {
+            sdl::SDL_SetWindowTitle(self.raw, title as *const c_char)
+        })
+    }
+
+    /// Changes the logical window size.
+    pub fn set_size(&mut self, width: i32, height: i32) -> Result<(), WindowError> {
+        if width <= 0 || height <= 0 {
+            return Err(WindowError::InvalidDimensions);
+        }
+        operation_result(unsafe { sdl::SDL_SetWindowSize(self.raw, width, height) })
+    }
+
+    /// Makes the window visible.
+    pub fn show(&mut self) -> Result<(), WindowError> {
+        operation_result(unsafe { sdl::SDL_ShowWindow(self.raw) })
+    }
+
+    /// Hides the window.
+    pub fn hide(&mut self) -> Result<(), WindowError> {
+        operation_result(unsafe { sdl::SDL_HideWindow(self.raw) })
+    }
+
+    /// Returns the non-null native handle for advanced raw API calls.
+    ///
+    /// Any operation performed through this pointer remains subject to SDL's
+    /// ownership and main-thread rules.
+    pub fn as_raw(&self) -> *mut types::SDL_Window {
+        self.raw
+    }
+
+    /// Destroys the window in place and invalidates its native handle.
+    pub fn release(&mut self) {
+        if self.raw as usize != 0 {
+            unsafe {
+                sdl::SDL_DestroyWindow(self.raw);
+            }
+            self.raw = 0 as usize as *mut types::SDL_Window;
+        }
+    }
+
+    /// Destroys the window.
+    pub fn deinit(self) {
+        unsafe {
+            sdl::SDL_DestroyWindow(self.raw);
+        }
+    }
+}
+
+fn operation_result(success: bool) -> Result<(), WindowError> {
+    if success {
+        Ok(())
+    } else {
+        Err(WindowError::OperationFailed)
+    }
+}

@@ -1,0 +1,1287 @@
+from std::alloc import AllocError, Allocator, general_allocator;
+from std::binary import to_f32_bits;
+from std::collections import HashMap, Vec;
+from std::slice import len;
+from std::string import String, byte_len, byte_slice, contains, ends_with, equals, starts_with;
+
+from self::pack import hash_id, valid_id;
+
+const DEFAULT_CHARACTERS: str = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+
+@derive(Copy, Clone, Debug, Eq)
+pub enum ManifestError {
+    InvalidSyntax,
+    InvalidString,
+    InvalidNumber,
+    UnknownSection,
+    UnknownField,
+    DuplicateField,
+    MissingField,
+    InvalidValue,
+    InvalidPath,
+    InvalidAssetId,
+    DuplicateAssetIdOrHash,
+    TooManyAssets,
+    EmptyManifest,
+    OutOfMemory,
+}
+
+/// One manifest failure with a one-based source line.
+@derive(Copy, Clone, Debug, Eq)
+pub struct ManifestFailure {
+    kind: ManifestError,
+    line: usize,
+}
+
+impl ManifestFailure {
+    pub fn kind(&self) -> ManifestError { self.kind }
+    pub fn line(&self) -> usize { self.line }
+}
+
+pub struct Limits {
+    pub max_source_bytes: u64,
+    pub max_decoded_bytes: usize,
+    pub max_image_dimension: u32,
+    pub max_assets: usize,
+    pub max_pack_bytes: u64,
+    pub max_parallel_decode_bytes: usize,
+}
+
+pub struct AudioSettings {
+    pub sample_rate: u32,
+}
+
+pub struct SpriteDefinition {
+    pub id: String,
+    pub path: String,
+    pub source_x: u32,
+    pub source_y: u32,
+    pub source_width: u32,
+    pub source_height: u32,
+    has_id: bool,
+    has_path: bool,
+    has_source_x: bool,
+    has_source_y: bool,
+    has_source_width: bool,
+    has_source_height: bool,
+}
+
+pub struct FontDefinition {
+    pub id: String,
+    pub path: String,
+    pub pixel_size: f32,
+    pub characters: String,
+    has_id: bool,
+    has_path: bool,
+    has_pixel_size: bool,
+    has_characters: bool,
+}
+
+pub struct AtlasDefinition {
+    pub id: String,
+    pub width: u32,
+    pub height: u32,
+    pub padding: u32,
+    pub sprites: Vec<SpriteDefinition>,
+    pub fonts: Vec<FontDefinition>,
+    has_id: bool,
+    has_width: bool,
+    has_height: bool,
+    has_padding: bool,
+}
+
+pub struct AudioDefinition {
+    pub id: String,
+    pub path: String,
+    has_id: bool,
+    has_path: bool,
+}
+
+/// Allocator-owned, validated asset build description.
+pub struct Manifest {
+    allocator: Allocator,
+    pub atlases: Vec<AtlasDefinition>,
+    pub audio: Vec<AudioDefinition>,
+    pub audio_settings: AudioSettings,
+    pub limits: Limits,
+    sample_rate_set: bool,
+    max_source_bytes_set: bool,
+    max_decoded_bytes_set: bool,
+    max_image_dimension_set: bool,
+    max_assets_set: bool,
+    max_pack_bytes_set: bool,
+    max_parallel_decode_bytes_set: bool,
+    released: bool,
+}
+
+impl SpriteDefinition {
+    fn empty(allocator: &Allocator) -> SpriteDefinition {
+        SpriteDefinition {
+            id: String::empty(allocator),
+            path: String::empty(allocator),
+            source_x: 0,
+            source_y: 0,
+            source_width: 0,
+            source_height: 0,
+            has_id: false,
+            has_path: false,
+            has_source_x: false,
+            has_source_y: false,
+            has_source_width: false,
+            has_source_height: false,
+        }
+    }
+
+    /// Returns whether this entry selects a validated subsection of its image.
+    pub fn uses_source_region(&self) -> bool {
+        self.has_source_x
+            && self.has_source_y
+            && self.has_source_width
+            && self.has_source_height
+    }
+
+    pub fn release(&mut self) {
+        self.id.release();
+        self.path.release();
+    }
+}
+
+impl FontDefinition {
+    fn empty(allocator: &Allocator) -> FontDefinition {
+        FontDefinition {
+            id: String::empty(allocator),
+            path: String::empty(allocator),
+            pixel_size: 0.0,
+            characters: String::empty(allocator),
+            has_id: false,
+            has_path: false,
+            has_pixel_size: false,
+            has_characters: false,
+        }
+    }
+
+    pub fn release(&mut self) {
+        self.id.release();
+        self.path.release();
+        self.characters.release();
+    }
+}
+
+impl AtlasDefinition {
+    fn empty(allocator: &Allocator) -> AtlasDefinition {
+        AtlasDefinition {
+            id: String::empty(allocator),
+            width: 2_048,
+            height: 2_048,
+            padding: 2,
+            sprites: Vec::empty(allocator),
+            fonts: Vec::empty(allocator),
+            has_id: false,
+            has_width: false,
+            has_height: false,
+            has_padding: false,
+        }
+    }
+
+    pub fn release(&mut self) {
+        self.id.release();
+        let mut index: usize = 0;
+        while index < self.sprites.len() {
+            match self.sprites.get_mut(index) {
+                Some(value) => value.release(),
+                None => panic("sprite cleanup index escaped its table"),
+            }
+            index += 1;
+        }
+        self.sprites.release();
+        index = 0;
+        while index < self.fonts.len() {
+            match self.fonts.get_mut(index) {
+                Some(value) => value.release(),
+                None => panic("font cleanup index escaped its table"),
+            }
+            index += 1;
+        }
+        self.fonts.release();
+    }
+}
+
+impl AudioDefinition {
+    fn empty(allocator: &Allocator) -> AudioDefinition {
+        AudioDefinition {
+            id: String::empty(allocator),
+            path: String::empty(allocator),
+            has_id: false,
+            has_path: false,
+        }
+    }
+
+    pub fn release(&mut self) {
+        self.id.release();
+        self.path.release();
+    }
+}
+
+impl Manifest {
+    fn empty(allocator: &Allocator) -> Manifest {
+        Manifest {
+            allocator: *allocator,
+            atlases: Vec::empty(allocator),
+            audio: Vec::empty(allocator),
+            audio_settings: AudioSettings { sample_rate: 48_000 },
+            limits: Limits {
+                max_source_bytes: 67_108_864,
+                max_decoded_bytes: 536_870_912,
+                max_image_dimension: 8_192,
+                max_assets: 100_000,
+                max_pack_bytes: 1_073_741_824,
+                max_parallel_decode_bytes: 67_108_864,
+            },
+            sample_rate_set: false,
+            max_source_bytes_set: false,
+            max_decoded_bytes_set: false,
+            max_image_dimension_set: false,
+            max_assets_set: false,
+            max_pack_bytes_set: false,
+            max_parallel_decode_bytes_set: false,
+            released: false,
+        }
+    }
+
+    /// Releases the complete nested manifest allocation graph once.
+    pub fn release(&mut self) {
+        if self.released {
+            return;
+        }
+        let mut index: usize = 0;
+        while index < self.atlases.len() {
+            match self.atlases.get_mut(index) {
+                Some(value) => value.release(),
+                None => panic("atlas cleanup index escaped its table"),
+            }
+            index += 1;
+        }
+        self.atlases.release();
+        index = 0;
+        while index < self.audio.len() {
+            match self.audio.get_mut(index) {
+                Some(value) => value.release(),
+                None => panic("audio cleanup index escaped its table"),
+            }
+            index += 1;
+        }
+        self.audio.release();
+        self.released = true;
+    }
+}
+
+@derive(Copy)
+enum Section {
+    Root,
+    AudioSettings,
+    Limits,
+    Atlas(usize),
+    Sprite(usize, usize),
+    Font(usize, usize),
+    Audio(usize),
+}
+
+/// Parses the supported TOML asset schema and validates every global limit.
+pub fn parse(
+    source: str,
+    allocator: &Allocator,
+) -> Result<Manifest, ManifestFailure> {
+    let mut manifest = Manifest::empty(allocator);
+    let parsed = parse_into(source, &mut manifest);
+    match parsed {
+        Ok(_) => {
+            match validate(&mut manifest) {
+                Ok(_) => Ok(manifest),
+                Err(error) => {
+                    manifest.release();
+                    Err(error)
+                },
+            }
+        },
+        Err(error) => {
+            manifest.release();
+            Err(error)
+        },
+    }
+}
+
+fn parse_into(source: str, manifest: &mut Manifest) -> Result<(), ManifestFailure> {
+    let bytes = source.bytes();
+    let mut cursor: usize = 0;
+    let mut line_number: usize = 1;
+    let mut section = Section::Root;
+    while cursor <= len(bytes) {
+        let start = cursor;
+        while cursor < len(bytes) && bytes[cursor] != 10 {
+            cursor += 1;
+        }
+        let mut count = cursor - start;
+        if count > 0 && bytes[start + count - 1] == 13 {
+            count -= 1;
+        }
+        let raw = view(source, start, count, line_number)?;
+        let uncommented = view(raw, 0, comment_end(raw, line_number)?, line_number)?;
+        let line = trim(uncommented);
+        if byte_len(line) != 0 {
+            if starts_with(line, "[") {
+                section = parse_section(line, manifest, line_number)?;
+            } else {
+                let split = find_assignment(line, line_number)?;
+                let key = trim(view(line, 0, split, line_number)?);
+                let value = trim(view(
+                    line,
+                    split + 1,
+                    byte_len(line) - split - 1,
+                    line_number,
+                )?);
+                if byte_len(key) == 0 || byte_len(value) == 0 {
+                    return fail(ManifestError::InvalidSyntax, line_number);
+                }
+                assign(manifest, section, key, value, line_number)?;
+            }
+        }
+        if cursor == len(bytes) {
+            break;
+        }
+        cursor += 1;
+        line_number += 1;
+    }
+    Ok(())
+}
+
+fn parse_section(
+    line: str,
+    manifest: &mut Manifest,
+    line_number: usize,
+) -> Result<Section, ManifestFailure> {
+    if equals(line, "[audio_settings]") {
+        return Ok(Section::AudioSettings);
+    }
+    if equals(line, "[limits]") {
+        return Ok(Section::Limits);
+    }
+    if equals(line, "[[atlases]]") {
+        match manifest.atlases.reserve(1) {
+            Ok(_) => {},
+            Err(_) => { return fail(ManifestError::OutOfMemory, line_number); },
+        }
+        let index = manifest.atlases.len();
+        if !manifest.atlases.push_within_capacity(
+            AtlasDefinition::empty(&manifest.allocator),
+        ) {
+            panic("reserved atlas capacity was unavailable")
+        }
+        return Ok(Section::Atlas(index));
+    }
+    if equals(line, "[[atlases.sprites]]") {
+        let atlas_index = match manifest.last_atlas() {
+            Some(value) => value,
+            None => { return fail(ManifestError::InvalidSyntax, line_number); },
+        };
+        let sprite_index = {
+            let atlas = match manifest.atlas_mut(atlas_index) {
+                Some(value) => value,
+                None => panic("atlas index escaped its table"),
+            };
+            match atlas.sprites.reserve(1) {
+                Ok(_) => {},
+                Err(_) => { return fail(ManifestError::OutOfMemory, line_number); },
+            }
+            atlas.sprites.len()
+        };
+        let allocator = manifest.allocator;
+        let atlas = match manifest.atlas_mut(atlas_index) {
+            Some(value) => value,
+            None => panic("atlas index escaped its table"),
+        };
+        if !atlas.sprites.push_within_capacity(
+            SpriteDefinition::empty(&allocator),
+        ) {
+            panic("reserved sprite capacity was unavailable")
+        }
+        return Ok(Section::Sprite(atlas_index, sprite_index));
+    }
+    if equals(line, "[[atlases.fonts]]") {
+        let atlas_index = match manifest.last_atlas() {
+            Some(value) => value,
+            None => { return fail(ManifestError::InvalidSyntax, line_number); },
+        };
+        let font_index = {
+            let atlas = match manifest.atlas_mut(atlas_index) {
+                Some(value) => value,
+                None => panic("atlas index escaped its table"),
+            };
+            match atlas.fonts.reserve(1) {
+                Ok(_) => {},
+                Err(_) => { return fail(ManifestError::OutOfMemory, line_number); },
+            }
+            atlas.fonts.len()
+        };
+        let allocator = manifest.allocator;
+        let atlas = match manifest.atlas_mut(atlas_index) {
+            Some(value) => value,
+            None => panic("atlas index escaped its table"),
+        };
+        if !atlas.fonts.push_within_capacity(FontDefinition::empty(&allocator)) {
+            panic("reserved font capacity was unavailable")
+        }
+        return Ok(Section::Font(atlas_index, font_index));
+    }
+    if equals(line, "[[audio]]") {
+        match manifest.audio.reserve(1) {
+            Ok(_) => {},
+            Err(_) => { return fail(ManifestError::OutOfMemory, line_number); },
+        }
+        let index = manifest.audio.len();
+        if !manifest.audio.push_within_capacity(
+            AudioDefinition::empty(&manifest.allocator),
+        ) {
+            panic("reserved audio capacity was unavailable")
+        }
+        return Ok(Section::Audio(index));
+    }
+    fail(ManifestError::UnknownSection, line_number)
+}
+
+fn assign(
+    manifest: &mut Manifest,
+    section: Section,
+    key: str,
+    value: str,
+    line: usize,
+) -> Result<(), ManifestFailure> {
+    match section {
+        Section::Root => fail(ManifestError::UnknownField, line),
+        Section::AudioSettings => assign_audio_settings(manifest, key, value, line),
+        Section::Limits => assign_limits(manifest, key, value, line),
+        Section::Atlas(index) => assign_atlas(manifest, index, key, value, line),
+        Section::Sprite(atlas, sprite) => {
+            assign_sprite(manifest, atlas, sprite, key, value, line)
+        },
+        Section::Font(atlas, font) => {
+            assign_font(manifest, atlas, font, key, value, line)
+        },
+        Section::Audio(index) => assign_audio(manifest, index, key, value, line),
+    }
+}
+
+fn assign_audio_settings(
+    manifest: &mut Manifest,
+    key: str,
+    value: str,
+    line: usize,
+) -> Result<(), ManifestFailure> {
+    if !equals(key, "sample_rate") {
+        return fail(ManifestError::UnknownField, line);
+    }
+    if manifest.sample_rate_set {
+        return fail(ManifestError::DuplicateField, line);
+    }
+    manifest.audio_settings.sample_rate = parse_u32(value, line)?;
+    manifest.sample_rate_set = true;
+    Ok(())
+}
+
+fn assign_limits(
+    manifest: &mut Manifest,
+    key: str,
+    value: str,
+    line: usize,
+) -> Result<(), ManifestFailure> {
+    if equals(key, "max_source_bytes") {
+        if manifest.max_source_bytes_set { return fail(ManifestError::DuplicateField, line); }
+        manifest.limits.max_source_bytes = parse_u64(value, line)?;
+        manifest.max_source_bytes_set = true;
+    } else if equals(key, "max_decoded_bytes") {
+        if manifest.max_decoded_bytes_set { return fail(ManifestError::DuplicateField, line); }
+        manifest.limits.max_decoded_bytes = parse_usize(value, line)?;
+        manifest.max_decoded_bytes_set = true;
+    } else if equals(key, "max_image_dimension") {
+        if manifest.max_image_dimension_set { return fail(ManifestError::DuplicateField, line); }
+        manifest.limits.max_image_dimension = parse_u32(value, line)?;
+        manifest.max_image_dimension_set = true;
+    } else if equals(key, "max_assets") {
+        if manifest.max_assets_set { return fail(ManifestError::DuplicateField, line); }
+        manifest.limits.max_assets = parse_usize(value, line)?;
+        manifest.max_assets_set = true;
+    } else if equals(key, "max_pack_bytes") {
+        if manifest.max_pack_bytes_set { return fail(ManifestError::DuplicateField, line); }
+        manifest.limits.max_pack_bytes = parse_u64(value, line)?;
+        manifest.max_pack_bytes_set = true;
+    } else if equals(key, "max_parallel_decode_bytes") {
+        if manifest.max_parallel_decode_bytes_set { return fail(ManifestError::DuplicateField, line); }
+        manifest.limits.max_parallel_decode_bytes = parse_usize(value, line)?;
+        manifest.max_parallel_decode_bytes_set = true;
+    } else {
+        return fail(ManifestError::UnknownField, line);
+    }
+    Ok(())
+}
+
+fn assign_atlas(
+    manifest: &mut Manifest,
+    index: usize,
+    key: str,
+    value: str,
+    line: usize,
+) -> Result<(), ManifestFailure> {
+    if equals(key, "id") {
+        if manifest.atlas(index).has_id { return fail(ManifestError::DuplicateField, line); }
+        let parsed = parse_string(value, &manifest.allocator, line)?;
+        let atlas = match manifest.atlas_mut(index) {
+            Some(value) => value,
+            None => panic("atlas index escaped its table"),
+        };
+        atlas.id.release();
+        atlas.id = parsed;
+        atlas.has_id = true;
+    } else if equals(key, "width") {
+        if manifest.atlas(index).has_width { return fail(ManifestError::DuplicateField, line); }
+        let parsed = parse_u32(value, line)?;
+        let atlas = match manifest.atlas_mut(index) {
+            Some(value) => value,
+            None => panic("atlas index escaped its table"),
+        };
+        atlas.width = parsed;
+        atlas.has_width = true;
+    } else if equals(key, "height") {
+        if manifest.atlas(index).has_height { return fail(ManifestError::DuplicateField, line); }
+        let parsed = parse_u32(value, line)?;
+        let atlas = match manifest.atlas_mut(index) {
+            Some(value) => value,
+            None => panic("atlas index escaped its table"),
+        };
+        atlas.height = parsed;
+        atlas.has_height = true;
+    } else if equals(key, "padding") {
+        if manifest.atlas(index).has_padding { return fail(ManifestError::DuplicateField, line); }
+        let parsed = parse_u32(value, line)?;
+        let atlas = match manifest.atlas_mut(index) {
+            Some(value) => value,
+            None => panic("atlas index escaped its table"),
+        };
+        atlas.padding = parsed;
+        atlas.has_padding = true;
+    } else {
+        return fail(ManifestError::UnknownField, line);
+    }
+    Ok(())
+}
+
+fn assign_sprite(
+    manifest: &mut Manifest,
+    atlas_index: usize,
+    sprite_index: usize,
+    key: str,
+    value: str,
+    line: usize,
+) -> Result<(), ManifestFailure> {
+    if equals(key, "source_x")
+        || equals(key, "source_y")
+        || equals(key, "source_width")
+        || equals(key, "source_height")
+    {
+        let duplicate = {
+            let sprite = manifest.sprite(atlas_index, sprite_index);
+            if equals(key, "source_x") { sprite.has_source_x }
+            else if equals(key, "source_y") { sprite.has_source_y }
+            else if equals(key, "source_width") { sprite.has_source_width }
+            else { sprite.has_source_height }
+        };
+        if duplicate { return fail(ManifestError::DuplicateField, line); }
+        let parsed = parse_u32(value, line)?;
+        let sprite = match manifest.sprite_mut(atlas_index, sprite_index) {
+            Some(value) => value,
+            None => panic("sprite index escaped its table"),
+        };
+        if equals(key, "source_x") {
+            sprite.source_x = parsed;
+            sprite.has_source_x = true;
+        } else if equals(key, "source_y") {
+            sprite.source_y = parsed;
+            sprite.has_source_y = true;
+        } else if equals(key, "source_width") {
+            sprite.source_width = parsed;
+            sprite.has_source_width = true;
+        } else {
+            sprite.source_height = parsed;
+            sprite.has_source_height = true;
+        }
+        return Ok(());
+    }
+    let duplicate = {
+        let sprite = manifest.sprite(atlas_index, sprite_index);
+        if equals(key, "id") { sprite.has_id }
+        else if equals(key, "path") { sprite.has_path }
+        else { return fail(ManifestError::UnknownField, line); }
+    };
+    if duplicate { return fail(ManifestError::DuplicateField, line); }
+    let parsed = parse_string(value, &manifest.allocator, line)?;
+    let sprite = match manifest.sprite_mut(atlas_index, sprite_index) {
+        Some(value) => value,
+        None => panic("sprite index escaped its table"),
+    };
+    if equals(key, "id") {
+        sprite.id.release();
+        sprite.id = parsed;
+        sprite.has_id = true;
+    } else {
+        sprite.path.release();
+        sprite.path = parsed;
+        sprite.has_path = true;
+    }
+    Ok(())
+}
+
+fn assign_font(
+    manifest: &mut Manifest,
+    atlas_index: usize,
+    font_index: usize,
+    key: str,
+    value: str,
+    line: usize,
+) -> Result<(), ManifestFailure> {
+    if equals(key, "pixel_size") {
+        if manifest.font(atlas_index, font_index).has_pixel_size {
+            return fail(ManifestError::DuplicateField, line);
+        }
+        let parsed = parse_f32(value, line)?;
+        let font = match manifest.font_mut(atlas_index, font_index) {
+            Some(value) => value,
+            None => panic("font index escaped its table"),
+        };
+        font.pixel_size = parsed;
+        font.has_pixel_size = true;
+        return Ok(());
+    }
+    let duplicate = {
+        let font = manifest.font(atlas_index, font_index);
+        if equals(key, "id") { font.has_id }
+        else if equals(key, "path") { font.has_path }
+        else if equals(key, "characters") { font.has_characters }
+        else { return fail(ManifestError::UnknownField, line); }
+    };
+    if duplicate { return fail(ManifestError::DuplicateField, line); }
+    let parsed = parse_string(value, &manifest.allocator, line)?;
+    let font = match manifest.font_mut(atlas_index, font_index) {
+        Some(value) => value,
+        None => panic("font index escaped its table"),
+    };
+    if equals(key, "id") {
+        font.id.release();
+        font.id = parsed;
+        font.has_id = true;
+    } else if equals(key, "path") {
+        font.path.release();
+        font.path = parsed;
+        font.has_path = true;
+    } else {
+        font.characters.release();
+        font.characters = parsed;
+        font.has_characters = true;
+    }
+    Ok(())
+}
+
+fn assign_audio(
+    manifest: &mut Manifest,
+    index: usize,
+    key: str,
+    value: str,
+    line: usize,
+) -> Result<(), ManifestFailure> {
+    let duplicate = {
+        let audio = manifest.audio_definition(index);
+        if equals(key, "id") { audio.has_id }
+        else if equals(key, "path") { audio.has_path }
+        else { return fail(ManifestError::UnknownField, line); }
+    };
+    if duplicate { return fail(ManifestError::DuplicateField, line); }
+    let parsed = parse_string(value, &manifest.allocator, line)?;
+    let audio = match manifest.audio_definition_mut(index) {
+        Some(value) => value,
+        None => panic("audio index escaped its table"),
+    };
+    if equals(key, "id") {
+        audio.id.release();
+        audio.id = parsed;
+        audio.has_id = true;
+    } else {
+        audio.path.release();
+        audio.path = parsed;
+        audio.has_path = true;
+    }
+    Ok(())
+}
+
+fn validate(manifest: &mut Manifest) -> Result<(), ManifestFailure> {
+    if manifest.atlases.is_empty() && manifest.audio.is_empty() {
+        return fail(ManifestError::EmptyManifest, 1);
+    }
+    if manifest.audio_settings.sample_rate < 8_000
+        || manifest.audio_settings.sample_rate > 192_000
+    {
+        return fail(ManifestError::InvalidValue, 1);
+    }
+    if manifest.limits.max_source_bytes == 0
+        || manifest.limits.max_decoded_bytes == 0
+        || manifest.limits.max_image_dimension == 0
+        || manifest.limits.max_assets == 0
+        || manifest.limits.max_pack_bytes == 0
+        || manifest.limits.max_parallel_decode_bytes == 0
+    {
+        return fail(ManifestError::InvalidValue, 1);
+    }
+    let mut hashes: HashMap<u64, bool> = HashMap::empty(&manifest.allocator);
+    defer hashes.release();
+    let max_assets = manifest.limits.max_assets;
+    let max_image_dimension = manifest.limits.max_image_dimension;
+    let mut count: usize = 0;
+    let mut atlas_index: usize = 0;
+    while atlas_index < manifest.atlases.len() {
+        {
+            let atlas = manifest.atlas(atlas_index);
+            if !atlas.has_id { return fail(ManifestError::MissingField, 1); }
+            count = validate_identity(atlas.id.as_str(), &mut hashes, count, max_assets)?;
+            if atlas.width == 0
+                || atlas.height == 0
+                || atlas.width > max_image_dimension
+                || atlas.height > max_image_dimension
+                || atlas.padding > 32
+                || (atlas.sprites.is_empty() && atlas.fonts.is_empty())
+            {
+                return fail(ManifestError::InvalidValue, 1);
+            }
+        }
+        let sprite_count = {
+            let atlas = manifest.atlas(atlas_index);
+            atlas.sprites.len()
+        };
+        let mut sprite_index: usize = 0;
+        while sprite_index < sprite_count {
+            let sprite = manifest.sprite(atlas_index, sprite_index);
+            if !sprite.has_id || !sprite.has_path {
+                return fail(ManifestError::MissingField, 1);
+            }
+            let has_any_region_field = sprite.has_source_x
+                || sprite.has_source_y
+                || sprite.has_source_width
+                || sprite.has_source_height;
+            if has_any_region_field && !sprite.uses_source_region() {
+                return fail(ManifestError::MissingField, 1);
+            }
+            if sprite.uses_source_region()
+                && (sprite.source_width == 0 || sprite.source_height == 0)
+            {
+                return fail(ManifestError::InvalidValue, 1);
+            }
+            count = validate_identity(sprite.id.as_str(), &mut hashes, count, max_assets)?;
+            if !valid_relative_path(sprite.path.as_str()) {
+                return fail(ManifestError::InvalidPath, 1);
+            }
+            sprite_index += 1;
+        }
+        let font_count = {
+            let atlas = manifest.atlas(atlas_index);
+            atlas.fonts.len()
+        };
+        let mut font_index: usize = 0;
+        while font_index < font_count {
+            let needs_default = {
+                let font = manifest.font(atlas_index, font_index);
+                if !font.has_id || !font.has_path || !font.has_pixel_size {
+                    return fail(ManifestError::MissingField, 1);
+                }
+                count = validate_identity(font.id.as_str(), &mut hashes, count, max_assets)?;
+                if !valid_relative_path(font.path.as_str())
+                    || !finite(font.pixel_size)
+                    || font.pixel_size < 1.0
+                    || font.pixel_size > 512.0
+                {
+                    return fail(ManifestError::InvalidValue, 1);
+                }
+                !font.has_characters
+            };
+            if needs_default {
+                let characters = copy_string(&manifest.allocator, DEFAULT_CHARACTERS, 1)?;
+                let font = match manifest.font_mut(atlas_index, font_index) {
+                    Some(value) => value,
+                    None => panic("font index escaped its table"),
+                };
+                font.characters.release();
+                font.characters = characters;
+                font.has_characters = true;
+            }
+            let characters_empty = {
+                let font = manifest.font(atlas_index, font_index);
+                font.characters.is_empty()
+            };
+            if characters_empty {
+                return fail(ManifestError::InvalidValue, 1);
+            }
+            font_index += 1;
+        }
+        atlas_index += 1;
+    }
+    let mut audio_index: usize = 0;
+    while audio_index < manifest.audio.len() {
+        let audio = manifest.audio_definition(audio_index);
+        if !audio.has_id || !audio.has_path {
+            return fail(ManifestError::MissingField, 1);
+        }
+        count = validate_identity(audio.id.as_str(), &mut hashes, count, max_assets)?;
+        if !valid_relative_path(audio.path.as_str()) {
+            return fail(ManifestError::InvalidPath, 1);
+        }
+        audio_index += 1;
+    }
+    Ok(())
+}
+
+fn validate_identity(
+    id: str,
+    hashes: &mut HashMap<u64, bool>,
+    count: usize,
+    maximum: usize,
+) -> Result<usize, ManifestFailure> {
+    if !valid_id(id) {
+        return fail(ManifestError::InvalidAssetId, 1);
+    }
+    let next = match count.checked_add(1) {
+        Some(value) => value,
+        None => { return fail(ManifestError::TooManyAssets, 1); },
+    };
+    if next > maximum {
+        return fail(ManifestError::TooManyAssets, 1);
+    }
+    let hash = hash_id(id.bytes());
+    match hashes.insert(hash, true) {
+        Ok(None) => Ok(next),
+        Ok(Some(_)) => fail(ManifestError::DuplicateAssetIdOrHash, 1),
+        Err(_) => fail(ManifestError::OutOfMemory, 1),
+        _ => fail(ManifestError::OutOfMemory, 1),
+    }
+}
+
+fn valid_relative_path(path: str) -> bool {
+    if byte_len(path) == 0
+        || starts_with(path, "/")
+        || starts_with(path, "\\")
+        || ends_with(path, "/")
+        || ends_with(path, "\\")
+        || contains(path, "//")
+        || contains(path, "\\\\")
+        || contains(path, ":")
+    {
+        return false;
+    }
+    let bytes = path.bytes();
+    let mut segment_start: usize = 0;
+    let mut index: usize = 0;
+    while index <= len(bytes) {
+        if index == len(bytes) || bytes[index] == 47 || bytes[index] == 92 {
+            let segment_length = index - segment_start;
+            if segment_length == 0 {
+                return false;
+            }
+            let segment = match view(path, segment_start, segment_length, 1) {
+                Ok(value) => value,
+                Err(_) => { return false; },
+            };
+            if equals(segment, ".") || equals(segment, "..") {
+                return false;
+            }
+            segment_start = index + 1;
+        }
+        index += 1;
+    }
+    true
+}
+
+fn parse_string(
+    value: str,
+    allocator: &Allocator,
+    line: usize,
+) -> Result<String, ManifestFailure> {
+    let bytes = value.bytes();
+    if len(bytes) < 2 || bytes[0] != 34 || bytes[len(bytes) - 1] != 34 {
+        return fail(ManifestError::InvalidString, line);
+    }
+    let mut output = match String::with_capacity(allocator, len(bytes) - 2) {
+        Ok(result) => result,
+        Err(_) => { return fail(ManifestError::OutOfMemory, line); },
+    };
+    let mut chunk_start: usize = 1;
+    let mut index: usize = 1;
+    while index < len(bytes) - 1 {
+        if bytes[index] < 32 {
+            output.release();
+            return fail(ManifestError::InvalidString, line);
+        }
+        if bytes[index] == 92 {
+            let chunk = view(value, chunk_start, index - chunk_start, line)?;
+            match output.push_str(chunk) {
+                Ok(_) => {},
+                Err(_) => {
+                    output.release();
+                    return fail(ManifestError::OutOfMemory, line);
+                },
+            }
+            index += 1;
+            if index >= len(bytes) - 1 {
+                output.release();
+                return fail(ManifestError::InvalidString, line);
+            }
+            let escaped = match bytes[index] {
+                34 => '"',
+                92 => '\\',
+                98 => '\u{0008}',
+                102 => '\u{000c}',
+                110 => '\n',
+                114 => '\r',
+                116 => '\t',
+                _ => {
+                    output.release();
+                    return fail(ManifestError::InvalidString, line);
+                },
+            };
+            match output.push_char(escaped) {
+                Ok(_) => {},
+                Err(_) => {
+                    output.release();
+                    return fail(ManifestError::OutOfMemory, line);
+                },
+            }
+            index += 1;
+            chunk_start = index;
+        } else {
+            index += 1;
+        }
+    }
+    let tail = view(value, chunk_start, len(bytes) - 1 - chunk_start, line)?;
+    match output.push_str(tail) {
+        Ok(_) => Ok(output),
+        Err(_) => {
+            output.release();
+            fail(ManifestError::OutOfMemory, line)
+        },
+    }
+}
+
+fn copy_string(
+    allocator: &Allocator,
+    value: str,
+    line: usize,
+) -> Result<String, ManifestFailure> {
+    match String::from(allocator, value) {
+        Ok(result) => Ok(result),
+        Err(_) => fail(ManifestError::OutOfMemory, line),
+    }
+}
+
+fn parse_u32(value: str, line: usize) -> Result<u32, ManifestFailure> {
+    let parsed = parse_u64(value, line)?;
+    if parsed > 4_294_967_295 {
+        fail(ManifestError::InvalidNumber, line)
+    } else {
+        Ok(parsed as u32)
+    }
+}
+
+fn parse_usize(value: str, line: usize) -> Result<usize, ManifestFailure> {
+    let parsed = parse_u64(value, line)?;
+    let converted = parsed as usize;
+    if converted as u64 != parsed {
+        fail(ManifestError::InvalidNumber, line)
+    } else {
+        Ok(converted)
+    }
+}
+
+fn parse_u64(value: str, line: usize) -> Result<u64, ManifestFailure> {
+    let bytes = value.bytes();
+    if len(bytes) == 0 {
+        return fail(ManifestError::InvalidNumber, line);
+    }
+    let mut result: u64 = 0;
+    let mut index: usize = 0;
+    let mut previous_underscore = false;
+    while index < len(bytes) {
+        let byte = bytes[index];
+        if byte == 95 {
+            if index == 0 || index + 1 == len(bytes) || previous_underscore {
+                return fail(ManifestError::InvalidNumber, line);
+            }
+            previous_underscore = true;
+        } else if byte >= 48 && byte <= 57 {
+            let digit = (byte - 48) as u64;
+            if result > (0xffff_ffff_ffff_ffff - digit) / 10 {
+                return fail(ManifestError::InvalidNumber, line);
+            }
+            result = result * 10 + digit;
+            previous_underscore = false;
+        } else {
+            return fail(ManifestError::InvalidNumber, line);
+        }
+        index += 1;
+    }
+    Ok(result)
+}
+
+fn parse_f32(value: str, line: usize) -> Result<f32, ManifestFailure> {
+    let bytes = value.bytes();
+    if len(bytes) == 0 {
+        return fail(ManifestError::InvalidNumber, line);
+    }
+    let mut index: usize = 0;
+    let mut negative = false;
+    if bytes[index] == 43 || bytes[index] == 45 {
+        negative = bytes[index] == 45;
+        index += 1;
+    }
+    let mut result: f64 = 0.0;
+    let mut digits: usize = 0;
+    while index < len(bytes) && bytes[index] >= 48 && bytes[index] <= 57 {
+        result = result * 10.0 + (bytes[index] - 48) as f64;
+        digits += 1;
+        index += 1;
+    }
+    if index < len(bytes) && bytes[index] == 46 {
+        index += 1;
+        let mut scale: f64 = 0.1;
+        let mut fractional: usize = 0;
+        while index < len(bytes) && bytes[index] >= 48 && bytes[index] <= 57 {
+            result += (bytes[index] - 48) as f64 * scale;
+            scale *= 0.1;
+            fractional += 1;
+            index += 1;
+        }
+        if fractional == 0 {
+            return fail(ManifestError::InvalidNumber, line);
+        }
+    }
+    if digits == 0 || index != len(bytes) {
+        return fail(ManifestError::InvalidNumber, line);
+    }
+    if negative { result = -result; }
+    let converted = result as f32;
+    if finite(converted) {
+        Ok(converted)
+    } else {
+        fail(ManifestError::InvalidNumber, line)
+    }
+}
+
+fn finite(value: f32) -> bool {
+    to_f32_bits(value) & 0x7f80_0000 != 0x7f80_0000
+}
+
+fn comment_end(value: str, line: usize) -> Result<usize, ManifestFailure> {
+    let bytes = value.bytes();
+    let mut quoted = false;
+    let mut escaped = false;
+    let mut index: usize = 0;
+    while index < len(bytes) {
+        let byte = bytes[index];
+        if quoted && escaped {
+            escaped = false;
+        } else if quoted && byte == 92 {
+            escaped = true;
+        } else if byte == 34 {
+            quoted = !quoted;
+        } else if byte == 35 && !quoted {
+            return Ok(index);
+        }
+        index += 1;
+    }
+    if quoted || escaped {
+        Err(ManifestFailure {
+            kind: ManifestError::InvalidString,
+            line: line,
+        })
+    } else {
+        Ok(len(bytes))
+    }
+}
+
+fn find_assignment(value: str, line: usize) -> Result<usize, ManifestFailure> {
+    let bytes = value.bytes();
+    let mut quoted = false;
+    let mut escaped = false;
+    let mut index: usize = 0;
+    while index < len(bytes) {
+        let byte = bytes[index];
+        if quoted && escaped {
+            escaped = false;
+        } else if quoted && byte == 92 {
+            escaped = true;
+        } else if byte == 34 {
+            quoted = !quoted;
+        } else if byte == 61 && !quoted {
+            return Ok(index);
+        }
+        index += 1;
+    }
+    fail(ManifestError::InvalidSyntax, line)
+}
+
+fn trim(value: str) -> str {
+    let bytes = value.bytes();
+    let mut start: usize = 0;
+    while start < len(bytes) && ascii_space(bytes[start]) {
+        start += 1;
+    }
+    let mut end = len(bytes);
+    while end > start && ascii_space(bytes[end - 1]) {
+        end -= 1;
+    }
+    match byte_slice(value, start, end - start) {
+        Some(result) => result,
+        None => value,
+    }
+}
+
+fn ascii_space(value: u8) -> bool {
+    value == 32 || value == 9
+}
+
+fn view(
+    source: str,
+    start: usize,
+    count: usize,
+    line: usize,
+) -> Result<str, ManifestFailure> {
+    match byte_slice(source, start, count) {
+        Some(result) => Ok(result),
+        None => Err(ManifestFailure {
+            kind: ManifestError::InvalidSyntax,
+            line: line,
+        }),
+    }
+}
+
+impl Manifest {
+    pub fn last_atlas(&self) -> Option<usize> {
+        if self.atlases.is_empty() {
+            None
+        } else {
+            Some(self.atlases.len() - 1)
+        }
+    }
+
+    pub fn atlas(&self, index: usize) -> &AtlasDefinition {
+        &self.atlases.as_slice()[index]
+    }
+
+    pub fn atlas_mut(&mut self, index: usize) -> Option<&mut AtlasDefinition> {
+        self.atlases.get_mut(index)
+    }
+
+    pub fn sprite(&self, atlas_index: usize, index: usize) -> &SpriteDefinition {
+        let atlas: &AtlasDefinition = self.atlas(atlas_index);
+        &atlas.sprites.as_slice()[index]
+    }
+
+    pub fn sprite_mut(
+        &mut self,
+        atlas_index: usize,
+        index: usize,
+    ) -> Option<&mut SpriteDefinition> {
+        match self.atlases.get_mut(atlas_index) {
+            Some(atlas) => atlas.sprites.get_mut(index),
+            None => None,
+        }
+    }
+
+    pub fn font(&self, atlas_index: usize, index: usize) -> &FontDefinition {
+        let atlas: &AtlasDefinition = self.atlas(atlas_index);
+        &atlas.fonts.as_slice()[index]
+    }
+
+    pub fn font_mut(
+        &mut self,
+        atlas_index: usize,
+        index: usize,
+    ) -> Option<&mut FontDefinition> {
+        match self.atlases.get_mut(atlas_index) {
+            Some(atlas) => atlas.fonts.get_mut(index),
+            None => None,
+        }
+    }
+
+    pub fn audio_definition(&self, index: usize) -> &AudioDefinition {
+        &self.audio.as_slice()[index]
+    }
+
+    pub fn audio_definition_mut(&mut self, index: usize) -> Option<&mut AudioDefinition> {
+        self.audio.get_mut(index)
+    }
+}
+
+fn fail<T>(kind: ManifestError, line: usize) -> Result<T, ManifestFailure> {
+    Err(ManifestFailure { kind: kind, line: line })
+}
+
+@test
+fn manifest_should_parse_defaults_nested_assets_and_escapes() {
+    let allocator = general_allocator();
+    let source = "[audio_settings]\nsample_rate = 44_100\n\n[limits]\nmax_assets = 16\n\n[[atlases]]\nid = \"world\"\nwidth = 512\nheight = 256\npadding = 1\n\n[[atlases.sprites]]\nid = \"world/grass\"\npath = \"sprites/grass.png\" # source\nsource_x = 32\nsource_y = 16\nsource_width = 24\nsource_height = 20\n\n[[atlases.fonts]]\nid = \"font/ui\"\npath = \"fonts/ui.ttf\"\npixel_size = 24.5\ncharacters = \"ABC\\n?\"\n\n[[audio]]\nid = \"audio/step\"\npath = \"audio/step.ogg\"\n";
+    let mut manifest = match parse(source, &allocator) {
+        Ok(value) => value,
+        Err(_) => panic("valid manifest was rejected"),
+    };
+    defer manifest.release();
+    assert(manifest.atlases.len() == 1);
+    assert(manifest.audio.len() == 1);
+    assert(manifest.audio_settings.sample_rate == 44_100);
+    assert(manifest.limits.max_assets == 16);
+    let atlas = manifest.atlas(0);
+    assert(atlas.width == 512 && atlas.height == 256 && atlas.padding == 1);
+    assert(atlas.sprites.len() == 1 && atlas.fonts.len() == 1);
+    let sprite = manifest.sprite(0, 0);
+    assert(equals(sprite.path.as_str(), "sprites/grass.png"));
+    assert(sprite.uses_source_region());
+    assert(sprite.source_x == 32 && sprite.source_y == 16);
+    assert(sprite.source_width == 24 && sprite.source_height == 20);
+    let font = manifest.font(0, 0);
+    assert(equals(font.characters.as_str(), "ABC\n?"));
+}
+
+@test
+fn manifest_should_reject_unknown_fields_duplicates_and_escapes() {
+    let allocator = general_allocator();
+    assert(match parse("[[audio]]\nid = \"audio/a\"\nid = \"audio/b\"\npath = \"a.wav\"\n", &allocator) {
+        Err(error) => error.kind() == ManifestError::DuplicateField && error.line() == 3,
+        Ok(mut value) => { value.release(); false },
+    });
+    assert(match parse("[[audio]]\nid = \"audio/a\"\npath = \"bad\\q\"\n", &allocator) {
+        Err(error) => error.kind() == ManifestError::InvalidString,
+        Ok(mut value) => { value.release(); false },
+    });
+    assert(match parse("[limits]\nunknown = 1\n[[audio]]\nid = \"audio/a\"\npath = \"a.wav\"\n", &allocator) {
+        Err(error) => error.kind() == ManifestError::UnknownField,
+        Ok(mut value) => { value.release(); false },
+    });
+    assert(match parse("[[atlases]]\nid = \"world\"\n[[atlases.sprites]]\nid = \"world/a\"\npath = \"sheet.png\"\nsource_x = 0\nsource_width = 16\n", &allocator) {
+        Err(error) => error.kind() == ManifestError::MissingField,
+        Ok(mut value) => { value.release(); false },
+    });
+}
+
+@test
+fn manifest_should_reject_unsafe_paths_and_duplicate_ids() {
+    let allocator = general_allocator();
+    assert(match parse("[[audio]]\nid = \"audio/a\"\npath = \"../secret.wav\"\n", &allocator) {
+        Err(error) => error.kind() == ManifestError::InvalidPath,
+        Ok(mut value) => { value.release(); false },
+    });
+    assert(match parse("[[audio]]\nid = \"audio/a\"\npath = \"one.wav\"\n[[audio]]\nid = \"audio/a\"\npath = \"two.wav\"\n", &allocator) {
+        Err(error) => error.kind() == ManifestError::DuplicateAssetIdOrHash,
+        Ok(mut value) => { value.release(); false },
+    });
+}

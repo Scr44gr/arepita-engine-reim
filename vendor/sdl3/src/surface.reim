@@ -1,0 +1,102 @@
+import std::c;
+
+import self::raw::constants as constants;
+import self::raw::functions as sdl;
+import self::raw::types as types;
+
+/// A recoverable SDL surface operation failure.
+pub enum SurfaceError {
+    InvalidDimensions,
+    CreationFailed,
+    FillFailed,
+}
+
+/// One owned software pixel surface.
+pub struct Surface {
+    raw: *mut types::SDL_Surface,
+}
+
+impl Surface {
+    /// Allocates a zero-initialized surface with the requested pixel format.
+    pub fn create(
+        width: i32,
+        height: i32,
+        format: types::SDL_PixelFormat,
+    ) -> Result<Surface, SurfaceError> {
+        if width <= 0 || height <= 0 {
+            return Err(SurfaceError::InvalidDimensions);
+        }
+        let raw = unsafe { sdl::SDL_CreateSurface(width, height, format) };
+        if c::is_null_mut(raw) {
+            Err(SurfaceError::CreationFailed)
+        } else {
+            Ok(Surface { raw: raw })
+        }
+    }
+
+    /// Returns the surface width in pixels.
+    pub fn width(&self) -> i32 {
+        unsafe { (*self.raw).w }
+    }
+
+    /// Returns the surface height in pixels.
+    pub fn height(&self) -> i32 {
+        unsafe { (*self.raw).h }
+    }
+
+    /// Returns the byte distance between adjacent pixel rows.
+    pub fn pitch(&self) -> i32 {
+        unsafe { (*self.raw).pitch }
+    }
+
+    /// Returns the surface pixel format.
+    pub fn format(&self) -> types::SDL_PixelFormat {
+        unsafe { (*self.raw).format }
+    }
+
+    /// Fills the complete surface with one mapped RGBA color.
+    pub fn fill_rgba(
+        &mut self,
+        red: u8,
+        green: u8,
+        blue: u8,
+        alpha: u8,
+    ) -> Result<(), SurfaceError> {
+        let color = unsafe {
+            sdl::SDL_MapSurfaceRGBA(self.raw, red, green, blue, alpha)
+        };
+        if unsafe {
+            sdl::SDL_FillSurfaceRect(
+                self.raw,
+                c::null_const<types::SDL_Rect>(),
+                color,
+            )
+        } {
+            Ok(())
+        } else {
+            Err(SurfaceError::FillFailed)
+        }
+    }
+
+    /// Returns the non-null native surface handle for advanced raw calls.
+    pub fn as_raw(&self) -> *mut types::SDL_Surface {
+        self.raw
+    }
+
+    /// Returns the native surface handle while retaining an exclusive borrow.
+    pub fn as_raw_mut(&mut self) -> *mut types::SDL_Surface {
+        self.raw
+    }
+
+    /// Releases the surface and its pixel allocation.
+    pub fn deinit(self) {
+        unsafe {
+            sdl::SDL_DestroySurface(self.raw);
+        }
+    }
+}
+
+pub const PIXEL_FORMAT_RGBA32: types::SDL_PixelFormat = constants::SDL_PIXELFORMAT_RGBA32;
+pub const PIXEL_FORMAT_ARGB8888: types::SDL_PixelFormat = constants::SDL_PIXELFORMAT_ARGB8888;
+pub const PIXEL_FORMAT_RGBA8888: types::SDL_PixelFormat = constants::SDL_PIXELFORMAT_RGBA8888;
+pub const PIXEL_FORMAT_ABGR8888: types::SDL_PixelFormat = constants::SDL_PIXELFORMAT_ABGR8888;

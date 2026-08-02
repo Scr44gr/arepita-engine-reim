@@ -1,0 +1,532 @@
+from std::alloc import AllocError, Allocator, OwnedBytes, allocate_bytes, general_allocator;
+from std::binary import read_u16_le, read_u32_le, read_u64_le;
+from std::checksum import crc32;
+from std::fs import FileBuffer, FileError, create, exists, open, remove_file, replace_file;
+from std::slice import byte_range, len;
+from std::string import equals;
+
+const HEADER_SIZE: usize = 32;
+const FORMAT_VERSION: u16 = 1;
+
+/// Default upper bound for one decoded save payload: 64 MiB.
+pub const DEFAULT_MAX_PAYLOAD_BYTES: usize = 67_108_864;
+
+/// Recoverable save-envelope and durable-publication failures.
+@derive(Copy, Clone, Debug, Eq)
+pub enum SaveError {
+    OutOfMemory,
+    FileOpenFailed,
+    FileReadFailed,
+    FileWriteFailed,
+    FileSyncFailed,
+    PublishFailed,
+    UnsafeTemporaryPath,
+    PayloadTooLarge,
+    InvalidHeader,
+    UnsupportedFormat,
+    CorruptHeader,
+    CorruptPayload,
+}
+
+struct SaveMetadata {
+    schema: u32,
+    payload_length: usize,
+}
+
+/// Allocator-owned encoded save envelope ready for durable publication.
+pub struct SaveBuffer {
+    bytes: OwnedBytes,
+    schema: u32,
+    payload_length: usize,
+}
+
+impl SaveBuffer {
+    /// Encodes one payload with the default 64 MiB safety bound.
+    pub fn from_payload(
+        allocator: &Allocator,
+        schema: u32,
+        payload: &[u8],
+    ) -> Result<SaveBuffer, SaveError> {
+        SaveBuffer::from_payload_bounded(
+            allocator,
+            schema,
+            payload,
+            DEFAULT_MAX_PAYLOAD_BYTES,
+        )
+    }
+
+    /// Encodes one versioned payload with independent header and payload CRCs.
+    pub fn from_payload_bounded(
+        allocator: &Allocator,
+        schema: u32,
+        payload: &[u8],
+        maximum_payload_bytes: usize,
+    ) -> Result<SaveBuffer, SaveError> {
+        let payload_length = len(payload);
+        if payload_length > maximum_payload_bytes {
+            return Err(SaveError::PayloadTooLarge);
+        }
+        let total_length = match payload_length.checked_add(HEADER_SIZE) {
+            Some(value) => value,
+            None => { return Err(SaveError::PayloadTooLarge); },
+        };
+        let allocation: Result<OwnedBytes, AllocError> =
+            allocate_bytes(allocator, total_length);
+        let mut bytes = match allocation {
+            Ok(value) => value,
+            Err(_) => { return Err(SaveError::OutOfMemory); },
+        };
+        fill_owned_save(&mut bytes, schema, payload, crc32(payload));
+        let header_crc = header_checksum(&bytes);
+        set_owned_header_checksum(&mut bytes, header_crc);
+        Ok(SaveBuffer {
+            bytes: bytes,
+            schema: schema,
+            payload_length: payload_length,
+        })
+    }
+
+    pub fn schema(&self) -> u32 { self.schema }
+    pub fn payload_len(&self) -> usize { self.payload_length }
+    pub fn encoded_len(&self) -> usize { self.bytes.len() }
+    pub fn encoded_bytes(&self) -> &[u8] { self.bytes.as_bytes() }
+
+    pub fn payload(&self) -> Result<&[u8], SaveError> {
+        save_buffer_payload(self)
+    }
+
+    pub fn release(&mut self) { self.bytes.release(); }
+}
+
+/// Validated file-backed save whose payload is borrowed without copying.
+pub struct SaveDocument {
+    buffer: FileBuffer,
+    schema: u32,
+    payload_length: usize,
+}
+
+impl SaveDocument {
+    /// Opens and validates one save with the default 64 MiB safety bound.
+    pub fn load(
+        allocator: &Allocator,
+        path: str,
+    ) -> Result<SaveDocument, SaveError> {
+        SaveDocument::load_bounded(allocator, path, DEFAULT_MAX_PAYLOAD_BYTES)
+    }
+
+    /// Rejects oversized or corrupt input before exposing its payload.
+    pub fn load_bounded(
+        allocator: &Allocator,
+        path: str,
+        maximum_payload_bytes: usize,
+    ) -> Result<SaveDocument, SaveError> {
+        let maximum_file_bytes = match maximum_payload_bytes.checked_add(HEADER_SIZE) {
+            Some(value) => value,
+            None => { return Err(SaveError::PayloadTooLarge); },
+        };
+        let mut file = match open(path) {
+            Ok(value) => value,
+            Err(_) => { return Err(SaveError::FileOpenFailed); },
+        };
+        defer file.deinit();
+        let file_length = match file.remaining_len() {
+            Ok(value) => value,
+            Err(_) => { return Err(SaveError::FileReadFailed); },
+        };
+        if file_length > maximum_file_bytes {
+            return Err(SaveError::PayloadTooLarge);
+        }
+        let mut buffer = match file.read_exact(allocator, file_length) {
+            Ok(value) => value,
+            Err(error) => { return Err(map_read_error(error)); },
+        };
+        let metadata = match validate_buffer(&buffer, maximum_payload_bytes) {
+            Ok(value) => value,
+            Err(error) => {
+                buffer.release();
+                return Err(error);
+            },
+        };
+        Ok(SaveDocument {
+            buffer: buffer,
+            schema: metadata.schema,
+            payload_length: metadata.payload_length,
+        })
+    }
+
+    pub fn schema(&self) -> u32 { self.schema }
+    pub fn payload_len(&self) -> usize { self.payload_length }
+    pub fn allocated_bytes(&self) -> usize { self.buffer.capacity() }
+
+    pub fn payload(&self) -> Result<&[u8], SaveError> {
+        save_document_payload(self)
+    }
+
+    pub fn release(&mut self) { self.buffer.release(); }
+}
+
+/// Publishes an encoded save through a synchronized file in the same directory.
+///
+/// `temporary_path` must be a dedicated engine-managed path beside
+/// `destination`. Existing destination data remains untouched when writing or
+/// replacement fails. The checksum detects corruption; it does not authenticate or
+/// encrypt attacker-controlled data.
+pub fn write_atomic(
+    destination: str,
+    temporary_path: str,
+    save: &SaveBuffer,
+) -> Result<(), SaveError> {
+    if equals(destination, temporary_path) {
+        return Err(SaveError::UnsafeTemporaryPath);
+    }
+    match write_synchronized(temporary_path, save.encoded_bytes()) {
+        Ok(_) => {},
+        Err(error) => {
+            remove_temporary(temporary_path);
+            return Err(error);
+        },
+    }
+    match replace_file(temporary_path, destination) {
+        Ok(_) => Ok(()),
+        Err(_) => {
+            remove_temporary(temporary_path);
+            Err(SaveError::PublishFailed)
+        },
+    }
+}
+
+fn write_synchronized(path: str, bytes: &[u8]) -> Result<(), SaveError> {
+    let mut file = match create(path) {
+        Ok(value) => value,
+        Err(_) => { return Err(SaveError::FileWriteFailed); },
+    };
+    defer file.deinit();
+    match file.write_bytes(bytes) {
+        Ok(_) => {},
+        Err(_) => { return Err(SaveError::FileWriteFailed); },
+    }
+    match file.sync_all() {
+        Ok(_) => Ok(()),
+        Err(_) => Err(SaveError::FileSyncFailed),
+    }
+}
+
+fn remove_temporary(path: str) {
+    if exists(path) {
+        let _ = remove_file(path);
+    }
+}
+
+fn validate_buffer(
+    buffer: &FileBuffer,
+    maximum_payload_bytes: usize,
+) -> Result<SaveMetadata, SaveError> {
+    validate_save(buffer.as_bytes(), maximum_payload_bytes)
+}
+
+fn save_buffer_payload(save: &SaveBuffer) -> Result<&[u8], SaveError> {
+    match byte_range(save.bytes.as_bytes(), HEADER_SIZE, save.payload_length) {
+        Some(value) => Ok(value),
+        None => Err(SaveError::InvalidHeader),
+    }
+}
+
+fn save_document_payload(document: &SaveDocument) -> Result<&[u8], SaveError> {
+    match byte_range(
+        document.buffer.as_bytes(),
+        HEADER_SIZE,
+        document.payload_length,
+    ) {
+        Some(value) => Ok(value),
+        None => Err(SaveError::InvalidHeader),
+    }
+}
+
+fn validate_save(
+    bytes: &[u8],
+    maximum_payload_bytes: usize,
+) -> Result<SaveMetadata, SaveError> {
+    if len(bytes) < HEADER_SIZE || !has_magic(bytes) {
+        return Err(SaveError::InvalidHeader);
+    }
+    let stored_header_crc = match read_u32_le(bytes, 28) {
+        Some(value) => value,
+        None => { return Err(SaveError::InvalidHeader); },
+    };
+    let header = match byte_range(bytes, 0, 28) {
+        Some(value) => value,
+        None => { return Err(SaveError::InvalidHeader); },
+    };
+    if crc32(header) != stored_header_crc {
+        return Err(SaveError::CorruptHeader);
+    }
+    let format = match read_u16_le(bytes, 8) {
+        Some(value) => value,
+        None => { return Err(SaveError::InvalidHeader); },
+    };
+    if format != FORMAT_VERSION {
+        return Err(SaveError::UnsupportedFormat);
+    }
+    let header_length = match read_u16_le(bytes, 10) {
+        Some(value) => value as usize,
+        None => { return Err(SaveError::InvalidHeader); },
+    };
+    if header_length != HEADER_SIZE {
+        return Err(SaveError::InvalidHeader);
+    }
+    let schema = match read_u32_le(bytes, 12) {
+        Some(value) => value,
+        None => { return Err(SaveError::InvalidHeader); },
+    };
+    let encoded_payload_length = match read_u64_le(bytes, 16) {
+        Some(value) => value,
+        None => { return Err(SaveError::InvalidHeader); },
+    };
+    if encoded_payload_length > maximum_payload_bytes as u64 {
+        return Err(SaveError::PayloadTooLarge);
+    }
+    let payload_length = encoded_payload_length as usize;
+    let expected_length = match payload_length.checked_add(HEADER_SIZE) {
+        Some(value) => value,
+        None => { return Err(SaveError::PayloadTooLarge); },
+    };
+    if len(bytes) != expected_length {
+        return Err(SaveError::InvalidHeader);
+    }
+    let payload = match byte_range(bytes, HEADER_SIZE, payload_length) {
+        Some(value) => value,
+        None => { return Err(SaveError::InvalidHeader); },
+    };
+    let stored_payload_crc = match read_u32_le(bytes, 24) {
+        Some(value) => value,
+        None => { return Err(SaveError::InvalidHeader); },
+    };
+    if crc32(payload) != stored_payload_crc {
+        return Err(SaveError::CorruptPayload);
+    }
+    Ok(SaveMetadata { schema: schema, payload_length: payload_length })
+}
+
+fn map_read_error(error: FileError) -> SaveError {
+    match error {
+        FileError::OutOfMemory => SaveError::OutOfMemory,
+        _ => SaveError::FileReadFailed,
+    }
+}
+
+fn has_magic(bytes: &[u8]) -> bool {
+    bytes[0] == 65
+        && bytes[1] == 82
+        && bytes[2] == 69
+        && bytes[3] == 83
+        && bytes[4] == 65
+        && bytes[5] == 86
+        && bytes[6] == 69
+        && bytes[7] == 0
+}
+
+fn fill_save(
+    output: &mut [u8],
+    schema: u32,
+    payload: &[u8],
+    payload_crc: u32,
+) {
+    output[0] = 65;
+    output[1] = 82;
+    output[2] = 69;
+    output[3] = 83;
+    output[4] = 65;
+    output[5] = 86;
+    output[6] = 69;
+    output[7] = 0;
+    output[8] = FORMAT_VERSION as u8;
+    output[9] = (FORMAT_VERSION >> 8) as u8;
+    output[10] = HEADER_SIZE as u8;
+    output[11] = ((HEADER_SIZE as u16) >> 8) as u8;
+    output[12] = schema as u8;
+    output[13] = (schema >> 8) as u8;
+    output[14] = (schema >> 16) as u8;
+    output[15] = (schema >> 24) as u8;
+    let payload_length = len(payload) as u64;
+    output[16] = payload_length as u8;
+    output[17] = (payload_length >> 8) as u8;
+    output[18] = (payload_length >> 16) as u8;
+    output[19] = (payload_length >> 24) as u8;
+    output[20] = (payload_length >> 32) as u8;
+    output[21] = (payload_length >> 40) as u8;
+    output[22] = (payload_length >> 48) as u8;
+    output[23] = (payload_length >> 56) as u8;
+    output[24] = payload_crc as u8;
+    output[25] = (payload_crc >> 8) as u8;
+    output[26] = (payload_crc >> 16) as u8;
+    output[27] = (payload_crc >> 24) as u8;
+    output[28] = 0;
+    output[29] = 0;
+    output[30] = 0;
+    output[31] = 0;
+    let mut index: usize = 0;
+    while index < len(payload) {
+        output[HEADER_SIZE + index] = payload[index];
+        index += 1;
+    }
+}
+
+fn fill_owned_save(
+    bytes: &mut OwnedBytes,
+    schema: u32,
+    payload: &[u8],
+    payload_crc: u32,
+) {
+    fill_save(bytes.as_mut_bytes(), schema, payload, payload_crc);
+}
+
+fn header_checksum(bytes: &OwnedBytes) -> u32 {
+    let header = match byte_range(bytes.as_bytes(), 0, 28) {
+        Some(value) => value,
+        None => panic("save header allocation invariant failed"),
+    };
+    crc32(header)
+}
+
+fn set_header_checksum(output: &mut [u8], checksum: u32) {
+    output[28] = checksum as u8;
+    output[29] = (checksum >> 8) as u8;
+    output[30] = (checksum >> 16) as u8;
+    output[31] = (checksum >> 24) as u8;
+}
+
+fn set_owned_header_checksum(bytes: &mut OwnedBytes, checksum: u32) {
+    set_header_checksum(bytes.as_mut_bytes(), checksum);
+}
+
+@test
+fn save_buffer_should_preserve_schema_payload_and_exact_size() {
+    let allocator = general_allocator();
+    let payload: [u8; 5] = [1, 2, 3, 4, 5];
+    let mut save = match SaveBuffer::from_payload(&allocator, 7, &payload) {
+        Ok(value) => value,
+        Err(_) => panic("save encoding failed"),
+    };
+    defer save.release();
+    assert(save.schema() == 7);
+    assert(save.payload_len() == 5);
+    assert(save.encoded_len() == HEADER_SIZE + 5);
+    assert(match save.payload() {
+        Ok(value) => value[4] == 5,
+        Err(_) => false,
+    });
+}
+
+@test
+fn save_validation_should_reject_header_and_payload_corruption() {
+    let allocator = general_allocator();
+    let payload: [u8; 3] = [10, 20, 30];
+    let mut payload_save = match SaveBuffer::from_payload(&allocator, 1, &payload) {
+        Ok(value) => value,
+        Err(_) => panic("save encoding failed"),
+    };
+    defer payload_save.release();
+    {
+        let bytes = payload_save.bytes.as_mut_bytes();
+        bytes[HEADER_SIZE + 1] = 21;
+    }
+    assert(match validate_save(payload_save.encoded_bytes(), 16) {
+        Err(SaveError::CorruptPayload) => true,
+        _ => false,
+    });
+    let mut header_save = match SaveBuffer::from_payload(&allocator, 1, &payload) {
+        Ok(value) => value,
+        Err(_) => panic("save encoding failed"),
+    };
+    defer header_save.release();
+    {
+        let bytes = header_save.bytes.as_mut_bytes();
+        bytes[12] = 99;
+    }
+    assert(match validate_save(header_save.encoded_bytes(), 16) {
+        Err(SaveError::CorruptHeader) => true,
+        _ => false,
+    });
+}
+
+@test
+fn atomic_save_should_round_trip_through_a_validated_document() {
+    let destination = "arepita_persistence_round_trip.save";
+    let temporary = "arepita_persistence_round_trip.save.tmp";
+    remove_temporary(destination);
+    remove_temporary(temporary);
+    defer remove_temporary(destination);
+    defer remove_temporary(temporary);
+    let allocator = general_allocator();
+    let payload: [u8; 4] = [42, 12, 8, 1];
+    let mut save = match SaveBuffer::from_payload(&allocator, 3, &payload) {
+        Ok(value) => value,
+        Err(_) => panic("save encoding failed"),
+    };
+    defer save.release();
+    match write_atomic(destination, temporary, &save) {
+        Ok(_) => {},
+        Err(_) => panic("atomic save publication failed"),
+    }
+    let mut document = match SaveDocument::load(&allocator, destination) {
+        Ok(value) => value,
+        Err(_) => panic("save loading failed"),
+    };
+    defer document.release();
+    assert(document.schema() == 3);
+    assert(document.payload_len() == 4);
+    {
+        let decoded = match document.payload() {
+            Ok(value) => value,
+            Err(_) => panic("validated payload borrow failed"),
+        };
+        assert(decoded[0] == 42);
+        assert(decoded[3] == 1);
+    }
+}
+
+@test
+fn atomic_save_should_replace_an_existing_destination() {
+    let destination = "arepita_persistence_replace.save";
+    let temporary = "arepita_persistence_replace.save.tmp";
+    remove_temporary(destination);
+    remove_temporary(temporary);
+    defer remove_temporary(destination);
+    defer remove_temporary(temporary);
+    let allocator = general_allocator();
+    let first_payload: [u8; 2] = [1, 2];
+    let mut first = match SaveBuffer::from_payload(&allocator, 4, &first_payload) {
+        Ok(value) => value,
+        Err(_) => panic("first save encoding failed"),
+    };
+    defer first.release();
+    match write_atomic(destination, temporary, &first) {
+        Ok(_) => {},
+        Err(_) => panic("first atomic publication failed"),
+    }
+    let replacement_payload: [u8; 3] = [7, 8, 9];
+    let mut replacement = match SaveBuffer::from_payload(
+        &allocator,
+        5,
+        &replacement_payload,
+    ) {
+        Ok(value) => value,
+        Err(_) => panic("replacement save encoding failed"),
+    };
+    defer replacement.release();
+    match write_atomic(destination, temporary, &replacement) {
+        Ok(_) => {},
+        Err(_) => panic("atomic replacement failed"),
+    }
+    let mut document = match SaveDocument::load(&allocator, destination) {
+        Ok(value) => value,
+        Err(_) => panic("replacement save loading failed"),
+    };
+    defer document.release();
+    assert(document.schema() == 5);
+    assert(document.payload_len() == 3);
+    assert(match document.payload() {
+        Ok(value) => value[0] == 7 && value[2] == 9,
+        Err(_) => false,
+    });
+}

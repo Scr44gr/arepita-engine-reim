@@ -1,0 +1,108 @@
+from std::alloc import AllocError, general_allocator;
+from std::io import println;
+from std::string import String;
+
+from arepita_engine::ecs import Component, ComponentStore, Entities, Entity;
+
+@derive(Copy, Component)
+struct Position {
+    x: f32,
+    y: f32,
+}
+
+@derive(Copy, Component)
+struct Velocity {
+    x: f32,
+    y: f32,
+}
+
+fn movement(
+    positions: &mut ComponentStore<Position>,
+    velocities: &ComponentStore<Velocity>,
+    delta_seconds: f32,
+) {
+    let length = positions.len();
+    let velocity_values = velocities.values();
+    let position_values = positions.values_mut();
+    let mut index: usize = 0;
+    while index < length {
+        let mut position = position_values[index];
+        let velocity = velocity_values[index];
+        position.x += velocity.x * delta_seconds;
+        position.y += velocity.y * delta_seconds;
+        position_values[index] = position;
+        index += 1;
+    }
+}
+
+fn spawn_mover(
+    entities: &mut Entities,
+    positions: &mut ComponentStore<Position>,
+    velocities: &mut ComponentStore<Velocity>,
+    position: Position,
+    velocity: Velocity,
+) -> Result<Entity, AllocError> {
+    let entity = match entities.spawn() {
+        Ok(value) => value,
+        Err(_) => {
+            return Err(AllocError::OutOfMemory);
+        },
+    };
+    positions.insert(entity, position)?;
+    velocities.insert(entity, velocity)?;
+    Ok(entity)
+}
+
+fn run() -> Result<i32, AllocError> {
+    let allocator = general_allocator();
+    let mut entities = Entities::new(&allocator)?;
+    defer entities.deinit();
+
+    let position_result: Result<ComponentStore<Position>, AllocError> =
+        ComponentStore::new(&allocator);
+    let mut positions = position_result?;
+    defer positions.deinit();
+
+    let velocity_result: Result<ComponentStore<Velocity>, AllocError> =
+        ComponentStore::new(&allocator);
+    let mut velocities = velocity_result?;
+    defer velocities.deinit();
+
+    let first = spawn_mover(
+        &mut entities,
+        &mut positions,
+        &mut velocities,
+        Position { x: 0.0, y: 0.0 },
+        Velocity { x: 3.0, y: -1.0 },
+    )?;
+    movement(&mut positions, &velocities, 0.5);
+
+    let position = match positions.get(first) {
+        Some(value) => value,
+        None => {
+            return Ok(1);
+        },
+    };
+    let mut message = String::with_capacity(&allocator, 96)?;
+    defer message.deinit();
+    message.push_format(
+        f"entity={first.index()} position=({position.x}, {position.y}) allocated={positions.allocated_bytes()} bytes",
+    )?;
+    match println(message.as_str()) {
+        Ok(_) => {},
+        Err(_) => {},
+    }
+
+    if position.x == 1.5 && position.y == -0.5 {
+        Ok(0)
+    } else {
+        Ok(2)
+    }
+}
+
+fn main() -> i32 {
+    match run() {
+        Ok(code) => code,
+        Err(_) => 3,
+    }
+}

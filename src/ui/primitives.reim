@@ -1,0 +1,279 @@
+from super::asset import PackedFont, TextLayout;
+from super::platform import Input;
+from super::platform::keys import MOUSE_LEFT;
+from super::render import AtlasRegion, SpriteBatch, SpriteColor, SpriteInstance;
+
+/// Recoverable immediate-mode UI submission failures.
+@derive(Copy, Clone, Debug, Eq)
+pub enum UiError {
+    InvalidGeometry,
+    BatchCapacityExceeded,
+}
+
+/// Physical-pixel viewport used to project UI into clip space.
+@derive(Copy, Clone, Debug)
+pub struct UiViewport {
+    width: f32,
+    height: f32,
+}
+
+impl UiViewport {
+    pub fn new(width: u32, height: u32) -> Option<UiViewport> {
+        if width == 0 || height == 0 {
+            None
+        } else {
+            Some(UiViewport { width: width as f32, height: height as f32 })
+        }
+    }
+
+    pub fn width(&self) -> f32 { self.width }
+    pub fn height(&self) -> f32 { self.height }
+}
+
+/// Top-left-origin physical-pixel rectangle.
+@derive(Copy, Clone, Debug)
+pub struct UiRect {
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
+}
+
+impl UiRect {
+    pub fn contains(&self, x: f32, y: f32) -> bool {
+        self.width >= 0.0
+            && self.height >= 0.0
+            && x >= self.x
+            && y >= self.y
+            && x <= self.x + self.width
+            && y <= self.y + self.height
+    }
+}
+
+/// Allocation-free button colors for each interaction state.
+@derive(Copy, Clone, Debug)
+pub struct UiButtonStyle {
+    pub normal: SpriteColor,
+    pub hovered: SpriteColor,
+    pub held: SpriteColor,
+    pub text: SpriteColor,
+}
+
+/// Pointer interaction returned by one button submission.
+@derive(Copy, Clone, Debug, Eq)
+pub struct ButtonResponse {
+    pub hovered: bool,
+    pub held: bool,
+    pub clicked: bool,
+}
+
+/// Appends one textured or solid-colored UI rectangle.
+pub fn image(
+    batch: &mut SpriteBatch,
+    viewport: UiViewport,
+    rect: UiRect,
+    region: AtlasRegion,
+    color: SpriteColor,
+    depth: f32,
+) -> Result<(), UiError> {
+    let instance = make_instance(viewport, rect, region, color, depth)?;
+    match batch.push_prepared(instance) {
+        Ok(_) => Ok(()),
+        Err(_) => Err(UiError::BatchCapacityExceeded),
+    }
+}
+
+/// Appends an atlas-independent solid-color rectangle.
+pub fn solid(
+    batch: &mut SpriteBatch,
+    viewport: UiViewport,
+    rect: UiRect,
+    color: SpriteColor,
+    depth: f32,
+) -> Result<(), UiError> {
+    if rect.width < 0.0 || rect.height < 0.0 {
+        return Err(UiError::InvalidGeometry);
+    }
+    let center_x = rect.x + rect.width * 0.5;
+    let center_y = rect.y + rect.height * 0.5;
+    let one: f32 = 1.0;
+    let two: f32 = 2.0;
+    let clip_x = center_x / viewport.width * two - one;
+    let clip_y = one - center_y / viewport.height * two;
+    let clip_width = rect.width / viewport.width * two;
+    let clip_height = rect.height / viewport.height * two;
+    let instance = SpriteInstance::solid(
+        clip_x,
+        clip_y,
+        clip_width,
+        clip_height,
+        color,
+    ).with_depth(depth);
+    match batch.push_prepared(instance) {
+        Ok(_) => Ok(()),
+        Err(_) => Err(UiError::BatchCapacityExceeded),
+    }
+}
+
+/// Appends UTF-8 text in top-left-origin physical pixels.
+pub fn text(
+    batch: &mut SpriteBatch,
+    font: &PackedFont,
+    viewport: UiViewport,
+    value: str,
+    x: f32,
+    y: f32,
+    color: SpriteColor,
+    depth: f32,
+) -> Result<TextLayout, UiError> {
+    let measured = font.measure_text(value);
+    let current = batch.len();
+    let capacity = batch.capacity();
+    let required = measured.instances as usize;
+    if current > capacity || required > capacity - current {
+        return Err(UiError::BatchCapacityExceeded);
+    }
+    let mut pen_x = x;
+    let mut baseline = y + font.ascent();
+    for character in value.chars() {
+        if character == '\n' {
+            pen_x = x;
+            baseline += font.new_line_size();
+        } else if character == '\t' {
+            pen_x += font.space_advance() * 4.0;
+        } else {
+            match font.glyph_or_fallback(character) {
+                Some(glyph) => {
+                    if glyph.width > 0 && glyph.height > 0 {
+                        let glyph_x = pen_x + glyph.xmin as f32;
+                        let glyph_y = baseline
+                            - glyph.ymin as f32
+                            - glyph.height as f32;
+                        let rect = UiRect {
+                            x: glyph_x,
+                            y: glyph_y,
+                            width: glyph.width as f32,
+                            height: glyph.height as f32,
+                        };
+                        let instance = make_instance(
+                            viewport,
+                            rect,
+                            glyph.region,
+                            color,
+                            depth,
+                        )?;
+                        match batch.push_prepared(instance) {
+                            Ok(_) => {},
+                            Err(_) => {
+                                panic("UI text capacity changed after complete preflight")
+                            },
+                        }
+                    }
+                    pen_x += glyph.advance_width;
+                },
+                None => {},
+            }
+        }
+    }
+    Ok(measured)
+}
+
+/// Appends a background and centered label, then returns mouse interaction.
+pub fn button(
+    batch: &mut SpriteBatch,
+    font: &PackedFont,
+    input: &Input,
+    viewport: UiViewport,
+    rect: UiRect,
+    background: AtlasRegion,
+    label: str,
+    style: UiButtonStyle,
+    depth: f32,
+) -> Result<ButtonResponse, UiError> {
+    let measured = font.measure_text(label);
+    let required = measured.instances as usize + 1;
+    let current = batch.len();
+    let capacity = batch.capacity();
+    if current > capacity || required > capacity - current {
+        return Err(UiError::BatchCapacityExceeded);
+    }
+    let hovered = rect.contains(input.mouse_x(), input.mouse_y());
+    let held = hovered && input.mouse_down(MOUSE_LEFT);
+    let clicked = hovered && input.mouse_released(MOUSE_LEFT);
+    let background_color = if held {
+        style.held
+    } else if hovered {
+        style.hovered
+    } else {
+        style.normal
+    };
+    image(batch, viewport, rect, background, background_color, depth)?;
+    let text_x = rect.x + (rect.width - measured.width) * 0.5;
+    let text_y = rect.y + (rect.height - measured.height) * 0.5;
+    let _ = text(
+        batch,
+        font,
+        viewport,
+        label,
+        text_x,
+        text_y,
+        style.text,
+        depth - 0.000_1,
+    )?;
+    Ok(ButtonResponse { hovered: hovered, held: held, clicked: clicked })
+}
+
+fn make_instance(
+    viewport: UiViewport,
+    rect: UiRect,
+    region: AtlasRegion,
+    color: SpriteColor,
+    depth: f32,
+) -> Result<SpriteInstance, UiError> {
+    if rect.width < 0.0 || rect.height < 0.0 {
+        return Err(UiError::InvalidGeometry);
+    }
+    let center_x = rect.x + rect.width * 0.5;
+    let center_y = rect.y + rect.height * 0.5;
+    let one: f32 = 1.0;
+    let two: f32 = 2.0;
+    let clip_x = center_x / viewport.width * two - one;
+    let clip_y = one - center_y / viewport.height * two;
+    let clip_width = rect.width / viewport.width * two;
+    let clip_height = rect.height / viewport.height * two;
+    Ok(SpriteInstance::new(clip_x, clip_y, clip_width, clip_height)
+        .with_region(region)
+        .with_color(color)
+        .with_depth(depth))
+}
+
+@test
+fn ui_rect_should_use_top_left_pixel_coordinates() {
+    let rect = UiRect { x: 10.0, y: 20.0, width: 30.0, height: 40.0 };
+    assert(rect.contains(10.0, 20.0));
+    assert(rect.contains(40.0, 60.0));
+    assert(!rect.contains(9.0, 20.0));
+}
+
+@test
+fn viewport_projection_should_map_pixels_to_clip_space() {
+    let viewport = match UiViewport::new(100, 100) {
+        Some(value) => value,
+        None => panic("valid viewport was rejected"),
+    };
+    let rect = UiRect { x: 0.0, y: 0.0, width: 20.0, height: 10.0 };
+    let instance = match make_instance(
+        viewport,
+        rect,
+        AtlasRegion::full(),
+        SpriteColor::white(),
+        0.0,
+    ) {
+        Ok(value) => value,
+        Err(_) => panic("valid UI rectangle was rejected"),
+    };
+    assert(instance.position_x == -0.8);
+    assert(instance.position_y == 0.9);
+    assert(instance.size_x == 0.4);
+    assert(instance.size_y == 0.2);
+}

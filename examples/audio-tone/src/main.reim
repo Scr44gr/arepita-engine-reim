@@ -1,0 +1,95 @@
+from std::alloc import AllocError, general_allocator;
+from std::collections import Vec;
+from std::math import sine;
+from std::time import Duration, sleep;
+
+from arepita_engine::asset import AssetStore;
+from arepita_engine::audio import AudioClip, AudioMixer, VoiceSettings;
+
+const SAMPLE_RATE: u32 = 48_000;
+const CHANNELS: u32 = 2;
+const TONE_FRAMES: usize = 4_800;
+
+fn create_tone() -> Result<Vec<f32>, AllocError> {
+    let allocator = general_allocator();
+    let sample_count = TONE_FRAMES * CHANNELS as usize;
+    let created: Result<Vec<f32>, AllocError> =
+        Vec::with_capacity(&allocator, sample_count);
+    let mut samples = created?;
+    let mut frame: usize = 0;
+    while frame < TONE_FRAMES {
+        let phase: f32 =
+            6.283_185_5 * 440.0 * frame as f32 / SAMPLE_RATE as f32;
+        let value = sine(phase) * 0.15;
+        if !samples.push_within_capacity(value) {
+            panic("tone reservation became inconsistent")
+        }
+        if !samples.push_within_capacity(value) {
+            panic("tone reservation became inconsistent")
+        }
+        frame += 1;
+    }
+    Ok(samples)
+}
+
+fn run() -> Result<i32, AllocError> {
+    let allocator = general_allocator();
+    let mut samples = create_tone()?;
+    defer samples.release();
+    let clip = match AudioClip::from_samples(
+        &allocator,
+        SAMPLE_RATE,
+        CHANNELS,
+        samples.as_slice(),
+    ) {
+        Ok(value) => value,
+        Err(_) => {
+            return Ok(1);
+        },
+    };
+    let clips_result: Result<AssetStore<AudioClip>, AllocError> =
+        AssetStore::new(&allocator);
+    let mut clips = clips_result?;
+    defer clips.deinit();
+    let handle = match clips.insert(clip) {
+        Ok(value) => value,
+        Err(_) => {
+            return Ok(2);
+        },
+    };
+    let mut mixer = match AudioMixer::create(
+        &allocator,
+        SAMPLE_RATE,
+        CHANNELS,
+        1_024,
+        8,
+    ) {
+        Ok(value) => value,
+        Err(_) => {
+            return Ok(3);
+        },
+    };
+    defer mixer.release();
+    let settings = VoiceSettings::new(1.0, 1.08, false);
+    match mixer.play_with_settings(&clips, handle, settings) {
+        Ok(_) => {},
+        Err(_) => {
+            return Ok(4);
+        },
+    }
+    match mixer.maintain(&clips, 4_800) {
+        Ok(_) => {},
+        Err(_) => {
+            return Ok(5);
+        },
+    }
+    sleep(Duration::from_milliseconds(150));
+    Ok(0)
+}
+
+fn main() -> i32 {
+    match run() {
+        Ok(value) => value,
+        Err(_) => 10,
+    }
+}

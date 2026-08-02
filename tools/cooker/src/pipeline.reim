@@ -1,0 +1,201 @@
+from std::alloc import Allocator;
+from std::fs import canonicalize, create_dir_all, file_size, read_to_string;
+from std::process import id as process_id;
+from std::string import String;
+
+from self::asset_manifest import Manifest, parse;
+from self::atlas import AtlasCookError, cook_into as cook_atlas;
+from self::audio import cook as cook_audio;
+from self::pack import PackWriter;
+from self::pathing import parent;
+
+const MAX_MANIFEST_BYTES: u64 = 4 * 1024 * 1024;
+
+/// High-level failures reported by the offline asset pipeline.
+@derive(Copy, Clone, Debug, Eq)
+pub enum CookError {
+    ManifestPath,
+    ManifestTooLarge,
+    ManifestRead,
+    ManifestInvalid,
+    OutputPath,
+    AtlasInvalidDimensions,
+    AtlasSource,
+    AtlasDecode,
+    AtlasLayout,
+    AtlasComposite,
+    AtlasFailed,
+    AudioFailed,
+    PackFailed,
+    OutOfMemory,
+}
+
+/// Builds one deterministic asset pack and publishes it atomically.
+pub fn cook(
+    allocator: &Allocator,
+    manifest_path: str,
+    output_path: str,
+) -> Result<(), CookError> {
+    let canonical = match canonicalize(manifest_path, allocator) {
+        Ok(value) => value,
+        Err(_) => { return Err(CookError::ManifestPath); },
+    };
+    let mut canonical = canonical;
+    let size = {
+        let path = canonical.as_str();
+        file_size(path)
+    };
+    let size = match size {
+        Ok(value) => value,
+        Err(_) => {
+            canonical.release();
+            return Err(CookError::ManifestPath);
+        },
+    };
+    if size > MAX_MANIFEST_BYTES {
+        canonical.release();
+        return Err(CookError::ManifestTooLarge);
+    }
+    let loaded = {
+        let path = canonical.as_str();
+        read_to_string(path, allocator)
+    };
+    let mut source = match loaded {
+        Ok(value) => value,
+        Err(_) => {
+            canonical.release();
+            return Err(CookError::ManifestRead);
+        },
+    };
+    let parsed = {
+        let text = source.as_str();
+        parse(text, allocator)
+    };
+    source.release();
+    let mut manifest = match parsed {
+        Ok(value) => value,
+        Err(_) => {
+            canonical.release();
+            return Err(CookError::ManifestInvalid);
+        },
+    };
+    let root = {
+        let path = canonical.as_str();
+        parent(path)
+    };
+    let root = match root {
+        Some(value) => value,
+        None => {
+            manifest.release();
+            canonical.release();
+            return Err(CookError::ManifestPath);
+        },
+    };
+    let built = cook_manifest(allocator, root, output_path, &mut manifest);
+    manifest.release();
+    canonical.release();
+    built
+}
+
+fn cook_manifest(
+    allocator: &Allocator,
+    root: str,
+    output_path: str,
+    manifest: &mut Manifest,
+) -> Result<(), CookError> {
+    match parent(output_path) {
+        Some(directory) => {
+            match create_dir_all(directory) {
+                Ok(_) => {},
+                Err(_) => { return Err(CookError::OutputPath); },
+            }
+        },
+        None => {},
+    }
+    let mut writer = PackWriter::with_limit(allocator, manifest.limits.max_pack_bytes);
+    let mut index: usize = 0;
+    while index < manifest.atlases.len() {
+        let definition = match manifest.atlases.get_ref(index) {
+            Some(value) => value,
+            None => panic("atlas pipeline index escaped its table"),
+        };
+        match cook_atlas(
+            &mut writer,
+            allocator,
+            root,
+            definition,
+            &manifest.limits,
+        ) {
+            Ok(_) => {},
+            Err(error) => {
+                writer.release();
+                return Err(match error {
+                    AtlasCookError::InvalidDimensions => CookError::AtlasInvalidDimensions,
+                    AtlasCookError::SourceFailed => CookError::AtlasSource,
+                    AtlasCookError::DecodeFailed => CookError::AtlasDecode,
+                    AtlasCookError::LayoutFailed => CookError::AtlasLayout,
+                    AtlasCookError::CompositeFailed => CookError::AtlasComposite,
+                    _ => CookError::AtlasFailed,
+                });
+            },
+        }
+        index += 1;
+    }
+    index = 0;
+    while index < manifest.audio.len() {
+        let definition = match manifest.audio.get_ref(index) {
+            Some(value) => value,
+            None => panic("audio pipeline index escaped its table"),
+        };
+        let entry = cook_audio(
+            allocator,
+            root,
+            definition,
+            &manifest.audio_settings,
+            &manifest.limits,
+        );
+        let entry = match entry {
+            Ok(value) => value,
+            Err(_) => {
+                writer.release();
+                return Err(CookError::AudioFailed);
+            },
+        };
+        match writer.push(entry) {
+            Ok(_) => {},
+            Err(_) => {
+                writer.release();
+                return Err(CookError::PackFailed);
+            },
+        }
+        index += 1;
+    }
+    let temporary = temporary_path(allocator, output_path);
+    let mut temporary = match temporary {
+        Ok(value) => value,
+        Err(_) => {
+            writer.release();
+            return Err(CookError::OutOfMemory);
+        },
+    };
+    let published = {
+        let path = temporary.as_str();
+        writer.write_atomic(output_path, path)
+    };
+    temporary.release();
+    writer.release();
+    match published {
+        Ok(_) => Ok(()),
+        Err(_) => Err(CookError::PackFailed),
+    }
+}
+
+fn temporary_path(
+    allocator: &Allocator,
+    output_path: str,
+) -> Result<String, std::alloc::AllocError> {
+    let mut output = String::from(allocator, output_path)?;
+    output.push_str(".tmp-")?;
+    output.push_u64(process_id())?;
+    Ok(output)
+}

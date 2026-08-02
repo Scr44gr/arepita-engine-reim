@@ -1,0 +1,5 @@
+/// Safe allocator-owned image, font, glyph, and audio decoding facade.
+pub from self::facade import CodecError, CodecLimits, DecodedAudio, DecodedImage, Font, FontMetrics, Glyph, ImageInfo, decode_rgba8, is_compatible, probe_rgba8;
+
+/// Fixed-width native ABI for generator and compatibility work.
+pub import self::raw as raw;

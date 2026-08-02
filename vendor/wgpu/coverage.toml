@@ -1,0 +1,10 @@
+wgpu_native_version = "29.0.1.1"
+handles = 23
+aliases = 11
+enumerations = 70
+enumeration_values = 584
+constants = 59
+structures = 114
+opaque_callbacks = 214
+standard_functions = 202
+native_functions = 23

@@ -1,0 +1,12 @@
+[package]
+name = "sdl3"
+version = "3.4.12"
+edition = "2026"
+
+[dependencies]
+
+[profile.debug]
+optimization = 0
+
+[profile.release]
+optimization = 3

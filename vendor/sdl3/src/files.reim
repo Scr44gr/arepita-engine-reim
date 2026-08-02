@@ -1,0 +1,57 @@
+import self::raw::functions as sdl;
+
+/// Recoverable failures from SDL's whole-file loader.
+pub enum FileLoadError {
+    LoadFailed,
+}
+
+/// Bytes owned by SDL and initialized from one complete file.
+pub struct FileBytes {
+    data: *mut u8,
+    len: usize,
+}
+
+impl FileBytes {
+    /// Returns the initialized byte length.
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    /// Returns whether the file contains no bytes.
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
+    /// Returns one byte, or `None` when `index` is outside the file.
+    @inline
+    pub fn byte(&self, index: usize) -> Option<u8> {
+        if index >= self.len {
+            return None;
+        }
+        let source = (self.data as usize + index) as *const u8;
+        // SAFETY: SDL owns a live `len`-byte allocation and the branch above
+        // proves that the selected byte is inside it.
+        Some(unsafe { *source })
+    }
+
+    /// Releases the file allocation through SDL's matching allocator.
+    pub fn deinit(self) {
+        unsafe {
+            sdl::SDL_free(self.data as *mut ());
+        }
+    }
+}
+
+/// Loads one complete file using a NUL-terminated UTF-8 path.
+pub fn load_file(path: cstr) -> Result<FileBytes, FileLoadError> {
+    let mut len: usize = 0;
+    let raw = unsafe {
+        sdl::SDL_LoadFile(path as *const c_char, &mut len as *mut usize)
+    };
+    let data = raw as *mut u8;
+    if data as usize == 0 {
+        Err(FileLoadError::LoadFailed)
+    } else {
+        Ok(FileBytes { data: data, len: len })
+    }
+}

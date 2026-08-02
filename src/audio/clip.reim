@@ -1,0 +1,189 @@
+from std::alloc import AllocError, Allocator, general_allocator;
+from std::binary import read_f32_le, to_f32_bits;
+from std::collections import Vec;
+import std::slice;
+
+from super::asset import Asset;
+
+/// Recoverable decoded-audio validation failures.
+@derive(Copy, Clone, Debug, Eq)
+pub enum AudioClipError {
+    InvalidFormat,
+    OutOfMemory,
+}
+
+/// Owned interleaved F32 audio at a fixed sample rate and channel count.
+pub struct AudioClip {
+    samples: Vec<f32>,
+    sample_rate: u32,
+    channels: u32,
+}
+
+impl AudioClip {
+    /// Copies validated interleaved samples into allocator-owned storage.
+    pub fn from_samples(
+        allocator: &Allocator,
+        sample_rate: u32,
+        channels: u32,
+        samples: &[f32],
+    ) -> Result<AudioClip, AudioClipError> {
+        let length = slice::len(samples);
+        if sample_rate < 8_000
+            || sample_rate > 384_000
+            || channels == 0
+            || channels > 8
+            || length == 0
+            || length % channels as usize != 0
+        {
+            return Err(AudioClipError::InvalidFormat);
+        }
+        let created: Result<Vec<f32>, AllocError> =
+            Vec::with_capacity(allocator, length);
+        let mut owned = match created {
+            Ok(value) => value,
+            Err(_) => {
+                return Err(AudioClipError::OutOfMemory);
+            },
+        };
+        let mut index: usize = 0;
+        while index < length {
+            if !finite(samples[index]) {
+                owned.release();
+                return Err(AudioClipError::InvalidFormat);
+            }
+            if !owned.push_within_capacity(samples[index]) {
+                panic("audio clip reservation became inconsistent")
+            }
+            index += 1;
+        }
+        Ok(AudioClip {
+            samples: owned,
+            sample_rate: sample_rate,
+            channels: channels,
+        })
+    }
+
+    /// Decodes little-endian IEEE-754 samples directly into final clip storage.
+    pub fn from_f32_le_bytes(
+        allocator: &Allocator,
+        sample_rate: u32,
+        channels: u32,
+        bytes: &[u8],
+    ) -> Result<AudioClip, AudioClipError> {
+        let byte_length = slice::len(bytes);
+        if byte_length == 0 || byte_length % 4 != 0 {
+            return Err(AudioClipError::InvalidFormat);
+        }
+        let sample_count = byte_length / 4;
+        if sample_rate < 8_000
+            || sample_rate > 384_000
+            || channels == 0
+            || channels > 8
+            || sample_count % channels as usize != 0
+        {
+            return Err(AudioClipError::InvalidFormat);
+        }
+        let created: Result<Vec<f32>, AllocError> =
+            Vec::with_capacity(allocator, sample_count);
+        let mut samples = match created {
+            Ok(value) => value,
+            Err(_) => { return Err(AudioClipError::OutOfMemory); },
+        };
+        let mut index: usize = 0;
+        while index < sample_count {
+            let sample = match read_f32_le(bytes, index * 4) {
+                Some(value) => value,
+                None => {
+                    samples.release();
+                    return Err(AudioClipError::InvalidFormat);
+                },
+            };
+            if !finite(sample) {
+                samples.release();
+                return Err(AudioClipError::InvalidFormat);
+            }
+            if !samples.push_within_capacity(sample) {
+                samples.release();
+                panic("audio clip reservation became inconsistent")
+            }
+            index += 1;
+        }
+        Ok(AudioClip {
+            samples: samples,
+            sample_rate: sample_rate,
+            channels: channels,
+        })
+    }
+
+    pub fn samples(&self) -> &[f32] { self.samples.as_slice() }
+
+    pub fn sample_rate(&self) -> u32 { self.sample_rate }
+
+    pub fn channels(&self) -> u32 { self.channels }
+
+    pub fn frame_count(&self) -> usize {
+        self.samples.len() / self.channels as usize
+    }
+
+    pub fn allocated_bytes(&self) -> usize { self.samples.allocated_bytes() }
+}
+
+fn finite(value: f32) -> bool {
+    to_f32_bits(value) & 0x7f80_0000 != 0x7f80_0000
+}
+
+impl Asset for AudioClip {
+    fn release(&mut self) {
+        self.samples.release();
+        self.sample_rate = 0;
+        self.channels = 0;
+    }
+}
+
+@test
+fn audio_clip_should_validate_interleaved_frames() {
+    let allocator = general_allocator();
+    let samples: [f32; 4] = [0.25, -0.25, 0.5, -0.5];
+    let mut clip = match AudioClip::from_samples(&allocator, 48_000, 2, &samples) {
+        Ok(value) => value,
+        Err(_) => panic("valid audio clip was rejected"),
+    };
+    defer clip.release();
+    assert(clip.frame_count() == 2);
+    assert(clip.allocated_bytes() >= 16);
+    let invalid: [f32; 3] = [0.0, 0.0, 0.0];
+    assert(match AudioClip::from_samples(&allocator, 48_000, 2, &invalid) {
+        Ok(_) => false,
+        Err(AudioClipError::InvalidFormat) => true,
+        _ => false,
+    });
+}
+
+@test
+fn audio_clip_should_decode_little_endian_samples_once() {
+    let allocator = general_allocator();
+    let bytes: [u8; 8] = [0x00, 0x00, 0x80, 0x3f, 0x00, 0x00, 0x80, 0xbf];
+    let mut clip = match AudioClip::from_f32_le_bytes(
+        &allocator,
+        48_000,
+        2,
+        &bytes,
+    ) {
+        Ok(value) => value,
+        Err(_) => panic("valid encoded audio was rejected"),
+    };
+    defer clip.release();
+    assert(clip.samples()[0] == 1.0);
+    assert(clip.samples()[1] == -1.0);
+}
+
+@test
+fn audio_clip_should_reject_non_finite_samples() {
+    let allocator = general_allocator();
+    let not_a_number: f32 = 0.0 / 0.0;
+    let samples: [f32; 2] = [0.0, not_a_number];
+    assert(match AudioClip::from_samples(&allocator, 48_000, 2, &samples) {
+        Err(AudioClipError::InvalidFormat) => true,
+        _ => false,
+    });
+}

@@ -1,0 +1,9 @@
+{
+  "repository": "https://github.com/gfx-rs/wgpu-native",
+  "release": "v29.0.1.1",
+  "commit": "6aed50955d934ac36049ba8d002034841633ae02",
+  "headers": {
+    "webgpu.h": "2516cf5a7bec4385bf76ecc550d45015c1e3df77962211f3cef3f57507b2f2c8",
+    "wgpu.h": "873faa1c1b63d48e4d866000fc51a163e85d0f7c6c01425c687d3f12d073ff74"
+  }
+}

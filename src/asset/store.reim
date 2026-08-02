@@ -1,0 +1,362 @@
+from std::alloc import AllocError, Allocator, ArenaAllocator, general_allocator;
+from std::collections import Vec;
+
+/// An explicitly released resource stored behind a typed asset handle.
+///
+/// Assets may own heap or GPU resources and therefore do not need to be
+/// `Copy`. Implementations must make `release` idempotent.
+pub trait Asset: Send + Sync {
+    /// Releases resources owned by this asset.
+    fn release(&mut self);
+}
+
+/// A typed generational reference into an `AssetStore<T>`.
+@derive(Copy, Clone, Debug, Eq, Hash)
+pub struct AssetHandle<T> {
+    index: u32,
+    generation: u32,
+}
+
+impl<T> AssetHandle<T> {
+    fn create(index: u32, generation: u32) -> AssetHandle<T> {
+        AssetHandle {
+            index: index,
+            generation: generation,
+        }
+    }
+
+    /// Returns the stable slot index carried by this handle.
+    pub fn index(&self) -> u32 {
+        self.index
+    }
+
+    /// Returns the generation used to reject stale handles.
+    pub fn generation(&self) -> u32 {
+        self.generation
+    }
+}
+
+/// Recoverable asset-store failures.
+@derive(Copy, Clone, Debug, Eq)
+pub enum AssetError {
+    OutOfMemory,
+    CapacityExhausted,
+    StoreReleased,
+}
+
+/// Stable-slot storage for owning, non-`Copy` assets.
+///
+/// Removal releases an asset in place and recycles its slot with a new
+/// generation. References never survive a mutable store operation.
+pub struct AssetStore<T> {
+    arena: ArenaAllocator,
+    assets: Vec<T>,
+    generations: Vec<u32>,
+    active: Vec<bool>,
+    free_indices: Vec<u32>,
+    alive: usize,
+    released: bool,
+}
+
+impl<T: Asset> AssetStore<T> {
+    /// Creates an empty store whose internal allocations share one arena.
+    pub fn new(allocator: &Allocator) -> Result<AssetStore<T>, AllocError> {
+        let mut arena = ArenaAllocator::init(allocator)?;
+        let storage_allocator = arena.allocator_value();
+        let assets_result: Result<Vec<T>, AllocError> =
+            Vec::new(&storage_allocator);
+        let assets = match assets_result {
+            Ok(value) => value,
+            Err(error) => {
+                arena.release();
+                return Err(error);
+            },
+        };
+        let generations_result: Result<Vec<u32>, AllocError> =
+            Vec::new(&storage_allocator);
+        let generations = match generations_result {
+            Ok(value) => value,
+            Err(error) => {
+                arena.release();
+                return Err(error);
+            },
+        };
+        let active_result: Result<Vec<bool>, AllocError> =
+            Vec::new(&storage_allocator);
+        let active = match active_result {
+            Ok(value) => value,
+            Err(error) => {
+                arena.release();
+                return Err(error);
+            },
+        };
+        let free_result: Result<Vec<u32>, AllocError> =
+            Vec::new(&storage_allocator);
+        let free_indices = match free_result {
+            Ok(value) => value,
+            Err(error) => {
+                arena.release();
+                return Err(error);
+            },
+        };
+        Ok(AssetStore {
+            arena: arena,
+            assets: assets,
+            generations: generations,
+            active: active,
+            free_indices: free_indices,
+            alive: 0,
+            released: false,
+        })
+    }
+
+    /// Returns the number of currently live assets.
+    pub fn len(&self) -> usize {
+        self.alive
+    }
+
+    /// Returns whether no live assets remain.
+    pub fn is_empty(&self) -> bool {
+        self.alive == 0
+    }
+
+    /// Returns bytes reserved by asset values and slot metadata.
+    pub fn allocated_bytes(&self) -> usize {
+        self.assets.allocated_bytes()
+            + self.generations.allocated_bytes()
+            + self.active.allocated_bytes()
+            + self.free_indices.allocated_bytes()
+    }
+
+    /// Inserts an owned asset and returns a typed handle.
+    ///
+    /// Ownership transfers at the call boundary. If insertion fails, this
+    /// method releases the asset before returning the error.
+    pub fn insert(&mut self, asset: T) -> Result<AssetHandle<T>, AssetError> {
+        let mut owned = asset;
+        if self.released {
+            owned.release();
+            return Err(AssetError::StoreReleased);
+        }
+        match self.free_indices.pop() {
+            Some(index) => {
+                let slot = index as usize;
+                let generation = match self.generations.get(slot) {
+                    Some(value) => value,
+                    None => {
+                        owned.release();
+                        return Err(AssetError::CapacityExhausted);
+                    },
+                };
+                {
+                    match self.assets.get_mut(slot) {
+                        Some(destination) => {
+                            *destination = owned;
+                        },
+                        None => {
+                            owned.release();
+                            return Err(AssetError::CapacityExhausted);
+                        },
+                    }
+                }
+                if !self.active.set(slot, true) {
+                    match self.assets.get_mut(slot) {
+                        Some(stored) => stored.release(),
+                        None => {},
+                    }
+                    panic("asset activity storage became inconsistent")
+                }
+                self.alive += 1;
+                Ok(AssetHandle::create(index, generation))
+            },
+            None => {
+                let slot = self.assets.len();
+                if slot > 0xffff_ffff {
+                    owned.release();
+                    return Err(AssetError::CapacityExhausted);
+                }
+                match self.assets.reserve(1) {
+                    Ok(_) => {},
+                    Err(_) => {
+                        owned.release();
+                        return Err(AssetError::OutOfMemory);
+                    },
+                }
+                match self.generations.reserve(1) {
+                    Ok(_) => {},
+                    Err(_) => {
+                        owned.release();
+                        return Err(AssetError::OutOfMemory);
+                    },
+                }
+                match self.active.reserve(1) {
+                    Ok(_) => {},
+                    Err(_) => {
+                        owned.release();
+                        return Err(AssetError::OutOfMemory);
+                    },
+                }
+                if !self.assets.push_within_capacity(owned) {
+                    panic("asset capacity reservation became inconsistent")
+                }
+                if !self.generations.push_within_capacity(1) {
+                    panic("asset generation reservation became inconsistent")
+                }
+                if !self.active.push_within_capacity(true) {
+                    panic("asset activity reservation became inconsistent")
+                }
+                self.alive += 1;
+                Ok(AssetHandle::create(slot as u32, 1))
+            },
+        }
+    }
+
+    /// Returns whether `handle` still identifies a live asset.
+    pub fn contains(&self, handle: AssetHandle<T>) -> bool {
+        if self.released {
+            return false;
+        }
+        let slot = handle.index as usize;
+        match self.generations.get(slot) {
+            Some(generation) => match self.active.get(slot) {
+                Some(active) => active && generation == handle.generation,
+                None => false,
+            },
+            None => false,
+        }
+    }
+
+    /// Borrows a live asset without copying it.
+    pub fn get(&self, handle: AssetHandle<T>) -> Option<&T> {
+        if !self.contains(handle) {
+            return None;
+        }
+        self.assets.get_ref(handle.index as usize)
+    }
+
+    /// Mutably borrows a live asset without transferring ownership.
+    pub fn get_mut(&mut self, handle: AssetHandle<T>) -> Option<&mut T> {
+        if !self.contains(handle) {
+            return None;
+        }
+        self.assets.get_mut(handle.index as usize)
+    }
+
+    /// Releases and retires a live asset.
+    pub fn remove(
+        &mut self,
+        handle: AssetHandle<T>,
+    ) -> Result<bool, AssetError> {
+        if self.released {
+            return Err(AssetError::StoreReleased);
+        }
+        if !self.contains(handle) {
+            return Ok(false);
+        }
+        match self.free_indices.reserve(1) {
+            Ok(_) => {},
+            Err(_) => {
+                return Err(AssetError::OutOfMemory);
+            },
+        }
+        let slot = handle.index as usize;
+        {
+            match self.assets.get_mut(slot) {
+                Some(asset) => asset.release(),
+                None => {
+                    return Err(AssetError::CapacityExhausted);
+                },
+            }
+        }
+        let mut generation = handle.generation.wrapping_add(1);
+        if generation == 0 {
+            generation = 1;
+        }
+        let _ = self.generations.set(slot, generation);
+        let _ = self.active.set(slot, false);
+        if !self.free_indices.push_within_capacity(handle.index) {
+            panic("asset free-list reservation became inconsistent")
+        }
+        self.alive -= 1;
+        Ok(true)
+    }
+
+    /// Releases all live assets and the arena backing their slots.
+    pub fn deinit(&mut self) {
+        if self.released {
+            return;
+        }
+        let mut index: usize = 0;
+        while index < self.assets.len() {
+            let active = match self.active.get(index) {
+                Some(value) => value,
+                None => false,
+            };
+            if active {
+                match self.assets.get_mut(index) {
+                    Some(asset) => asset.release(),
+                    None => panic("asset storage became inconsistent"),
+                }
+            }
+            index += 1;
+        }
+        self.alive = 0;
+        self.assets.release();
+        self.generations.release();
+        self.active.release();
+        self.free_indices.release();
+        self.released = true;
+        self.arena.release();
+    }
+}
+
+struct TestAsset {
+    value: i32,
+}
+
+impl Asset for TestAsset {
+    fn release(&mut self) {
+        self.value = -1;
+    }
+}
+
+@test
+fn asset_store_should_reject_stale_handles_for_non_copy_assets() {
+    let allocator = general_allocator();
+    let created: Result<AssetStore<TestAsset>, AllocError> =
+        AssetStore::new(&allocator);
+    let mut store = match created {
+        Ok(value) => value,
+        Err(_) => panic("asset store allocation failed"),
+    };
+    defer store.deinit();
+
+    let first_asset = TestAsset { value: 20 };
+    let first = match store.insert(first_asset) {
+        Ok(value) => value,
+        Err(_) => panic("first asset insert failed"),
+    };
+    {
+        assert(match store.get(first) {
+            Some(asset) => asset.value == 20,
+            None => false,
+        });
+    }
+    assert(match store.remove(first) {
+        Ok(value) => value,
+        Err(_) => false,
+    });
+    assert(!store.contains(first));
+
+    let second_asset = TestAsset { value: 22 };
+    let second = match store.insert(second_asset) {
+        Ok(value) => value,
+        Err(_) => panic("recycled asset insert failed"),
+    };
+    assert(first.index() == second.index());
+    assert(first.generation() != second.generation());
+    assert(match store.get(second) {
+        Some(asset) => asset.value == 22,
+        None => false,
+    });
+}

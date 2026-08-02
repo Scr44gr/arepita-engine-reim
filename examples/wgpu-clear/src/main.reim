@@ -1,0 +1,80 @@
+from std::io import eprintln;
+
+from arepita_engine::platform import WindowHost;
+from arepita_engine::render import ClearColor, GpuContext, create_window_surface;
+
+fn run() -> bool {
+    let mut host = match WindowHost::create(c"Arepita Engine - wgpu", 960, 540) {
+        Ok(value) => value,
+        Err(_) => {
+            return false;
+        },
+    };
+    defer host.release();
+
+    let window = match host.window() {
+        Ok(value) => value,
+        Err(_) => {
+            return false;
+        },
+    };
+    let mut surface = match create_window_surface(window) {
+        Ok(value) => value,
+        Err(_) => {
+            return false;
+        },
+    };
+    defer surface.release();
+
+    let mut gpu = match GpuContext::create(&mut surface) {
+        Ok(value) => value,
+        Err(_) => {
+            return false;
+        },
+    };
+    defer gpu.release(&mut surface);
+
+    let background = ClearColor::rgba(0.025, 0.035, 0.070, 1.0);
+    let mut running = true;
+    while running {
+        let mut polling = true;
+        while polling {
+            match host.poll_event() {
+                Some(event) => {
+                    if event.is_quit() {
+                        running = false;
+                    }
+                    if event.is_window_size_changed() {
+                        match gpu.resize(&mut surface) {
+                            Ok(_) => {},
+                            Err(_) => {
+                                running = false;
+                            },
+                        }
+                    }
+                },
+                None => {
+                    polling = false;
+                },
+            }
+        }
+        if running && !gpu.is_suspended() {
+            match gpu.clear(&surface, background) {
+                Ok(_) => {},
+                Err(_) => {
+                    running = false;
+                },
+            }
+        }
+    }
+    true
+}
+
+fn main() -> i32 {
+    if run() {
+        0
+    } else {
+        eprintln("Failed to initialize or render the wgpu example.");
+        1
+    }
+}

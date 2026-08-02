@@ -1,0 +1,488 @@
+from std::alloc import AllocError, general_allocator;
+from std::collections import Vec;
+from std::slice import byte_range, len;
+
+from self::skyline import Placement;
+
+@derive(Copy, Clone, Debug, Eq)
+pub enum CompositeError {
+    InvalidDimensions,
+    InvalidSourceLength,
+    InvalidAtlasLength,
+    PlacementMismatch,
+    PlacementOutOfBounds,
+    SizeOverflow,
+}
+
+/// Copies one RGBA8 image and extrudes its edge texels through `padding`.
+///
+/// Interior rows use bounded bulk copies. Only the narrow padding bands are
+/// expanded pixel by pixel, keeping large atlas builds cache-friendly.
+pub fn blit_extruded(
+    atlas: &mut Vec<u8>,
+    atlas_width: u32,
+    atlas_height: u32,
+    source: &[u8],
+    source_width: u32,
+    source_height: u32,
+    placement: Placement,
+    padding: u32,
+) -> Result<(), CompositeError> {
+    blit_region_extruded(
+        atlas,
+        atlas_width,
+        atlas_height,
+        source,
+        source_width,
+        source_height,
+        0,
+        0,
+        source_width,
+        source_height,
+        placement,
+        padding,
+    )
+}
+
+/// Copies and extrudes one checked rectangle from a larger decoded image.
+///
+/// Multiple atlas entries may reuse the same decoded sheet without allocating
+/// cropped intermediates.
+pub fn blit_region_extruded(
+    atlas: &mut Vec<u8>,
+    atlas_width: u32,
+    atlas_height: u32,
+    source: &[u8],
+    source_width: u32,
+    source_height: u32,
+    source_x: u32,
+    source_y: u32,
+    region_width: u32,
+    region_height: u32,
+    placement: Placement,
+    padding: u32,
+) -> Result<(), CompositeError> {
+    if atlas_width == 0
+        || atlas_height == 0
+        || source_width == 0
+        || source_height == 0
+        || region_width == 0
+        || region_height == 0
+    {
+        return Err(CompositeError::InvalidDimensions);
+    }
+    let atlas_bytes = rgba_bytes(atlas_width, atlas_height)?;
+    if atlas.len() != atlas_bytes {
+        return Err(CompositeError::InvalidAtlasLength);
+    }
+    let source_bytes = rgba_bytes(source_width, source_height)?;
+    if len(source) != source_bytes {
+        return Err(CompositeError::InvalidSourceLength);
+    }
+    if source_x > source_width
+        || source_y > source_height
+        || region_width > source_width - source_x
+        || region_height > source_height - source_y
+    {
+        return Err(CompositeError::InvalidDimensions);
+    }
+    if placement.width != region_width || placement.height != region_height {
+        return Err(CompositeError::PlacementMismatch);
+    }
+    if placement.x < padding
+        || placement.y < padding
+        || placement.x as u64 + region_width as u64 + padding as u64
+            > atlas_width as u64
+        || placement.y as u64 + region_height as u64 + padding as u64
+            > atlas_height as u64
+    {
+        return Err(CompositeError::PlacementOutOfBounds);
+    }
+
+    let source_row_bytes = rgba_row_bytes(source_width)?;
+    let row_bytes = rgba_row_bytes(region_width)?;
+    let mut row: u32 = 0;
+    while row < region_height {
+        let source_offset = (source_y + row) as usize * source_row_bytes
+            + source_x as usize * 4;
+        let destination_offset = pixel_offset(
+            atlas_width,
+            placement.x,
+            placement.y + row,
+        )?;
+        let source_row = match byte_range(source, source_offset, row_bytes) {
+            Some(value) => value,
+            None => { return Err(CompositeError::InvalidSourceLength); },
+        };
+        if !atlas.write_bytes(destination_offset, source_row) {
+            return Err(CompositeError::PlacementOutOfBounds);
+        }
+        if row_bytes != len(source_row) {
+            panic("validated atlas row lengths diverged")
+        }
+
+        let left_source = destination_offset;
+        let right_source = destination_offset + row_bytes - 4;
+        let mut edge: u32 = 0;
+        while edge < padding {
+            let left_destination = pixel_offset(
+                atlas_width,
+                placement.x - edge - 1,
+                placement.y + row,
+            )?;
+            let right_destination = pixel_offset(
+                atlas_width,
+                placement.x + region_width + edge,
+                placement.y + row,
+            )?;
+            copy_pixel(atlas, left_destination, left_source)?;
+            copy_pixel(atlas, right_destination, right_source)?;
+            edge += 1;
+        }
+        row += 1;
+    }
+
+    let padded_x = placement.x - padding;
+    let padded_width = region_width as u64 + padding as u64 * 2;
+    if padded_width > 4_294_967_295 {
+        return Err(CompositeError::SizeOverflow);
+    }
+    let padded_row_bytes = rgba_row_bytes(padded_width as u32)?;
+    let first_row = pixel_offset(atlas_width, padded_x, placement.y)?;
+    let last_row = pixel_offset(
+        atlas_width,
+        padded_x,
+        placement.y + region_height - 1,
+    )?;
+    let mut edge: u32 = 0;
+    while edge < padding {
+        let top = pixel_offset(
+            atlas_width,
+            padded_x,
+            placement.y - edge - 1,
+        )?;
+        let bottom = pixel_offset(
+            atlas_width,
+            padded_x,
+            placement.y + region_height + edge,
+        )?;
+        copy_row(atlas, top, first_row, padded_row_bytes)?;
+        copy_row(atlas, bottom, last_row, padded_row_bytes)?;
+        edge += 1;
+    }
+    Ok(())
+}
+
+fn rgba_bytes(width: u32, height: u32) -> Result<usize, CompositeError> {
+    let pixels = width as u64 * height as u64;
+    if pixels > 0xffff_ffff_ffff_ffff / 4 {
+        return Err(CompositeError::SizeOverflow);
+    }
+    let bytes = pixels * 4;
+    let converted = bytes as usize;
+    if converted as u64 != bytes {
+        Err(CompositeError::SizeOverflow)
+    } else {
+        Ok(converted)
+    }
+}
+
+fn rgba_row_bytes(width: u32) -> Result<usize, CompositeError> {
+    let bytes = width as u64 * 4;
+    let converted = bytes as usize;
+    if converted as u64 != bytes {
+        Err(CompositeError::SizeOverflow)
+    } else {
+        Ok(converted)
+    }
+}
+
+fn pixel_offset(
+    width: u32,
+    x: u32,
+    y: u32,
+) -> Result<usize, CompositeError> {
+    let pixels = y as u64 * width as u64 + x as u64;
+    if pixels > 0xffff_ffff_ffff_ffff / 4 {
+        return Err(CompositeError::SizeOverflow);
+    }
+    let bytes = pixels * 4;
+    let converted = bytes as usize;
+    if converted as u64 != bytes {
+        Err(CompositeError::SizeOverflow)
+    } else {
+        Ok(converted)
+    }
+}
+
+
+/// Expands one alpha-coverage bitmap directly into white RGBA8 texels.
+///
+/// This avoids the four-times-larger temporary RGBA allocation traditionally
+/// used while rasterizing fonts. Padding repeats the nearest coverage value.
+pub fn blit_alpha_extruded(
+    atlas: &mut Vec<u8>,
+    atlas_width: u32,
+    atlas_height: u32,
+    coverage: &[u8],
+    source_width: u32,
+    source_height: u32,
+    placement: Placement,
+    padding: u32,
+) -> Result<(), CompositeError> {
+    if source_width == 0 || source_height == 0 {
+        return Err(CompositeError::InvalidDimensions);
+    }
+    let expected = source_width as u64 * source_height as u64;
+    let expected_length = expected as usize;
+    if expected_length as u64 != expected || len(coverage) != expected_length {
+        return Err(CompositeError::InvalidSourceLength);
+    }
+    let atlas_length = rgba_bytes(atlas_width, atlas_height)?;
+    if atlas.len() != atlas_length
+        || placement.width != source_width
+        || placement.height != source_height
+        || placement.x < padding
+        || placement.y < padding
+        || placement.x as u64 + source_width as u64 + padding as u64 > atlas_width as u64
+        || placement.y as u64 + source_height as u64 + padding as u64 > atlas_height as u64
+    {
+        return Err(CompositeError::PlacementOutOfBounds);
+    }
+    let padded_width = source_width as u64 + padding as u64 * 2;
+    let padded_height = source_height as u64 + padding as u64 * 2;
+    if padded_width > 4_294_967_295 || padded_height > 4_294_967_295 {
+        return Err(CompositeError::SizeOverflow);
+    }
+    let mut y: u32 = 0;
+    while y < padded_height as u32 {
+        let source_y = if y < padding {
+            0 as u32
+        } else if y - padding >= source_height {
+            source_height - 1
+        } else {
+            y - padding
+        };
+        let mut x: u32 = 0;
+        while x < padded_width as u32 {
+            let source_x = if x < padding {
+                0 as u32
+            } else if x - padding >= source_width {
+                source_width - 1
+            } else {
+                x - padding
+            };
+            let source_index = source_y as u64 * source_width as u64 + source_x as u64;
+            let alpha = coverage[source_index as usize];
+            let destination = pixel_offset(
+                atlas_width,
+                placement.x - padding + x,
+                placement.y - padding + y,
+            )?;
+            if !atlas.set(destination, 255)
+                || !atlas.set(destination + 1, 255)
+                || !atlas.set(destination + 2, 255)
+                || !atlas.set(destination + 3, alpha)
+            {
+                return Err(CompositeError::PlacementOutOfBounds);
+            }
+            x += 1;
+        }
+        y += 1;
+    }
+    Ok(())
+}
+
+fn copy_pixel(
+    atlas: &mut Vec<u8>,
+    destination: usize,
+    source: usize,
+) -> Result<(), CompositeError> {
+    let atlas_length = atlas.len();
+    if destination > atlas_length
+        || source > atlas_length
+        || 4 as usize > atlas_length - destination
+        || 4 as usize > atlas_length - source
+    {
+        return Err(CompositeError::PlacementOutOfBounds);
+    }
+    let pixel: [u8; 4] = [
+        match atlas.get(source) { Some(value) => value, None => panic("source byte disappeared"), },
+        match atlas.get(source + 1) { Some(value) => value, None => panic("source byte disappeared"), },
+        match atlas.get(source + 2) { Some(value) => value, None => panic("source byte disappeared"), },
+        match atlas.get(source + 3) { Some(value) => value, None => panic("source byte disappeared"), },
+    ];
+    if !atlas.set(destination, pixel[0])
+        || !atlas.set(destination + 1, pixel[1])
+        || !atlas.set(destination + 2, pixel[2])
+        || !atlas.set(destination + 3, pixel[3])
+    {
+        panic("validated destination byte disappeared")
+    }
+    Ok(())
+}
+
+fn copy_row(
+    atlas: &mut Vec<u8>,
+    destination: usize,
+    source: usize,
+    length: usize,
+) -> Result<(), CompositeError> {
+    let atlas_length = atlas.len();
+    if destination > atlas_length
+        || source > atlas_length
+        || length > atlas_length - destination
+        || length > atlas_length - source
+    {
+        return Err(CompositeError::PlacementOutOfBounds);
+    }
+    if !atlas.copy_nonoverlapping(destination, source, length) {
+        return Err(CompositeError::PlacementOutOfBounds);
+    }
+    Ok(())
+}
+
+fn byte_at(values: &Vec<u8>, index: usize) -> u8 {
+    match values.get(index) {
+        Some(value) => value,
+        None => panic("atlas byte index escaped initialized storage"),
+    }
+}
+
+fn pixel_matches(atlas: &Vec<u8>, width: u32, x: u32, y: u32, expected: [u8; 4]) -> bool {
+    let offset = (y as usize * width as usize + x as usize) * 4;
+    byte_at(atlas, offset) == expected[0]
+        && byte_at(atlas, offset + 1) == expected[1]
+        && byte_at(atlas, offset + 2) == expected[2]
+        && byte_at(atlas, offset + 3) == expected[3]
+}
+
+fn zeroed_bytes(length: usize) -> Vec<u8> {
+    let allocator = general_allocator();
+    let created: Result<Vec<u8>, AllocError> = Vec::with_capacity(&allocator, length);
+    let mut values = match created {
+        Ok(result) => result,
+        Err(_) => panic("test atlas allocation failed"),
+    };
+    let mut index: usize = 0;
+    while index < length {
+        if !values.push_within_capacity(0) {
+            panic("test atlas capacity changed")
+        }
+        index += 1;
+    }
+    values
+}
+
+@test
+fn compositor_should_copy_and_extrude_every_edge() {
+    let source: [u8; 16] = [
+        1, 2, 3, 4,
+        5, 6, 7, 8,
+        9, 10, 11, 12,
+        13, 14, 15, 16,
+    ];
+    let mut atlas = zeroed_bytes(64);
+    defer atlas.release();
+    let placement = Placement {
+        source_index: 0,
+        x: 1,
+        y: 1,
+        width: 2,
+        height: 2,
+    };
+    match blit_extruded(&mut atlas, 4, 4, &source, 2, 2, placement, 1) {
+        Ok(_) => {},
+        Err(_) => panic("valid image composition failed"),
+    }
+    let first: [u8; 4] = [1, 2, 3, 4];
+    let second: [u8; 4] = [5, 6, 7, 8];
+    let third: [u8; 4] = [9, 10, 11, 12];
+    let fourth: [u8; 4] = [13, 14, 15, 16];
+    assert(pixel_matches(&atlas, 4, 0, 0, first));
+    assert(pixel_matches(&atlas, 4, 1, 1, first));
+    assert(pixel_matches(&atlas, 4, 3, 0, second));
+    assert(pixel_matches(&atlas, 4, 0, 3, third));
+    assert(pixel_matches(&atlas, 4, 3, 3, fourth));
+}
+
+@test
+fn region_compositor_should_crop_without_temporary_storage() {
+    let source: [u8; 24] = [
+        1, 0, 0, 255,
+        2, 0, 0, 255,
+        3, 0, 0, 255,
+        4, 0, 0, 255,
+        5, 0, 0, 255,
+        6, 0, 0, 255,
+    ];
+    let mut atlas = zeroed_bytes(48);
+    defer atlas.release();
+    let placement = Placement {
+        source_index: 0,
+        x: 1,
+        y: 1,
+        width: 1,
+        height: 2,
+    };
+    match blit_region_extruded(
+        &mut atlas,
+        3,
+        4,
+        &source,
+        3,
+        2,
+        1,
+        0,
+        1,
+        2,
+        placement,
+        1,
+    ) {
+        Ok(_) => {},
+        Err(_) => panic("valid sheet region composition failed"),
+    }
+    let top: [u8; 4] = [2, 0, 0, 255];
+    let bottom: [u8; 4] = [5, 0, 0, 255];
+    assert(pixel_matches(&atlas, 3, 0, 0, top));
+    assert(pixel_matches(&atlas, 3, 2, 3, bottom));
+}
+
+@test
+fn compositor_should_reject_bad_lengths_before_mutation() {
+    let source: [u8; 3] = [1, 2, 3];
+    let mut atlas = zeroed_bytes(16);
+    defer atlas.release();
+    let placement = Placement {
+        source_index: 0,
+        x: 0,
+        y: 0,
+        width: 1,
+        height: 1,
+    };
+    assert(match blit_extruded(&mut atlas, 2, 2, &source, 1, 1, placement, 0) {
+        Err(CompositeError::InvalidSourceLength) => true,
+        _ => false,
+    });
+}
+
+@test
+fn alpha_compositor_should_expand_coverage_without_temporary_rgba() {
+    let coverage: [u8; 1] = [73];
+    let mut atlas = zeroed_bytes(36);
+    defer atlas.release();
+    let placement = Placement {
+        source_index: 0,
+        x: 1,
+        y: 1,
+        width: 1,
+        height: 1,
+    };
+    match blit_alpha_extruded(&mut atlas, 3, 3, &coverage, 1, 1, placement, 1) {
+        Ok(_) => {},
+        Err(_) => panic("valid alpha composition failed"),
+    }
+    let expected: [u8; 4] = [255, 255, 255, 73];
+    assert(pixel_matches(&atlas, 3, 0, 0, expected));
+    assert(pixel_matches(&atlas, 3, 2, 2, expected));
+}

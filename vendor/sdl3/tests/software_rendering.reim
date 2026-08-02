@@ -1,0 +1,43 @@
+from self::render import SoftwareRenderer;
+from self::surface import PIXEL_FORMAT_RGBA32, Surface;
+
+fn main() -> i32 {
+    let created = Surface::create(8, 4, PIXEL_FORMAT_RGBA32);
+    let mut surface = match created {
+        Ok(value) => value,
+        Err(_) => {
+            return 1;
+        },
+    };
+    defer surface.deinit();
+
+    match surface.fill_rgba(10, 20, 30, 255) {
+        Ok(_) => (),
+        Err(_) => {
+            return 2;
+        },
+    }
+    if surface.width() != 8 || surface.height() != 4 || surface.pitch() < 32 {
+        return 3;
+    }
+
+    let created_renderer = SoftwareRenderer::create(&mut surface);
+    let mut renderer = match created_renderer {
+        Ok(value) => value,
+        Err(_) => {
+            return 4;
+        },
+    };
+    defer renderer.deinit();
+
+    match renderer.set_draw_color(40, 50, 60, 255) {
+        Ok(_) => (),
+        Err(_) => {
+            return 5;
+        },
+    }
+    match renderer.clear() {
+        Ok(_) => 0,
+        Err(_) => 6,
+    }
+}

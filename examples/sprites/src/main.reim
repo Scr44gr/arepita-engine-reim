@@ -1,0 +1,141 @@
+from std::alloc import AllocError, general_allocator;
+from std::io import eprintln;
+
+from arepita_engine::platform import Gamepads, Input, WindowHost;
+import arepita_engine::platform::keys;
+from arepita_engine::render import ClearColor, Renderer, SpriteBatch, SpriteColor, SpriteInstance;
+
+fn sprite(
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+    rotation: f32,
+    red: f32,
+    green: f32,
+    blue: f32,
+    depth: f32,
+) -> SpriteInstance {
+    let color = SpriteColor::rgba(red, green, blue, 1.0);
+    SpriteInstance::new(x, y, width, height)
+        .with_rotation(rotation)
+        .with_color(color)
+        .with_depth(depth)
+}
+
+fn prepare_batch(batch: &mut SpriteBatch) -> Result<(), AllocError> {
+    batch.push(sprite(-0.38, 0.08, 0.50, 0.50, 0.18, 0.95, 0.25, 0.30, 0.4))?;
+    batch.push(sprite(0.05, 0.18, 0.42, 0.30, -0.12, 0.25, 0.90, 0.55, 0.3))?;
+    batch.push(sprite(0.38, -0.24, 0.34, 0.48, 0.42, 0.25, 0.55, 1.00, 0.2))?;
+    Ok(())
+}
+
+fn run() -> bool {
+    let mut host = match WindowHost::create(c"Arepita Engine - sprites", 960, 540) {
+        Ok(value) => value,
+        Err(_) => {
+            return false;
+        },
+    };
+    defer host.release();
+    let allocator = general_allocator();
+    let mut gamepads = match Gamepads::create(&host, &allocator, 4) {
+        Ok(value) => value,
+        Err(_) => {
+            return false;
+        },
+    };
+    defer gamepads.release();
+    let mut input = Input::new();
+
+    let window = match host.window() {
+        Ok(value) => value,
+        Err(_) => {
+            return false;
+        },
+    };
+    let mut renderer = match Renderer::create(window, 1024) {
+        Ok(value) => value,
+        Err(_) => {
+            return false;
+        },
+    };
+    defer renderer.release();
+    let atlas: [u8; 16] = [
+        255, 255, 255, 255,
+        255, 96, 160, 255,
+        64, 224, 255, 255,
+        40, 48, 72, 255,
+    ];
+    match renderer.set_sprite_atlas_rgba8(2, 2, &atlas) {
+        Ok(_) => {},
+        Err(_) => {
+            return false;
+        },
+    }
+
+    let mut batch = match SpriteBatch::with_capacity(&allocator, 1024) {
+        Ok(value) => value,
+        Err(_) => {
+            return false;
+        },
+    };
+    defer batch.deinit();
+    match prepare_batch(&mut batch) {
+        Ok(_) => {},
+        Err(_) => {
+            return false;
+        },
+    }
+    let background = ClearColor::rgba(0.018, 0.024, 0.050, 1.0);
+    let mut running = true;
+    while running {
+        input.begin_frame();
+        let mut polling = true;
+        while polling {
+            match host.poll_event() {
+                Some(event) => {
+                    input.observe_event(&event);
+                    let _ = gamepads.handle_event(&event);
+                    if event.is_quit() {
+                        running = false;
+                    }
+                    if event.is_window_size_changed() {
+                        match renderer.resize() {
+                            Ok(_) => {},
+                            Err(_) => {
+                                running = false;
+                            },
+                        }
+                    }
+                },
+                None => {
+                    polling = false;
+                },
+            }
+        }
+        input.update();
+        gamepads.update();
+        if input.key_pressed(keys::ESCAPE) {
+            running = false;
+        }
+        if running && !renderer.is_suspended() {
+            match renderer.draw_sprites(&batch, background) {
+                Ok(_) => {},
+                Err(_) => {
+                    running = false;
+                },
+            }
+        }
+    }
+    true
+}
+
+fn main() -> i32 {
+    if run() {
+        0
+    } else {
+        eprintln("Failed to initialize or render the sprite example.");
+        1
+    }
+}

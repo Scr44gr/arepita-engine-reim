@@ -1,0 +1,15 @@
+[package]
+name = "arepita-engine"
+version = "0.1.0"
+edition = "2026"
+
+[dependencies]
+sdl3 = { path = "vendor/sdl3", version = "^3.4" }
+wgpu = { path = "vendor/wgpu", version = "^29.0" }
+wgpu_sdl3 = { package = "wgpu-sdl3", path = "vendor/wgpu-sdl3", version = "^0.1" }
+
+[profile.debug]
+optimization = 0
+
+[profile.release]
+optimization = 3

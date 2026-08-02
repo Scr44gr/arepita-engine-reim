@@ -1,0 +1,203 @@
+from sdl3 import Event, KeyboardState, MouseButton, MouseState, Scancode;
+import sdl3::input as sdl_input;
+from super::app import Resource;
+
+/// Frame-to-frame keyboard and mouse resource.
+///
+/// Call `begin_frame` before draining SDL events, pass each event to
+/// `observe_event`, and call `update` before gameplay systems. Snapshots and
+/// transition masks are fixed-size values and never allocate.
+@derive(Resource)
+pub struct Input {
+    previous_keyboard: KeyboardState,
+    current_keyboard: KeyboardState,
+    previous_mouse: MouseState,
+    current_mouse: MouseState,
+    event_key_pressed: [u64; 8],
+    event_key_released: [u64; 8],
+    event_mouse_pressed: u32,
+    event_mouse_released: u32,
+    pending_mouse_snapshot_pressed: u32,
+    pending_mouse_snapshot_released: u32,
+    suppressed_mouse_snapshot_pressed: u32,
+    suppressed_mouse_snapshot_released: u32,
+}
+
+impl Input {
+    /// Samples the initial device state without producing false transitions.
+    pub fn new() -> Input {
+        let keyboard = sdl_input::keyboard_state();
+        let mouse = sdl_input::mouse_state();
+        Input {
+            previous_keyboard: keyboard,
+            current_keyboard: keyboard,
+            previous_mouse: mouse,
+            current_mouse: mouse,
+            event_key_pressed: [0; 8],
+            event_key_released: [0; 8],
+            event_mouse_pressed: 0,
+            event_mouse_released: 0,
+            pending_mouse_snapshot_pressed: 0,
+            pending_mouse_snapshot_released: 0,
+            suppressed_mouse_snapshot_pressed: 0,
+            suppressed_mouse_snapshot_released: 0,
+        }
+    }
+
+    /// Starts one event-drain boundary and retires prior transient changes.
+    pub fn begin_frame(&mut self) {
+        self.event_key_pressed = [0; 8];
+        self.event_key_released = [0; 8];
+        self.event_mouse_pressed = 0;
+        self.event_mouse_released = 0;
+        self.suppressed_mouse_snapshot_pressed = 0;
+        self.suppressed_mouse_snapshot_released = 0;
+    }
+
+    /// Records transitions so taps shorter than one frame are retained.
+    pub fn observe_event(&mut self, event: &Event) {
+        match event.keyboard_change() {
+            Some(change) => {
+                if change.is_down() {
+                    if !change.is_repeat() {
+                        set_key_bit(&mut self.event_key_pressed, change.scancode());
+                    }
+                } else {
+                    set_key_bit(&mut self.event_key_released, change.scancode());
+                }
+            },
+            None => {},
+        }
+        match event.mouse_button_change() {
+            Some(change) => {
+                let button = change.button();
+                let bit = (button.raw() as u32) - 1;
+                let mask = (1 as u32) << bit;
+                if change.is_down() {
+                    self.event_mouse_pressed = self.event_mouse_pressed | mask;
+                    self.pending_mouse_snapshot_pressed =
+                        self.pending_mouse_snapshot_pressed | mask;
+                } else {
+                    self.event_mouse_released = self.event_mouse_released | mask;
+                    self.pending_mouse_snapshot_released =
+                        self.pending_mouse_snapshot_released | mask;
+                }
+            },
+            None => {},
+        }
+    }
+
+    /// Advances to the next fixed-size input snapshot.
+    pub fn update(&mut self) {
+        self.previous_keyboard = self.current_keyboard;
+        self.previous_mouse = self.current_mouse;
+        self.current_keyboard = sdl_input::keyboard_state();
+        self.current_mouse = sdl_input::mouse_state();
+        let previous_buttons = self.previous_mouse.button_mask();
+        let current_buttons = self.current_mouse.button_mask();
+        let snapshot_pressed = current_buttons & !previous_buttons;
+        let snapshot_released = previous_buttons & !current_buttons;
+        self.suppressed_mouse_snapshot_pressed = consume_pending_transition(
+            snapshot_pressed,
+            &mut self.pending_mouse_snapshot_pressed,
+        );
+        self.suppressed_mouse_snapshot_released = consume_pending_transition(
+            snapshot_released,
+            &mut self.pending_mouse_snapshot_released,
+        );
+        // A complete event-only tap can begin and end before SDL's sampled
+        // state ever exposes the button as held. Retire both pending halves so
+        // a future physical click cannot inherit stale suppression.
+        let completed_event_taps = self.event_mouse_released & !current_buttons;
+        self.pending_mouse_snapshot_pressed =
+            self.pending_mouse_snapshot_pressed & !completed_event_taps;
+        self.pending_mouse_snapshot_released =
+            self.pending_mouse_snapshot_released & !completed_event_taps;
+    }
+
+    pub fn key_down(&self, key: Scancode) -> bool {
+        self.current_keyboard.is_down(key)
+    }
+
+    pub fn key_pressed(&self, key: Scancode) -> bool {
+        key_bit_is_set(&self.event_key_pressed, key)
+            || (self.current_keyboard.is_down(key)
+                && !self.previous_keyboard.is_down(key))
+    }
+
+    pub fn key_released(&self, key: Scancode) -> bool {
+        key_bit_is_set(&self.event_key_released, key)
+            || (!self.current_keyboard.is_down(key)
+                && self.previous_keyboard.is_down(key))
+    }
+
+    pub fn mouse_down(&self, button: MouseButton) -> bool {
+        self.current_mouse.is_down(button)
+    }
+
+    pub fn mouse_pressed(&self, button: MouseButton) -> bool {
+        let bit = (button.raw() as u32) - 1;
+        let mask = (1 as u32) << bit;
+        (self.event_mouse_pressed & mask) != 0
+            || ((self.suppressed_mouse_snapshot_pressed & mask) == 0
+                && self.current_mouse.is_down(button)
+                && !self.previous_mouse.is_down(button))
+    }
+
+    pub fn mouse_released(&self, button: MouseButton) -> bool {
+        let bit = (button.raw() as u32) - 1;
+        let mask = (1 as u32) << bit;
+        (self.event_mouse_released & mask) != 0
+            || ((self.suppressed_mouse_snapshot_released & mask) == 0
+                && !self.current_mouse.is_down(button)
+                && self.previous_mouse.is_down(button))
+    }
+
+    pub fn mouse_x(&self) -> f32 {
+        self.current_mouse.x()
+    }
+
+    pub fn mouse_y(&self) -> f32 {
+        self.current_mouse.y()
+    }
+
+    pub fn mouse_delta_x(&self) -> f32 {
+        self.current_mouse.x() - self.previous_mouse.x()
+    }
+
+    pub fn mouse_delta_y(&self) -> f32 {
+        self.current_mouse.y() - self.previous_mouse.y()
+    }
+}
+
+fn consume_pending_transition(snapshot: u32, pending: &mut u32) -> u32 {
+    let suppressed = snapshot & *pending;
+    *pending = *pending & !snapshot;
+    suppressed
+}
+
+@test
+fn delayed_mouse_snapshots_should_not_repeat_event_transitions() {
+    let left_button: u32 = 1;
+    let right_button: u32 = 4;
+    let mut pending = left_button | right_button;
+    let suppressed = consume_pending_transition(left_button, &mut pending);
+    assert(suppressed == left_button);
+    assert(pending == right_button);
+    assert(consume_pending_transition(left_button, &mut pending) == 0);
+    assert(pending == right_button);
+}
+
+fn set_key_bit(bits: &mut [u64; 8], key: Scancode) {
+    let raw = key.raw();
+    let word = raw / 64;
+    let bit = (raw % 64) as u64;
+    bits[word] = bits[word] | ((1 as u64) << bit);
+}
+
+fn key_bit_is_set(bits: &[u64; 8], key: Scancode) -> bool {
+    let raw = key.raw();
+    let word = raw / 64;
+    let bit = (raw % 64) as u64;
+    (bits[word] & ((1 as u64) << bit)) != 0
+}

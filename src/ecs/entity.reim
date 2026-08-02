@@ -1,0 +1,261 @@
+from std::alloc import AllocError, Allocator, ArenaAllocator, general_allocator;
+from std::collections import Vec;
+
+/// A compact entity handle protected against stale index reuse.
+@derive(Copy, Clone, Debug, Eq, Hash)
+pub struct Entity {
+    index: u32,
+    generation: u32,
+}
+
+impl Entity {
+    /// Returns the dense registry index carried by this handle.
+    pub fn index(&self) -> u32 {
+        self.index
+    }
+
+    /// Returns the generation used to reject stale handles.
+    pub fn generation(&self) -> u32 {
+        self.generation
+    }
+}
+
+/// Recoverable entity-registry failures.
+@derive(Copy, Clone, Debug, Eq)
+pub enum EntityError {
+    OutOfMemory,
+    CapacityExhausted,
+}
+
+/// Owns entity generations and a free-index stack.
+///
+/// A failed spawn or despawn leaves the registry unchanged. Recycled indices
+/// retain their incremented generation, so an old `Entity` never becomes valid
+/// for a different object.
+pub struct Entities {
+    arena: ArenaAllocator,
+    generations: Vec<u32>,
+    active: Vec<bool>,
+    free_indices: Vec<u32>,
+    alive: usize,
+    released: bool,
+}
+
+impl Entities {
+    /// Creates an empty registry without preallocating entity slots.
+    pub fn new(allocator: &Allocator) -> Result<Entities, AllocError> {
+        let mut arena = ArenaAllocator::init(allocator)?;
+        let storage_allocator = arena.allocator_value();
+        let generations_result: Result<Vec<u32>, AllocError> =
+            Vec::new(&storage_allocator);
+        let generations = match generations_result {
+            Ok(value) => value,
+            Err(error) => {
+                arena.release();
+                return Err(error);
+            },
+        };
+        let active_result: Result<Vec<bool>, AllocError> = Vec::new(&storage_allocator);
+        let active = match active_result {
+            Ok(value) => value,
+            Err(error) => {
+                arena.release();
+                return Err(error);
+            },
+        };
+        let free_result: Result<Vec<u32>, AllocError> = Vec::new(&storage_allocator);
+        let free_indices = match free_result {
+            Ok(value) => value,
+            Err(error) => {
+                arena.release();
+                return Err(error);
+            },
+        };
+        Ok(Entities {
+            arena: arena,
+            generations: generations,
+            active: active,
+            free_indices: free_indices,
+            alive: 0,
+            released: false,
+        })
+    }
+
+    /// Returns the number of live entities.
+    pub fn len(&self) -> usize {
+        self.alive
+    }
+
+    /// Returns whether no entities are alive.
+    pub fn is_empty(&self) -> bool {
+        self.alive == 0
+    }
+
+    /// Returns bytes reserved by generation, activity, and free-index arrays.
+    pub fn allocated_bytes(&self) -> usize {
+        self.generations.allocated_bytes()
+            + self.active.allocated_bytes()
+            + self.free_indices.allocated_bytes()
+    }
+
+    /// Allocates or recycles one entity handle.
+    pub fn spawn(&mut self) -> Result<Entity, EntityError> {
+        if self.released {
+            return Err(EntityError::CapacityExhausted);
+        }
+        match self.free_indices.pop() {
+            Some(index) => {
+                let slot = index as usize;
+                let generation = match self.generations.get(slot) {
+                    Some(value) => value,
+                    None => {
+                        return Err(EntityError::CapacityExhausted);
+                    },
+                };
+                if !self.active.set(slot, true) {
+                    return Err(EntityError::CapacityExhausted);
+                }
+                self.alive += 1;
+                Ok(Entity { index: index, generation: generation })
+            },
+            None => {
+                let slot = self.generations.len();
+                if slot > 0xffff_ffff {
+                    return Err(EntityError::CapacityExhausted);
+                }
+                match self.generations.push(1) {
+                    Ok(_) => {},
+                    Err(_) => {
+                        return Err(EntityError::OutOfMemory);
+                    },
+                }
+                match self.active.push(true) {
+                    Ok(_) => {},
+                    Err(_) => {
+                        let _ = self.generations.pop();
+                        return Err(EntityError::OutOfMemory);
+                    },
+                }
+                self.alive += 1;
+                Ok(Entity { index: slot as u32, generation: 1 })
+            },
+        }
+    }
+
+    /// Retires a live entity and increments its generation.
+    ///
+    /// Returns `false` for stale or already-retired handles.
+    pub fn despawn(&mut self, entity: Entity) -> Result<bool, EntityError> {
+        if self.released {
+            return Err(EntityError::CapacityExhausted);
+        }
+        let slot = entity.index as usize;
+        let generation_matches = match self.generations.get(slot) {
+            Some(generation) => generation == entity.generation,
+            None => false,
+        };
+        let active = match self.active.get(slot) {
+            Some(value) => value,
+            None => false,
+        };
+        if !generation_matches || !active {
+            return Ok(false);
+        }
+        match self.free_indices.push(entity.index) {
+            Ok(_) => {},
+            Err(_) => {
+                return Err(EntityError::OutOfMemory);
+            },
+        }
+        let mut generation = entity.generation.wrapping_add(1);
+        if generation == 0 {
+            generation = 1;
+        }
+        if !self.generations.set(slot, generation) {
+            return Err(EntityError::CapacityExhausted);
+        }
+        if !self.active.set(slot, false) {
+            return Err(EntityError::CapacityExhausted);
+        }
+        self.alive -= 1;
+        Ok(true)
+    }
+
+    /// Returns whether `entity` is currently alive in this registry.
+    pub fn contains(&self, entity: Entity) -> bool {
+        if self.released {
+            return false;
+        }
+        let slot = entity.index as usize;
+        match self.generations.get(slot) {
+            Some(generation) => match self.active.get(slot) {
+                Some(active) => active && generation == entity.generation,
+                None => false,
+            },
+            None => false,
+        }
+    }
+
+    /// Releases every registry allocation.
+    pub fn deinit(&mut self) {
+        if self.released {
+            return;
+        }
+        self.generations.release();
+        self.active.release();
+        self.free_indices.release();
+        self.alive = 0;
+        self.arena.release();
+        self.released = true;
+    }
+}
+
+@test
+fn recycled_entity_should_invalidate_the_old_handle() {
+    let allocator = general_allocator();
+    let mut entities = match Entities::new(&allocator) {
+        Ok(value) => value,
+        Err(_) => panic("entity registry allocation failed"),
+    };
+    defer entities.deinit();
+
+    let first = match entities.spawn() {
+        Ok(value) => value,
+        Err(_) => panic("entity spawn failed"),
+    };
+    assert(match entities.despawn(first) {
+        Ok(value) => value,
+        Err(_) => false,
+    });
+    let second = match entities.spawn() {
+        Ok(value) => value,
+        Err(_) => panic("entity recycle failed"),
+    };
+
+    assert(first.index() == second.index());
+    assert(first.generation() != second.generation());
+    assert(!entities.contains(first));
+    assert(entities.contains(second));
+}
+
+@test
+fn released_entity_registry_should_expose_no_stale_storage() {
+    let allocator = general_allocator();
+    let mut entities = match Entities::new(&allocator) {
+        Ok(value) => value,
+        Err(_) => panic("entity registry allocation failed"),
+    };
+    let entity = match entities.spawn() {
+        Ok(value) => value,
+        Err(_) => panic("entity spawn failed"),
+    };
+    entities.deinit();
+    entities.deinit();
+    assert(entities.len() == 0);
+    assert(entities.allocated_bytes() == 0);
+    assert(!entities.contains(entity));
+    assert(match entities.spawn() {
+        Err(EntityError::CapacityExhausted) => true,
+        _ => false,
+    });
+}

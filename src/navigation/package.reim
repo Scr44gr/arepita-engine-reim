@@ -1,0 +1,3 @@
+/// Prepared weighted grid and allocation-free deterministic A* search.
+pub from self::grid import GridPoint, NavigationError, NavigationGrid, PathFinder, PathReport;
+pub import self::grid as grid;

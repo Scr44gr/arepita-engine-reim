@@ -1,0 +1,28 @@
+import self::input as input;
+
+fn main() -> i32 {
+    let w = input::SCANCODE_W;
+    if w.raw() != 26 {
+        return 1;
+    }
+    if input::SCANCODE_COUNT != 512 {
+        return 2;
+    }
+    match input::Scancode::from_raw(input::SCANCODE_COUNT) {
+        Some(_) => {
+            return 3;
+        },
+        None => (),
+    }
+    match input::MouseButton::from_raw(0) {
+        Some(_) => 4,
+        None => {
+            let primary = input::MOUSE_BUTTON_LEFT;
+            if primary.raw() == 1 {
+                0
+            } else {
+                5
+            }
+        },
+    }
+}

@@ -1,0 +1,143 @@
+from std::alloc import general_allocator;
+from std::env import args;
+from std::io import eprintln, println;
+from std::string import String;
+
+from self::asset_manifest import parse;
+import self::atlas as atlas;
+import self::audio as audio;
+from self::compositor import CompositeError;
+from self::pack import valid_id;
+import self::pathing as pathing;
+from self::pipeline import CookError, cook;
+import self::pipeline as pipeline;
+from self::skyline import SourceRect;
+import self::source as source;
+
+struct Options {
+    manifest: String,
+    output: String,
+}
+
+impl Options {
+    fn release(&mut self) {
+        self.manifest.release();
+        self.output.release();
+    }
+}
+
+fn main() -> i32 {
+    let allocator = general_allocator();
+    let options = parse_options(&allocator);
+    let mut options = match options {
+        Ok(value) => value,
+        Err(code) => {
+            print_usage();
+            return code;
+        },
+    };
+    let result = {
+        let manifest = options.manifest.as_str();
+        let output = options.output.as_str();
+        cook(&allocator, manifest, output)
+    };
+    options.release();
+    match result {
+        Ok(_) => {
+            print_line("Asset pack created successfully.");
+            0
+        },
+        Err(error) => {
+            print_error(error);
+            1
+        },
+    }
+}
+
+fn parse_options(allocator: &std::alloc::Allocator) -> Result<Options, i32> {
+    let arguments = args();
+    if arguments.len() != 5 {
+        return Err(2);
+    }
+    let first = required_argument(&arguments, 1, allocator)?;
+    let mut first = first;
+    let manifest = required_argument(&arguments, 2, allocator);
+    let mut manifest = match manifest {
+        Ok(value) => value,
+        Err(code) => {
+            first.release();
+            return Err(code);
+        },
+    };
+    let third = required_argument(&arguments, 3, allocator);
+    let mut third = match third {
+        Ok(value) => value,
+        Err(code) => {
+            first.release();
+            manifest.release();
+            return Err(code);
+        },
+    };
+    let output = required_argument(&arguments, 4, allocator);
+    let mut output = match output {
+        Ok(value) => value,
+        Err(code) => {
+            first.release();
+            manifest.release();
+            third.release();
+            return Err(code);
+        },
+    };
+    let valid = first.matches("--manifest") && third.matches("--output");
+    first.release();
+    third.release();
+    if !valid {
+        manifest.release();
+        output.release();
+        Err(2)
+    } else {
+        Ok(Options { manifest: manifest, output: output })
+    }
+}
+
+fn required_argument(
+    arguments: &std::env::Arguments,
+    index: usize,
+    allocator: &std::alloc::Allocator,
+) -> Result<String, i32> {
+    match arguments.get(index, allocator) {
+        Ok(Some(value)) => Ok(value),
+        _ => Err(2),
+    }
+}
+
+fn print_usage() {
+    print_line("Usage: arepita-cooker --manifest <assets.toml> --output <assets.apack>");
+}
+
+fn print_error(error: CookError) {
+    match error {
+        CookError::ManifestPath => print_error_line("The manifest path is not a regular readable file."),
+        CookError::ManifestTooLarge => print_error_line("The manifest exceeds the 4 MiB safety limit."),
+        CookError::ManifestRead => print_error_line("The manifest could not be read as UTF-8."),
+        CookError::ManifestInvalid => print_error_line("The asset manifest is invalid."),
+        CookError::OutputPath => print_error_line("The output directory could not be created."),
+        CookError::AtlasInvalidDimensions => print_error_line("An atlas or source has invalid dimensions."),
+        CookError::AtlasSource => print_error_line("An atlas source is missing, too large, or outside the manifest directory."),
+        CookError::AtlasDecode => print_error_line("An atlas image could not be decoded consistently."),
+        CookError::AtlasLayout => print_error_line("An atlas source does not fit in its configured dimensions."),
+        CookError::AtlasComposite => print_error_line("An atlas source could not be composed safely."),
+        CookError::AtlasFailed => print_error_line("An atlas, sprite, or font could not be prepared."),
+        CookError::AudioFailed => print_error_line("An audio source could not be prepared."),
+        CookError::PackFailed => print_error_line("The asset pack could not be published."),
+        CookError::OutOfMemory => print_error_line("The asset cooker ran out of memory."),
+    }
+}
+
+fn print_line(message: str) {
+    match println(message) { Ok(_) => {}, Err(_) => {} }
+}
+
+fn print_error_line(message: str) {
+    match eprintln(message) { Ok(_) => {}, Err(_) => {} }
+}

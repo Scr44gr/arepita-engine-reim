@@ -1,0 +1,182 @@
+import self::raw::constants as constants;
+import self::raw::functions as sdl;
+import self::raw::types as types;
+from self::gamepad import GamepadId;
+from self::input import MouseButton, Scancode;
+
+/// Waiting for the next SDL event failed.
+pub enum EventError {
+    WaitFailed,
+}
+
+/// A gamepad lifecycle change decoded from SDL's event union.
+@derive(Copy, Clone, Debug, Eq)
+pub enum GamepadDeviceChange {
+    Added(GamepadId),
+    Removed(GamepadId),
+    Remapped(GamepadId),
+}
+
+/// One layout-independent keyboard transition decoded from SDL's event queue.
+@derive(Copy, Clone, Debug, Eq)
+pub struct KeyboardChange {
+    scancode: Scancode,
+    down: bool,
+    repeat: bool,
+}
+
+impl KeyboardChange {
+    pub fn scancode(&self) -> Scancode { self.scancode }
+    pub fn is_down(&self) -> bool { self.down }
+    pub fn is_repeat(&self) -> bool { self.repeat }
+}
+
+/// One mouse-button transition decoded from SDL's event queue.
+@derive(Copy, Clone, Debug, Eq)
+pub struct MouseButtonChange {
+    button: MouseButton,
+    down: bool,
+}
+
+impl MouseButtonChange {
+    pub fn button(&self) -> MouseButton { self.button }
+    pub fn is_down(&self) -> bool { self.down }
+}
+
+/// One value copied from SDL's event queue.
+pub struct Event {
+    raw: types::SDL_Event,
+}
+
+impl Event {
+    /// Returns the SDL event type constant.
+    pub fn kind(&self) -> types::SDL_EventType {
+        self.raw.kind as types::SDL_EventType
+    }
+
+    /// Returns whether this is an application quit request.
+    pub fn is_quit(&self) -> bool {
+        self.kind() == constants::SDL_EVENT_QUIT
+    }
+
+    /// Returns whether the drawable pixel size may need reconfiguration.
+    pub fn is_window_size_changed(&self) -> bool {
+        let kind = self.kind();
+        kind == constants::SDL_EVENT_WINDOW_RESIZED
+            || kind == constants::SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED
+            || kind == constants::SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED
+            || kind == constants::SDL_EVENT_WINDOW_MINIMIZED
+            || kind == constants::SDL_EVENT_WINDOW_RESTORED
+    }
+
+    /// Decodes a keyboard transition while keeping SDL's event union private.
+    pub fn keyboard_change(&self) -> Option<KeyboardChange> {
+        let kind = self.kind();
+        if kind != constants::SDL_EVENT_KEY_DOWN
+            && kind != constants::SDL_EVENT_KEY_UP
+        {
+            return None;
+        }
+        let keyboard: &types::SDL_KeyboardEvent = unsafe {
+            &*(self.as_raw() as *const types::SDL_KeyboardEvent)
+        };
+        let scancode = Scancode::from_raw(keyboard.scancode as usize)?;
+        Some(KeyboardChange {
+            scancode: scancode,
+            down: keyboard.down,
+            repeat: keyboard.repeat,
+        })
+    }
+
+    /// Decodes a mouse-button transition while keeping SDL's union private.
+    pub fn mouse_button_change(&self) -> Option<MouseButtonChange> {
+        let kind = self.kind();
+        if kind != constants::SDL_EVENT_MOUSE_BUTTON_DOWN
+            && kind != constants::SDL_EVENT_MOUSE_BUTTON_UP
+        {
+            return None;
+        }
+        let mouse: &types::SDL_MouseButtonEvent = unsafe {
+            &*(self.as_raw() as *const types::SDL_MouseButtonEvent)
+        };
+        let button = MouseButton::from_raw(mouse.button)?;
+        Some(MouseButtonChange { button: button, down: mouse.down })
+    }
+
+    /// Decodes a gamepad connection or mapping event.
+    ///
+    /// Other event kinds return `None`; callers never need to cast the raw
+    /// SDL event union themselves.
+    pub fn gamepad_device_change(&self) -> Option<GamepadDeviceChange> {
+        let kind = self.kind();
+        if kind != constants::SDL_EVENT_GAMEPAD_ADDED
+            && kind != constants::SDL_EVENT_GAMEPAD_REMOVED
+            && kind != constants::SDL_EVENT_GAMEPAD_REMAPPED
+        {
+            return None;
+        }
+        let device: &types::SDL_GamepadDeviceEvent = unsafe {
+            &*(self.as_raw() as *const types::SDL_GamepadDeviceEvent)
+        };
+        let id = match GamepadId::from_raw(device.which) {
+            Some(value) => value,
+            None => {
+                return None;
+            },
+        };
+        if kind == constants::SDL_EVENT_GAMEPAD_ADDED {
+            Some(GamepadDeviceChange::Added(id))
+        } else if kind == constants::SDL_EVENT_GAMEPAD_REMOVED {
+            Some(GamepadDeviceChange::Removed(id))
+        } else {
+            Some(GamepadDeviceChange::Remapped(id))
+        }
+    }
+
+    /// Returns a read-only pointer to the complete raw event storage.
+    pub fn as_raw(&self) -> *const types::SDL_Event {
+        &self.raw as *const types::SDL_Event
+    }
+}
+
+/// Removes and returns the next queued event without blocking.
+pub fn poll() -> Option<Event> {
+    let mut raw = types::SDL_Event::default();
+    if unsafe { sdl::SDL_PollEvent(&mut raw as *mut types::SDL_Event) } {
+        Some(Event { raw: raw })
+    } else {
+        None
+    }
+}
+
+/// Waits indefinitely for the next queued event.
+pub fn wait() -> Result<Event, EventError> {
+    let mut raw = types::SDL_Event::default();
+    if unsafe { sdl::SDL_WaitEvent(&mut raw as *mut types::SDL_Event) } {
+        Ok(Event { raw: raw })
+    } else {
+        Err(EventError::WaitFailed)
+    }
+}
+
+/// Waits up to `timeout_ms` and returns `None` when the timeout expires.
+pub fn wait_timeout(timeout_ms: i32) -> Option<Event> {
+    let mut raw = types::SDL_Event::default();
+    if unsafe {
+        sdl::SDL_WaitEventTimeout(
+            &mut raw as *mut types::SDL_Event,
+            timeout_ms,
+        )
+    } {
+        Some(Event { raw: raw })
+    } else {
+        None
+    }
+}
+
+/// Updates SDL's input devices and posts pending events.
+pub fn pump() {
+    unsafe {
+        sdl::SDL_PumpEvents();
+    }
+}

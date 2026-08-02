@@ -1,0 +1,1742 @@
+// Generated from SDL 3.4.12 (f87239e71e42da91ca317a12eefb82cfbf3393eb). Do not edit by hand.
+// Run `vendor/sdl3/tools/generate.ps1` to update this file.
+
+import std::c;
+
+pub type SDL_AppResult = c::Int;
+pub type SDL_ArrayOrder = c::Int;
+pub type SDL_AssertState = c::Int;
+pub type SDL_AsyncIOResult = c::Int;
+pub type SDL_AsyncIOTaskType = c::Int;
+pub type SDL_AudioDeviceID = u32;
+pub type SDL_AudioFormat = c::Int;
+pub type SDL_BitmapOrder = c::Int;
+pub type SDL_BlendFactor = c::Int;
+pub type SDL_BlendMode = u32;
+pub type SDL_BlendOperation = c::Int;
+pub type SDL_CameraID = u32;
+pub type SDL_CameraPermissionState = c::Int;
+pub type SDL_CameraPosition = c::Int;
+pub type SDL_Capitalization = c::Int;
+pub type SDL_ChromaLocation = c::Int;
+pub type SDL_ColorPrimaries = c::Int;
+pub type SDL_ColorRange = c::Int;
+pub type SDL_ColorType = c::Int;
+pub type SDL_Colorspace = c::Int;
+pub type SDL_DUMMY_ENUM = c::Int;
+pub type SDL_DateFormat = c::Int;
+pub type SDL_DisplayID = u32;
+pub type SDL_DisplayOrientation = c::Int;
+pub type SDL_EGLAttrib = isize;
+pub type SDL_EGLConfig = *mut ();
+pub type SDL_EGLDisplay = *mut ();
+pub type SDL_EGLSurface = *mut ();
+pub type SDL_EGLint = c::Int;
+pub type SDL_EnumerationResult = c::Int;
+pub type SDL_EventAction = c::Int;
+pub type SDL_EventType = c::Int;
+pub type SDL_FileDialogType = c::Int;
+pub type SDL_FingerID = u64;
+pub type SDL_FlashOperation = c::Int;
+pub type SDL_FlipMode = c::Int;
+pub type SDL_Folder = c::Int;
+pub type SDL_GLAttr = c::Int;
+pub type SDL_GLContext = *mut SDL_GLContextState;
+pub type SDL_GLContextFlag = u32;
+pub type SDL_GLContextReleaseFlag = u32;
+pub type SDL_GLContextResetNotification = u32;
+pub type SDL_GLProfile = u32;
+pub type SDL_GPUBlendFactor = c::Int;
+pub type SDL_GPUBlendOp = c::Int;
+pub type SDL_GPUBufferUsageFlags = u32;
+pub type SDL_GPUColorComponentFlags = u8;
+pub type SDL_GPUCompareOp = c::Int;
+pub type SDL_GPUCubeMapFace = c::Int;
+pub type SDL_GPUCullMode = c::Int;
+pub type SDL_GPUFillMode = c::Int;
+pub type SDL_GPUFilter = c::Int;
+pub type SDL_GPUFrontFace = c::Int;
+pub type SDL_GPUIndexElementSize = c::Int;
+pub type SDL_GPULoadOp = c::Int;
+pub type SDL_GPUPresentMode = c::Int;
+pub type SDL_GPUPrimitiveType = c::Int;
+pub type SDL_GPUSampleCount = c::Int;
+pub type SDL_GPUSamplerAddressMode = c::Int;
+pub type SDL_GPUSamplerMipmapMode = c::Int;
+pub type SDL_GPUShaderFormat = u32;
+pub type SDL_GPUShaderStage = c::Int;
+pub type SDL_GPUStencilOp = c::Int;
+pub type SDL_GPUStoreOp = c::Int;
+pub type SDL_GPUSwapchainComposition = c::Int;
+pub type SDL_GPUTextureFormat = c::Int;
+pub type SDL_GPUTextureType = c::Int;
+pub type SDL_GPUTextureUsageFlags = u32;
+pub type SDL_GPUTransferBufferUsage = c::Int;
+pub type SDL_GPUVertexElementFormat = c::Int;
+pub type SDL_GPUVertexInputRate = c::Int;
+pub type SDL_GamepadAxis = c::Int;
+pub type SDL_GamepadBindingType = c::Int;
+pub type SDL_GamepadButton = c::Int;
+pub type SDL_GamepadButtonLabel = c::Int;
+pub type SDL_GamepadType = c::Int;
+pub type SDL_GlobFlags = u32;
+pub type SDL_HapticDirectionType = u8;
+pub type SDL_HapticEffectID = c::Int;
+pub type SDL_HapticEffectType = u16;
+pub type SDL_HapticID = u32;
+pub type SDL_HintPriority = c::Int;
+pub type SDL_HitTestResult = c::Int;
+pub type SDL_IOStatus = c::Int;
+pub type SDL_IOWhence = c::Int;
+pub type SDL_InitFlags = u32;
+pub type SDL_InitStatus = c::Int;
+pub type SDL_JoystickConnectionState = c::Int;
+pub type SDL_JoystickID = u32;
+pub type SDL_JoystickType = c::Int;
+pub type SDL_KeyboardID = u32;
+pub type SDL_Keycode = u32;
+pub type SDL_Keymod = u16;
+pub type SDL_LogCategory = c::Int;
+pub type SDL_LogPriority = c::Int;
+pub type SDL_MatrixCoefficients = c::Int;
+pub type SDL_MessageBoxButtonFlags = u32;
+pub type SDL_MessageBoxColorType = c::Int;
+pub type SDL_MessageBoxFlags = u32;
+pub type SDL_MetalView = *mut ();
+pub type SDL_MouseButtonFlags = u32;
+pub type SDL_MouseID = u32;
+pub type SDL_MouseWheelDirection = c::Int;
+pub type SDL_PackedLayout = c::Int;
+pub type SDL_PackedOrder = c::Int;
+pub type SDL_PathType = c::Int;
+pub type SDL_PenAxis = c::Int;
+pub type SDL_PenDeviceType = c::Int;
+pub type SDL_PenID = u32;
+pub type SDL_PenInputFlags = u32;
+pub type SDL_PixelFormat = c::Int;
+pub type SDL_PixelType = c::Int;
+pub type SDL_PowerState = c::Int;
+pub type SDL_ProcessIO = c::Int;
+pub type SDL_ProgressState = c::Int;
+pub type SDL_PropertiesID = u32;
+pub type SDL_PropertyType = c::Int;
+pub type SDL_RendererLogicalPresentation = c::Int;
+pub type SDL_Sandbox = c::Int;
+pub type SDL_ScaleMode = c::Int;
+pub type SDL_Scancode = c::Int;
+pub type SDL_SensorID = u32;
+pub type SDL_SensorType = c::Int;
+pub type SDL_SpinLock = c::Int;
+pub type SDL_SurfaceFlags = u32;
+pub type SDL_SystemCursor = c::Int;
+pub type SDL_SystemTheme = c::Int;
+pub type SDL_TLSID = SDL_AtomicInt;
+pub type SDL_TextInputType = c::Int;
+pub type SDL_TextureAccess = c::Int;
+pub type SDL_TextureAddressMode = c::Int;
+pub type SDL_ThreadID = u64;
+pub type SDL_ThreadPriority = c::Int;
+pub type SDL_ThreadState = c::Int;
+pub type SDL_Time = i64;
+pub type SDL_TimeFormat = c::Int;
+pub type SDL_TimerID = u32;
+pub type SDL_TouchDeviceType = c::Int;
+pub type SDL_TouchID = u64;
+pub type SDL_TransferCharacteristics = c::Int;
+pub type SDL_TrayEntryFlags = u32;
+pub type SDL_WindowFlags = u64;
+pub type SDL_WindowID = u32;
+pub type SDL_hid_bus_type = c::Int;
+pub type SDL_iconv_t = *mut SDL_iconv_data_t;
+pub type Sint16 = i16;
+pub type Sint32 = i32;
+pub type Sint64 = i64;
+pub type Sint8 = i8;
+pub type Uint16 = u16;
+pub type Uint32 = u32;
+pub type Uint64 = u64;
+pub type Uint8 = u8;
+pub type wchar_t = u16;
+pub type VkInstance = *mut ();
+pub type VkPhysicalDevice = *mut ();
+pub type VkSurfaceKHR = u64;
+pub type XTaskQueueHandle = *mut ();
+pub type XUserHandle = *mut ();
+
+pub type SDL_AppEvent_func = fn(*mut (), *mut SDL_Event) -> SDL_AppResult;
+pub type SDL_AppInit_func = fn(*mut *mut (), c::Int, *mut *mut c::Char) -> SDL_AppResult;
+pub type SDL_AppIterate_func = fn(*mut ()) -> SDL_AppResult;
+pub type SDL_AppQuit_func = fn(*mut (), SDL_AppResult) -> ();
+pub type SDL_AssertionHandler = fn(*const SDL_AssertData, *mut ()) -> SDL_AssertState;
+pub type SDL_AudioPostmixCallback = fn(*mut (), *const SDL_AudioSpec, *mut f32, c::Int) -> ();
+pub type SDL_AudioStreamCallback = fn(*mut (), *mut SDL_AudioStream, c::Int, c::Int) -> ();
+pub type SDL_AudioStreamDataCompleteCallback = fn(*mut (), *const (), c::Int) -> ();
+pub type SDL_CleanupPropertyCallback = fn(*mut (), *mut ()) -> ();
+pub type SDL_ClipboardCleanupCallback = fn(*mut ()) -> ();
+pub type SDL_ClipboardDataCallback = fn(*mut (), *const c::Char, *mut usize) -> *const ();
+pub type SDL_CompareCallback = fn(*const (), *const ()) -> c::Int;
+pub type SDL_CompareCallback_r = fn(*mut (), *const (), *const ()) -> c::Int;
+pub type SDL_DialogFileCallback = fn(*mut (), *const *const c::Char, c::Int) -> ();
+pub type SDL_EGLAttribArrayCallback = fn(*mut ()) -> *mut SDL_EGLAttrib;
+pub type SDL_EGLIntArrayCallback = fn(*mut (), SDL_EGLDisplay, SDL_EGLConfig) -> *mut SDL_EGLint;
+pub type SDL_EnumerateDirectoryCallback = fn(*mut (), *const c::Char, *const c::Char) -> SDL_EnumerationResult;
+pub type SDL_EnumeratePropertiesCallback = fn(*mut (), SDL_PropertiesID, *const c::Char) -> ();
+pub type SDL_EventFilter = fn(*mut (), *mut SDL_Event) -> bool;
+pub type SDL_FunctionPointer = fn() -> ();
+pub type SDL_HintCallback = fn(*mut (), *const c::Char, *const c::Char, *const c::Char) -> ();
+pub type SDL_HitTest = fn(*mut SDL_Window, *const SDL_Point, *mut ()) -> SDL_HitTestResult;
+pub type SDL_LogOutputFunction = fn(*mut (), c::Int, SDL_LogPriority, *const c::Char) -> ();
+pub type SDL_MainThreadCallback = fn(*mut ()) -> ();
+pub type SDL_MouseMotionTransformCallback = fn(*mut (), u64, *mut SDL_Window, SDL_MouseID, *mut f32, *mut f32) -> ();
+pub type SDL_NSTimerCallback = fn(*mut (), SDL_TimerID, u64) -> u64;
+pub type SDL_TLSDestructorCallback = fn(*mut ()) -> ();
+pub type SDL_ThreadFunction = fn(*mut ()) -> c::Int;
+pub type SDL_TimerCallback = fn(*mut (), SDL_TimerID, u32) -> u32;
+pub type SDL_TrayCallback = fn(*mut (), *mut SDL_TrayEntry) -> ();
+pub type SDL_WindowsMessageHook = fn(*mut (), *mut MSG) -> bool;
+pub type SDL_X11EventHook = fn(*mut (), *mut XEvent) -> bool;
+pub type SDL_calloc_func = fn(usize, usize) -> *mut ();
+pub type SDL_free_func = fn(*mut ()) -> ();
+pub type SDL_malloc_func = fn(usize) -> *mut ();
+pub type SDL_realloc_func = fn(*mut (), usize) -> *mut ();
+pub type SDL_RequestAndroidPermissionCallback = fn(*mut (), *const c::Char, bool) -> ();
+pub type SDL_iOSAnimationCallback = fn(*mut ()) -> ();
+pub type SDL_main_func = fn(c::Int, *mut *mut c::Char) -> c::Int;
+
+@repr(C)
+pub struct MSG {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct XEvent {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct JavaVM {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct VkAllocationCallbacks {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_AssertData {
+    pub always_ignore: bool,
+    pub trigger_count: c::UnsignedInt,
+    pub condition: *const c::Char,
+    pub filename: *const c::Char,
+    pub linenum: c::Int,
+    pub function: *const c::Char,
+    pub next: *const SDL_AssertData,
+}
+
+@repr(C)
+pub struct SDL_AsyncIO {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_AsyncIOOutcome {
+    pub asyncio: *mut SDL_AsyncIO,
+    pub type_value: SDL_AsyncIOTaskType,
+    pub result: SDL_AsyncIOResult,
+    pub buffer: *mut (),
+    pub offset: u64,
+    pub bytes_requested: u64,
+    pub bytes_transferred: u64,
+    pub userdata: *mut (),
+}
+
+@repr(C)
+pub struct SDL_AsyncIOQueue {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_AtomicInt {
+    pub value: c::Int,
+}
+
+@repr(C)
+pub struct SDL_AtomicU32 {
+    pub value: u32,
+}
+
+@repr(C)
+pub struct SDL_AudioDeviceEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub which: SDL_AudioDeviceID,
+    pub recording: bool,
+    pub padding1: u8,
+    pub padding2: u8,
+    pub padding3: u8,
+}
+
+@repr(C)
+pub struct SDL_AudioSpec {
+    pub format: SDL_AudioFormat,
+    pub channels: c::Int,
+    pub freq: c::Int,
+}
+
+@repr(C)
+pub struct SDL_AudioStream {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_Camera {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_CameraDeviceEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub which: SDL_CameraID,
+}
+
+@repr(C)
+pub struct SDL_CameraSpec {
+    pub format: SDL_PixelFormat,
+    pub colorspace: SDL_Colorspace,
+    pub width: c::Int,
+    pub height: c::Int,
+    pub framerate_numerator: c::Int,
+    pub framerate_denominator: c::Int,
+}
+
+@repr(C)
+pub struct SDL_ClipboardEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub owner: bool,
+    pub num_mime_types: i32,
+    pub mime_types: *mut *const c::Char,
+}
+
+@repr(C)
+pub struct SDL_Color {
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
+    pub a: u8,
+}
+
+@repr(C)
+pub struct SDL_CommonEvent {
+    pub type_value: u32,
+    pub reserved: u32,
+    pub timestamp: u64,
+}
+
+@repr(C)
+pub struct SDL_Condition {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_Cursor {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_CursorFrameInfo {
+    pub surface: *mut SDL_Surface,
+    pub duration: u32,
+}
+
+@repr(C)
+pub struct SDL_DateTime {
+    pub year: c::Int,
+    pub month: c::Int,
+    pub day: c::Int,
+    pub hour: c::Int,
+    pub minute: c::Int,
+    pub second: c::Int,
+    pub nanosecond: c::Int,
+    pub day_of_week: c::Int,
+    pub utc_offset: c::Int,
+}
+
+@repr(C)
+pub struct SDL_DialogFileFilter {
+    pub name: *const c::Char,
+    pub pattern: *const c::Char,
+}
+
+@repr(C)
+pub struct SDL_DisplayEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub displayID: SDL_DisplayID,
+    pub data1: i32,
+    pub data2: i32,
+}
+
+@repr(C)
+pub struct SDL_DisplayMode {
+    pub displayID: SDL_DisplayID,
+    pub format: SDL_PixelFormat,
+    pub w: c::Int,
+    pub h: c::Int,
+    pub pixel_density: f32,
+    pub refresh_rate: f32,
+    pub refresh_rate_numerator: c::Int,
+    pub refresh_rate_denominator: c::Int,
+    pub internal: *mut SDL_DisplayModeData,
+}
+
+@repr(C)
+pub struct SDL_DisplayModeData {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_DropEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub windowID: SDL_WindowID,
+    pub x: f32,
+    pub y: f32,
+    pub source: *const c::Char,
+    pub data: *const c::Char,
+}
+
+@repr(C)
+pub struct SDL_Environment {
+    private_byte: u8,
+}
+
+/// Storage-compatible SDL event value. Use typed safe event views when available.
+@derive(Default)
+@repr(C)
+@align(8)
+pub struct SDL_Event {
+    pub kind: u32,
+    pub reserved: u32,
+    private_storage: [u64; 15],
+}
+
+comptime {
+    assert(size_of<SDL_Event>() == 128);
+    assert(align_of<SDL_Event>() == 8);
+}
+
+@repr(C)
+pub struct SDL_FColor {
+    pub r: f32,
+    pub g: f32,
+    pub b: f32,
+    pub a: f32,
+}
+
+@repr(C)
+pub struct SDL_FPoint {
+    pub x: f32,
+    pub y: f32,
+}
+
+@repr(C)
+pub struct SDL_FRect {
+    pub x: f32,
+    pub y: f32,
+    pub w: f32,
+    pub h: f32,
+}
+
+@repr(C)
+pub struct SDL_Finger {
+    pub id: SDL_FingerID,
+    pub x: f32,
+    pub y: f32,
+    pub pressure: f32,
+}
+
+@repr(C)
+pub struct SDL_GLContextState {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_GPUBlitInfo {
+    pub source: SDL_GPUBlitRegion,
+    pub destination: SDL_GPUBlitRegion,
+    pub load_op: SDL_GPULoadOp,
+    pub clear_color: SDL_FColor,
+    pub flip_mode: SDL_FlipMode,
+    pub filter: SDL_GPUFilter,
+    pub cycle: bool,
+    pub padding1: u8,
+    pub padding2: u8,
+    pub padding3: u8,
+}
+
+@repr(C)
+pub struct SDL_GPUBlitRegion {
+    pub texture: *mut SDL_GPUTexture,
+    pub mip_level: u32,
+    pub layer_or_depth_plane: u32,
+    pub x: u32,
+    pub y: u32,
+    pub w: u32,
+    pub h: u32,
+}
+
+@repr(C)
+pub struct SDL_GPUBuffer {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_GPUBufferBinding {
+    pub buffer: *mut SDL_GPUBuffer,
+    pub offset: u32,
+}
+
+@repr(C)
+pub struct SDL_GPUBufferCreateInfo {
+    pub usage: SDL_GPUBufferUsageFlags,
+    pub size: u32,
+    pub props: SDL_PropertiesID,
+}
+
+@repr(C)
+pub struct SDL_GPUBufferLocation {
+    pub buffer: *mut SDL_GPUBuffer,
+    pub offset: u32,
+}
+
+@repr(C)
+pub struct SDL_GPUBufferRegion {
+    pub buffer: *mut SDL_GPUBuffer,
+    pub offset: u32,
+    pub size: u32,
+}
+
+@repr(C)
+pub struct SDL_GPUColorTargetBlendState {
+    pub src_color_blendfactor: SDL_GPUBlendFactor,
+    pub dst_color_blendfactor: SDL_GPUBlendFactor,
+    pub color_blend_op: SDL_GPUBlendOp,
+    pub src_alpha_blendfactor: SDL_GPUBlendFactor,
+    pub dst_alpha_blendfactor: SDL_GPUBlendFactor,
+    pub alpha_blend_op: SDL_GPUBlendOp,
+    pub color_write_mask: SDL_GPUColorComponentFlags,
+    pub enable_blend: bool,
+    pub enable_color_write_mask: bool,
+    pub padding1: u8,
+    pub padding2: u8,
+}
+
+@repr(C)
+pub struct SDL_GPUColorTargetDescription {
+    pub format: SDL_GPUTextureFormat,
+    pub blend_state: SDL_GPUColorTargetBlendState,
+}
+
+@repr(C)
+pub struct SDL_GPUColorTargetInfo {
+    pub texture: *mut SDL_GPUTexture,
+    pub mip_level: u32,
+    pub layer_or_depth_plane: u32,
+    pub clear_color: SDL_FColor,
+    pub load_op: SDL_GPULoadOp,
+    pub store_op: SDL_GPUStoreOp,
+    pub resolve_texture: *mut SDL_GPUTexture,
+    pub resolve_mip_level: u32,
+    pub resolve_layer: u32,
+    pub cycle: bool,
+    pub cycle_resolve_texture: bool,
+    pub padding1: u8,
+    pub padding2: u8,
+}
+
+@repr(C)
+pub struct SDL_GPUCommandBuffer {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_GPUComputePass {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_GPUComputePipeline {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_GPUComputePipelineCreateInfo {
+    pub code_size: usize,
+    pub code: *const u8,
+    pub entrypoint: *const c::Char,
+    pub format: SDL_GPUShaderFormat,
+    pub num_samplers: u32,
+    pub num_readonly_storage_textures: u32,
+    pub num_readonly_storage_buffers: u32,
+    pub num_readwrite_storage_textures: u32,
+    pub num_readwrite_storage_buffers: u32,
+    pub num_uniform_buffers: u32,
+    pub threadcount_x: u32,
+    pub threadcount_y: u32,
+    pub threadcount_z: u32,
+    pub props: SDL_PropertiesID,
+}
+
+@repr(C)
+pub struct SDL_GPUCopyPass {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_GPUDepthStencilState {
+    pub compare_op: SDL_GPUCompareOp,
+    pub back_stencil_state: SDL_GPUStencilOpState,
+    pub front_stencil_state: SDL_GPUStencilOpState,
+    pub compare_mask: u8,
+    pub write_mask: u8,
+    pub enable_depth_test: bool,
+    pub enable_depth_write: bool,
+    pub enable_stencil_test: bool,
+    pub padding1: u8,
+    pub padding2: u8,
+    pub padding3: u8,
+}
+
+@repr(C)
+pub struct SDL_GPUDepthStencilTargetInfo {
+    pub texture: *mut SDL_GPUTexture,
+    pub clear_depth: f32,
+    pub load_op: SDL_GPULoadOp,
+    pub store_op: SDL_GPUStoreOp,
+    pub stencil_load_op: SDL_GPULoadOp,
+    pub stencil_store_op: SDL_GPUStoreOp,
+    pub cycle: bool,
+    pub clear_stencil: u8,
+    pub mip_level: u8,
+    pub layer: u8,
+}
+
+@repr(C)
+pub struct SDL_GPUDevice {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_GPUFence {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_GPUGraphicsPipeline {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_GPUGraphicsPipelineCreateInfo {
+    pub vertex_shader: *mut SDL_GPUShader,
+    pub fragment_shader: *mut SDL_GPUShader,
+    pub vertex_input_state: SDL_GPUVertexInputState,
+    pub primitive_type: SDL_GPUPrimitiveType,
+    pub rasterizer_state: SDL_GPURasterizerState,
+    pub multisample_state: SDL_GPUMultisampleState,
+    pub depth_stencil_state: SDL_GPUDepthStencilState,
+    pub target_info: SDL_GPUGraphicsPipelineTargetInfo,
+    pub props: SDL_PropertiesID,
+}
+
+@repr(C)
+pub struct SDL_GPUGraphicsPipelineTargetInfo {
+    pub color_target_descriptions: *const SDL_GPUColorTargetDescription,
+    pub num_color_targets: u32,
+    pub depth_stencil_format: SDL_GPUTextureFormat,
+    pub has_depth_stencil_target: bool,
+    pub padding1: u8,
+    pub padding2: u8,
+    pub padding3: u8,
+}
+
+@repr(C)
+pub struct SDL_GPUIndexedIndirectDrawCommand {
+    pub num_indices: u32,
+    pub num_instances: u32,
+    pub first_index: u32,
+    pub vertex_offset: i32,
+    pub first_instance: u32,
+}
+
+@repr(C)
+pub struct SDL_GPUIndirectDispatchCommand {
+    pub groupcount_x: u32,
+    pub groupcount_y: u32,
+    pub groupcount_z: u32,
+}
+
+@repr(C)
+pub struct SDL_GPUIndirectDrawCommand {
+    pub num_vertices: u32,
+    pub num_instances: u32,
+    pub first_vertex: u32,
+    pub first_instance: u32,
+}
+
+@repr(C)
+pub struct SDL_GPUMultisampleState {
+    pub sample_count: SDL_GPUSampleCount,
+    pub sample_mask: u32,
+    pub enable_mask: bool,
+    pub enable_alpha_to_coverage: bool,
+    pub padding2: u8,
+    pub padding3: u8,
+}
+
+@repr(C)
+pub struct SDL_GPURasterizerState {
+    pub fill_mode: SDL_GPUFillMode,
+    pub cull_mode: SDL_GPUCullMode,
+    pub front_face: SDL_GPUFrontFace,
+    pub depth_bias_constant_factor: f32,
+    pub depth_bias_clamp: f32,
+    pub depth_bias_slope_factor: f32,
+    pub enable_depth_bias: bool,
+    pub enable_depth_clip: bool,
+    pub padding1: u8,
+    pub padding2: u8,
+}
+
+@repr(C)
+pub struct SDL_GPURenderPass {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_GPURenderState {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_GPURenderStateCreateInfo {
+    pub fragment_shader: *mut SDL_GPUShader,
+    pub num_sampler_bindings: i32,
+    pub sampler_bindings: *const SDL_GPUTextureSamplerBinding,
+    pub num_storage_textures: i32,
+    pub storage_textures: *const *mut SDL_GPUTexture,
+    pub num_storage_buffers: i32,
+    pub storage_buffers: *const *mut SDL_GPUBuffer,
+    pub props: SDL_PropertiesID,
+}
+
+@repr(C)
+pub struct SDL_GPUSampler {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_GPUSamplerCreateInfo {
+    pub min_filter: SDL_GPUFilter,
+    pub mag_filter: SDL_GPUFilter,
+    pub mipmap_mode: SDL_GPUSamplerMipmapMode,
+    pub address_mode_u: SDL_GPUSamplerAddressMode,
+    pub address_mode_v: SDL_GPUSamplerAddressMode,
+    pub address_mode_w: SDL_GPUSamplerAddressMode,
+    pub mip_lod_bias: f32,
+    pub max_anisotropy: f32,
+    pub compare_op: SDL_GPUCompareOp,
+    pub min_lod: f32,
+    pub max_lod: f32,
+    pub enable_anisotropy: bool,
+    pub enable_compare: bool,
+    pub padding1: u8,
+    pub padding2: u8,
+    pub props: SDL_PropertiesID,
+}
+
+@repr(C)
+pub struct SDL_GPUShader {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_GPUShaderCreateInfo {
+    pub code_size: usize,
+    pub code: *const u8,
+    pub entrypoint: *const c::Char,
+    pub format: SDL_GPUShaderFormat,
+    pub stage: SDL_GPUShaderStage,
+    pub num_samplers: u32,
+    pub num_storage_textures: u32,
+    pub num_storage_buffers: u32,
+    pub num_uniform_buffers: u32,
+    pub props: SDL_PropertiesID,
+}
+
+@repr(C)
+pub struct SDL_GPUStencilOpState {
+    pub fail_op: SDL_GPUStencilOp,
+    pub pass_op: SDL_GPUStencilOp,
+    pub depth_fail_op: SDL_GPUStencilOp,
+    pub compare_op: SDL_GPUCompareOp,
+}
+
+@repr(C)
+pub struct SDL_GPUStorageBufferReadWriteBinding {
+    pub buffer: *mut SDL_GPUBuffer,
+    pub cycle: bool,
+    pub padding1: u8,
+    pub padding2: u8,
+    pub padding3: u8,
+}
+
+@repr(C)
+pub struct SDL_GPUStorageTextureReadWriteBinding {
+    pub texture: *mut SDL_GPUTexture,
+    pub mip_level: u32,
+    pub layer: u32,
+    pub cycle: bool,
+    pub padding1: u8,
+    pub padding2: u8,
+    pub padding3: u8,
+}
+
+@repr(C)
+pub struct SDL_GPUTexture {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_GPUTextureCreateInfo {
+    pub type_value: SDL_GPUTextureType,
+    pub format: SDL_GPUTextureFormat,
+    pub usage: SDL_GPUTextureUsageFlags,
+    pub width: u32,
+    pub height: u32,
+    pub layer_count_or_depth: u32,
+    pub num_levels: u32,
+    pub sample_count: SDL_GPUSampleCount,
+    pub props: SDL_PropertiesID,
+}
+
+@repr(C)
+pub struct SDL_GPUTextureLocation {
+    pub texture: *mut SDL_GPUTexture,
+    pub mip_level: u32,
+    pub layer: u32,
+    pub x: u32,
+    pub y: u32,
+    pub z: u32,
+}
+
+@repr(C)
+pub struct SDL_GPUTextureRegion {
+    pub texture: *mut SDL_GPUTexture,
+    pub mip_level: u32,
+    pub layer: u32,
+    pub x: u32,
+    pub y: u32,
+    pub z: u32,
+    pub w: u32,
+    pub h: u32,
+    pub d: u32,
+}
+
+@repr(C)
+pub struct SDL_GPUTextureSamplerBinding {
+    pub texture: *mut SDL_GPUTexture,
+    pub sampler: *mut SDL_GPUSampler,
+}
+
+@repr(C)
+pub struct SDL_GPUTextureTransferInfo {
+    pub transfer_buffer: *mut SDL_GPUTransferBuffer,
+    pub offset: u32,
+    pub pixels_per_row: u32,
+    pub rows_per_layer: u32,
+}
+
+@repr(C)
+pub struct SDL_GPUTransferBuffer {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_GPUTransferBufferCreateInfo {
+    pub usage: SDL_GPUTransferBufferUsage,
+    pub size: u32,
+    pub props: SDL_PropertiesID,
+}
+
+@repr(C)
+pub struct SDL_GPUTransferBufferLocation {
+    pub transfer_buffer: *mut SDL_GPUTransferBuffer,
+    pub offset: u32,
+}
+
+@repr(C)
+pub struct SDL_GPUVertexAttribute {
+    pub location: u32,
+    pub buffer_slot: u32,
+    pub format: SDL_GPUVertexElementFormat,
+    pub offset: u32,
+}
+
+@repr(C)
+pub struct SDL_GPUVertexBufferDescription {
+    pub slot: u32,
+    pub pitch: u32,
+    pub input_rate: SDL_GPUVertexInputRate,
+    pub instance_step_rate: u32,
+}
+
+@repr(C)
+pub struct SDL_GPUVertexInputState {
+    pub vertex_buffer_descriptions: *const SDL_GPUVertexBufferDescription,
+    pub num_vertex_buffers: u32,
+    pub vertex_attributes: *const SDL_GPUVertexAttribute,
+    pub num_vertex_attributes: u32,
+}
+
+@repr(C)
+pub struct SDL_GPUViewport {
+    pub x: f32,
+    pub y: f32,
+    pub w: f32,
+    pub h: f32,
+    pub min_depth: f32,
+    pub max_depth: f32,
+}
+
+@repr(C)
+pub struct SDL_GPUVulkanOptions {
+    pub vulkan_api_version: u32,
+    pub feature_list: *mut (),
+    pub vulkan_10_physical_device_features: *mut (),
+    pub device_extension_count: u32,
+    pub device_extension_names: *mut *const c::Char,
+    pub instance_extension_count: u32,
+    pub instance_extension_names: *mut *const c::Char,
+}
+
+@repr(C)
+pub struct SDL_GUID {
+    pub data: [u8; 16],
+}
+
+@repr(C)
+pub struct SDL_Gamepad {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_GamepadAxisEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub which: SDL_JoystickID,
+    pub axis: u8,
+    pub padding1: u8,
+    pub padding2: u8,
+    pub padding3: u8,
+    pub value: i16,
+    pub padding4: u16,
+}
+
+/// Storage-compatible gamepad binding. The data arrays contain the active C union arms.
+@derive(Default)
+@repr(C)
+pub struct SDL_GamepadBinding {
+    pub input_type: SDL_GamepadBindingType,
+    pub input_data: [c::Int; 3],
+    pub output_type: SDL_GamepadBindingType,
+    pub output_data: [c::Int; 3],
+}
+
+comptime {
+    assert(size_of<SDL_GamepadBinding>() == 32);
+    assert(align_of<SDL_GamepadBinding>() == 4);
+}
+
+@repr(C)
+pub struct SDL_GamepadButtonEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub which: SDL_JoystickID,
+    pub button: u8,
+    pub down: bool,
+    pub padding1: u8,
+    pub padding2: u8,
+}
+
+@repr(C)
+pub struct SDL_GamepadDeviceEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub which: SDL_JoystickID,
+}
+
+@repr(C)
+pub struct SDL_GamepadSensorEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub which: SDL_JoystickID,
+    pub sensor: i32,
+    pub data: [f32; 3],
+    pub sensor_timestamp: u64,
+}
+
+@repr(C)
+pub struct SDL_GamepadTouchpadEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub which: SDL_JoystickID,
+    pub touchpad: i32,
+    pub finger: i32,
+    pub x: f32,
+    pub y: f32,
+    pub pressure: f32,
+}
+
+@repr(C)
+pub struct SDL_Haptic {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_HapticCondition {
+    pub type_value: SDL_HapticEffectType,
+    pub direction: SDL_HapticDirection,
+    pub length: u32,
+    pub delay: u16,
+    pub button: u16,
+    pub interval: u16,
+    pub right_sat: [u16; 3],
+    pub left_sat: [u16; 3],
+    pub right_coeff: [i16; 3],
+    pub left_coeff: [i16; 3],
+    pub deadband: [u16; 3],
+    pub center: [i16; 3],
+}
+
+@repr(C)
+pub struct SDL_HapticConstant {
+    pub type_value: SDL_HapticEffectType,
+    pub direction: SDL_HapticDirection,
+    pub length: u32,
+    pub delay: u16,
+    pub button: u16,
+    pub interval: u16,
+    pub level: i16,
+    pub attack_length: u16,
+    pub attack_level: u16,
+    pub fade_length: u16,
+    pub fade_level: u16,
+}
+
+@repr(C)
+pub struct SDL_HapticCustom {
+    pub type_value: SDL_HapticEffectType,
+    pub direction: SDL_HapticDirection,
+    pub length: u32,
+    pub delay: u16,
+    pub button: u16,
+    pub interval: u16,
+    pub channels: u8,
+    pub period: u16,
+    pub samples: u16,
+    pub data: *mut u16,
+    pub attack_length: u16,
+    pub attack_level: u16,
+    pub fade_length: u16,
+    pub fade_level: u16,
+}
+
+@repr(C)
+pub struct SDL_HapticDirection {
+    pub type_value: SDL_HapticDirectionType,
+    pub dir: [i32; 3],
+}
+
+/// Storage-compatible haptic effect. Cast its address to the selected effect record inside `unsafe`.
+@derive(Default)
+@repr(C)
+@align(8)
+pub struct SDL_HapticEffect {
+    pub type_value: SDL_HapticEffectType,
+    pub storage: [u8; 70],
+}
+
+comptime {
+    assert(size_of<SDL_HapticEffect>() == 72);
+    assert(align_of<SDL_HapticEffect>() == 8);
+}
+
+@repr(C)
+pub struct SDL_HapticLeftRight {
+    pub type_value: SDL_HapticEffectType,
+    pub length: u32,
+    pub large_magnitude: u16,
+    pub small_magnitude: u16,
+}
+
+@repr(C)
+pub struct SDL_HapticPeriodic {
+    pub type_value: SDL_HapticEffectType,
+    pub direction: SDL_HapticDirection,
+    pub length: u32,
+    pub delay: u16,
+    pub button: u16,
+    pub interval: u16,
+    pub period: u16,
+    pub magnitude: i16,
+    pub offset: i16,
+    pub phase: u16,
+    pub attack_length: u16,
+    pub attack_level: u16,
+    pub fade_length: u16,
+    pub fade_level: u16,
+}
+
+@repr(C)
+pub struct SDL_HapticRamp {
+    pub type_value: SDL_HapticEffectType,
+    pub direction: SDL_HapticDirection,
+    pub length: u32,
+    pub delay: u16,
+    pub button: u16,
+    pub interval: u16,
+    pub start: i16,
+    pub end: i16,
+    pub attack_length: u16,
+    pub attack_level: u16,
+    pub fade_length: u16,
+    pub fade_level: u16,
+}
+
+@repr(C)
+pub struct SDL_IOStream {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_IOStreamInterface {
+    pub version: u32,
+    pub size: fn(*mut ()) -> i64,
+    pub seek: fn(*mut (), i64, SDL_IOWhence) -> i64,
+    pub read: fn(*mut (), *mut (), usize, *mut SDL_IOStatus) -> usize,
+    pub write: fn(*mut (), *const (), usize, *mut SDL_IOStatus) -> usize,
+    pub flush: fn(*mut (), *mut SDL_IOStatus) -> bool,
+    pub close: fn(*mut ()) -> bool,
+}
+
+@repr(C)
+pub struct SDL_InitState {
+    pub status: SDL_AtomicInt,
+    pub thread: SDL_ThreadID,
+    pub reserved: *mut (),
+}
+
+@repr(C)
+pub struct SDL_JoyAxisEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub which: SDL_JoystickID,
+    pub axis: u8,
+    pub padding1: u8,
+    pub padding2: u8,
+    pub padding3: u8,
+    pub value: i16,
+    pub padding4: u16,
+}
+
+@repr(C)
+pub struct SDL_JoyBallEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub which: SDL_JoystickID,
+    pub ball: u8,
+    pub padding1: u8,
+    pub padding2: u8,
+    pub padding3: u8,
+    pub xrel: i16,
+    pub yrel: i16,
+}
+
+@repr(C)
+pub struct SDL_JoyBatteryEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub which: SDL_JoystickID,
+    pub state: SDL_PowerState,
+    pub percent: c::Int,
+}
+
+@repr(C)
+pub struct SDL_JoyButtonEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub which: SDL_JoystickID,
+    pub button: u8,
+    pub down: bool,
+    pub padding1: u8,
+    pub padding2: u8,
+}
+
+@repr(C)
+pub struct SDL_JoyDeviceEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub which: SDL_JoystickID,
+}
+
+@repr(C)
+pub struct SDL_JoyHatEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub which: SDL_JoystickID,
+    pub hat: u8,
+    pub value: u8,
+    pub padding1: u8,
+    pub padding2: u8,
+}
+
+@repr(C)
+pub struct SDL_Joystick {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_KeyboardDeviceEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub which: SDL_KeyboardID,
+}
+
+@repr(C)
+pub struct SDL_KeyboardEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub windowID: SDL_WindowID,
+    pub which: SDL_KeyboardID,
+    pub scancode: SDL_Scancode,
+    pub key: SDL_Keycode,
+    pub mod: SDL_Keymod,
+    pub raw: u16,
+    pub down: bool,
+    pub repeat: bool,
+}
+
+@repr(C)
+pub struct SDL_Locale {
+    pub language: *const c::Char,
+    pub country: *const c::Char,
+}
+
+@repr(C)
+pub struct SDL_MessageBoxButtonData {
+    pub flags: SDL_MessageBoxButtonFlags,
+    pub buttonID: c::Int,
+    pub text: *const c::Char,
+}
+
+@repr(C)
+pub struct SDL_MessageBoxColor {
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
+}
+
+@repr(C)
+pub struct SDL_MessageBoxColorScheme {
+    pub colors: [SDL_MessageBoxColor; 5],
+}
+
+@repr(C)
+pub struct SDL_MessageBoxData {
+    pub flags: SDL_MessageBoxFlags,
+    pub window: *mut SDL_Window,
+    pub title: *const c::Char,
+    pub message: *const c::Char,
+    pub numbuttons: c::Int,
+    pub buttons: *const SDL_MessageBoxButtonData,
+    pub colorScheme: *const SDL_MessageBoxColorScheme,
+}
+
+@repr(C)
+pub struct SDL_MouseButtonEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub windowID: SDL_WindowID,
+    pub which: SDL_MouseID,
+    pub button: u8,
+    pub down: bool,
+    pub clicks: u8,
+    pub padding: u8,
+    pub x: f32,
+    pub y: f32,
+}
+
+@repr(C)
+pub struct SDL_MouseDeviceEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub which: SDL_MouseID,
+}
+
+@repr(C)
+pub struct SDL_MouseMotionEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub windowID: SDL_WindowID,
+    pub which: SDL_MouseID,
+    pub state: SDL_MouseButtonFlags,
+    pub x: f32,
+    pub y: f32,
+    pub xrel: f32,
+    pub yrel: f32,
+}
+
+@repr(C)
+pub struct SDL_MouseWheelEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub windowID: SDL_WindowID,
+    pub which: SDL_MouseID,
+    pub x: f32,
+    pub y: f32,
+    pub direction: SDL_MouseWheelDirection,
+    pub mouse_x: f32,
+    pub mouse_y: f32,
+    pub integer_x: i32,
+    pub integer_y: i32,
+}
+
+@repr(C)
+pub struct SDL_Mutex {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_Palette {
+    pub ncolors: c::Int,
+    pub colors: *mut SDL_Color,
+    pub version: u32,
+    pub refcount: c::Int,
+}
+
+@repr(C)
+pub struct SDL_PathInfo {
+    pub type_value: SDL_PathType,
+    pub size: u64,
+    pub create_time: SDL_Time,
+    pub modify_time: SDL_Time,
+    pub access_time: SDL_Time,
+}
+
+@repr(C)
+pub struct SDL_PenAxisEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub windowID: SDL_WindowID,
+    pub which: SDL_PenID,
+    pub pen_state: SDL_PenInputFlags,
+    pub x: f32,
+    pub y: f32,
+    pub axis: SDL_PenAxis,
+    pub value: f32,
+}
+
+@repr(C)
+pub struct SDL_PenButtonEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub windowID: SDL_WindowID,
+    pub which: SDL_PenID,
+    pub pen_state: SDL_PenInputFlags,
+    pub x: f32,
+    pub y: f32,
+    pub button: u8,
+    pub down: bool,
+}
+
+@repr(C)
+pub struct SDL_PenMotionEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub windowID: SDL_WindowID,
+    pub which: SDL_PenID,
+    pub pen_state: SDL_PenInputFlags,
+    pub x: f32,
+    pub y: f32,
+}
+
+@repr(C)
+pub struct SDL_PenProximityEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub windowID: SDL_WindowID,
+    pub which: SDL_PenID,
+}
+
+@repr(C)
+pub struct SDL_PenTouchEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub windowID: SDL_WindowID,
+    pub which: SDL_PenID,
+    pub pen_state: SDL_PenInputFlags,
+    pub x: f32,
+    pub y: f32,
+    pub eraser: bool,
+    pub down: bool,
+}
+
+@repr(C)
+pub struct SDL_PinchFingerEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub scale: f32,
+    pub windowID: SDL_WindowID,
+}
+
+@repr(C)
+pub struct SDL_PixelFormatDetails {
+    pub format: SDL_PixelFormat,
+    pub bits_per_pixel: u8,
+    pub bytes_per_pixel: u8,
+    pub padding: [u8; 2],
+    pub Rmask: u32,
+    pub Gmask: u32,
+    pub Bmask: u32,
+    pub Amask: u32,
+    pub Rbits: u8,
+    pub Gbits: u8,
+    pub Bbits: u8,
+    pub Abits: u8,
+    pub Rshift: u8,
+    pub Gshift: u8,
+    pub Bshift: u8,
+    pub Ashift: u8,
+}
+
+@repr(C)
+pub struct SDL_Point {
+    pub x: c::Int,
+    pub y: c::Int,
+}
+
+@repr(C)
+pub struct SDL_Process {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_QuitEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+}
+
+@repr(C)
+pub struct SDL_RWLock {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_Rect {
+    pub x: c::Int,
+    pub y: c::Int,
+    pub w: c::Int,
+    pub h: c::Int,
+}
+
+@repr(C)
+pub struct SDL_RenderEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub windowID: SDL_WindowID,
+}
+
+@repr(C)
+pub struct SDL_Renderer {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_Semaphore {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_Sensor {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_SensorEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub which: SDL_SensorID,
+    pub data: [f32; 6],
+    pub sensor_timestamp: u64,
+}
+
+@repr(C)
+pub struct SDL_SharedObject {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_Storage {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_StorageInterface {
+    pub version: u32,
+    pub close: fn(*mut ()) -> bool,
+    pub ready: fn(*mut ()) -> bool,
+    pub enumerate: fn(*mut (), *const c::Char, SDL_EnumerateDirectoryCallback, *mut ()) -> bool,
+    pub info: fn(*mut (), *const c::Char, *mut SDL_PathInfo) -> bool,
+    pub read_file: fn(*mut (), *const c::Char, *mut (), u64) -> bool,
+    pub write_file: fn(*mut (), *const c::Char, *const (), u64) -> bool,
+    pub mkdir: fn(*mut (), *const c::Char) -> bool,
+    pub remove: fn(*mut (), *const c::Char) -> bool,
+    pub rename: fn(*mut (), *const c::Char, *const c::Char) -> bool,
+    pub copy: fn(*mut (), *const c::Char, *const c::Char) -> bool,
+    pub space_remaining: fn(*mut ()) -> u64,
+}
+
+@repr(C)
+pub struct SDL_Surface {
+    pub flags: SDL_SurfaceFlags,
+    pub format: SDL_PixelFormat,
+    pub w: c::Int,
+    pub h: c::Int,
+    pub pitch: c::Int,
+    pub pixels: *mut (),
+    pub refcount: c::Int,
+    pub reserved: *mut (),
+}
+
+@repr(C)
+pub struct SDL_TextEditingCandidatesEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub windowID: SDL_WindowID,
+    pub candidates: *const *const c::Char,
+    pub num_candidates: i32,
+    pub selected_candidate: i32,
+    pub horizontal: bool,
+    pub padding1: u8,
+    pub padding2: u8,
+    pub padding3: u8,
+}
+
+@repr(C)
+pub struct SDL_TextEditingEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub windowID: SDL_WindowID,
+    pub text: *const c::Char,
+    pub start: i32,
+    pub length: i32,
+}
+
+@repr(C)
+pub struct SDL_TextInputEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub windowID: SDL_WindowID,
+    pub text: *const c::Char,
+}
+
+@repr(C)
+pub struct SDL_Texture {
+    pub format: SDL_PixelFormat,
+    pub w: c::Int,
+    pub h: c::Int,
+    pub refcount: c::Int,
+}
+
+@repr(C)
+pub struct SDL_Thread {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_TouchFingerEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub touchID: SDL_TouchID,
+    pub fingerID: SDL_FingerID,
+    pub x: f32,
+    pub y: f32,
+    pub dx: f32,
+    pub dy: f32,
+    pub pressure: f32,
+    pub windowID: SDL_WindowID,
+}
+
+@repr(C)
+pub struct SDL_Tray {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_TrayEntry {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_TrayMenu {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_UserEvent {
+    pub type_value: u32,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub windowID: SDL_WindowID,
+    pub code: i32,
+    pub data1: *mut (),
+    pub data2: *mut (),
+}
+
+@repr(C)
+pub struct SDL_Vertex {
+    pub position: SDL_FPoint,
+    pub color: SDL_FColor,
+    pub tex_coord: SDL_FPoint,
+}
+
+@repr(C)
+pub struct SDL_VirtualJoystickDesc {
+    pub version: u32,
+    pub type_value: u16,
+    pub padding: u16,
+    pub vendor_id: u16,
+    pub product_id: u16,
+    pub naxes: u16,
+    pub nbuttons: u16,
+    pub nballs: u16,
+    pub nhats: u16,
+    pub ntouchpads: u16,
+    pub nsensors: u16,
+    pub padding2: [u16; 2],
+    pub button_mask: u32,
+    pub axis_mask: u32,
+    pub name: *const c::Char,
+    pub touchpads: *const SDL_VirtualJoystickTouchpadDesc,
+    pub sensors: *const SDL_VirtualJoystickSensorDesc,
+    pub userdata: *mut (),
+    pub Update: fn(*mut ()) -> (),
+    pub SetPlayerIndex: fn(*mut (), c::Int) -> (),
+    pub Rumble: fn(*mut (), u16, u16) -> bool,
+    pub RumbleTriggers: fn(*mut (), u16, u16) -> bool,
+    pub SetLED: fn(*mut (), u8, u8, u8) -> bool,
+    pub SendEffect: fn(*mut (), *const (), c::Int) -> bool,
+    pub SetSensorsEnabled: fn(*mut (), bool) -> bool,
+    pub Cleanup: fn(*mut ()) -> (),
+}
+
+@repr(C)
+pub struct SDL_VirtualJoystickSensorDesc {
+    pub type_value: SDL_SensorType,
+    pub rate: f32,
+}
+
+@repr(C)
+pub struct SDL_VirtualJoystickTouchpadDesc {
+    pub nfingers: u16,
+    pub padding: [u16; 3],
+}
+
+@repr(C)
+pub struct SDL_Window {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_WindowEvent {
+    pub type_value: SDL_EventType,
+    pub reserved: u32,
+    pub timestamp: u64,
+    pub windowID: SDL_WindowID,
+    pub data1: i32,
+    pub data2: i32,
+}
+
+@repr(C)
+pub struct SDL_alignment_test {
+    pub a: u8,
+    pub b: *mut (),
+}
+
+@repr(C)
+pub struct SDL_hid_device {
+    private_byte: u8,
+}
+
+@repr(C)
+pub struct SDL_hid_device_info {
+    pub path: *mut c::Char,
+    pub vendor_id: c::UnsignedShort,
+    pub product_id: c::UnsignedShort,
+    pub serial_number: *mut u16,
+    pub release_number: c::UnsignedShort,
+    pub manufacturer_string: *mut u16,
+    pub product_string: *mut u16,
+    pub usage_page: c::UnsignedShort,
+    pub usage: c::UnsignedShort,
+    pub interface_number: c::Int,
+    pub interface_class: c::Int,
+    pub interface_subclass: c::Int,
+    pub interface_protocol: c::Int,
+    pub bus_type: SDL_hid_bus_type,
+    pub next: *mut SDL_hid_device_info,
+}
+
+@repr(C)
+pub struct SDL_iconv_data_t {
+    private_byte: u8,
+}

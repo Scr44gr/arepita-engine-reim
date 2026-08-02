@@ -1,0 +1,173 @@
+/// Native media codec ABI revision.
+pub const API_VERSION: u32 = 1;
+
+/// Successful status code.
+pub const STATUS_OK: u32 = 0;
+/// Invalid pointer, size, scalar, or ABI structure.
+pub const STATUS_INVALID_ARGUMENT: u32 = 1;
+/// Valid media representation not supported by this build.
+pub const STATUS_UNSUPPORTED: u32 = 2;
+/// Source parsing or decoding failure.
+pub const STATUS_DECODE_FAILED: u32 = 3;
+/// Configured source, output, or dimension limit exceeded.
+pub const STATUS_LIMIT_EXCEEDED: u32 = 4;
+/// Caller-owned output buffer is too small.
+pub const STATUS_BUFFER_TOO_SMALL: u32 = 5;
+/// Opaque handle is no longer live.
+pub const STATUS_NOT_FOUND: u32 = 6;
+/// A native dependency panic was contained at the ABI boundary.
+pub const STATUS_PANICKED: u32 = 7;
+
+/// Fixed-width limits passed to every decoding operation.
+@derive(Copy)
+@repr(C)
+pub struct MediaCodecLimits {
+    pub struct_size: u32,
+    pub api_version: u32,
+    pub max_source_bytes: u64,
+    pub max_decoded_bytes: u64,
+    pub max_dimension: u32,
+    pub reserved: u32,
+}
+
+/// Native RGBA8 layout metadata.
+@derive(Copy)
+@repr(C)
+pub struct MediaImageInfo {
+    pub struct_size: u32,
+    pub width: u32,
+    pub height: u32,
+    pub row_bytes: u32,
+    pub byte_len: u64,
+}
+
+/// Native horizontal font metrics.
+@derive(Copy)
+@repr(C)
+pub struct MediaFontMetrics {
+    pub struct_size: u32,
+    pub ascent: f32,
+    pub descent: f32,
+    pub line_gap: f32,
+    pub new_line_size: f32,
+}
+
+/// Native glyph metrics and alpha-bitmap requirements.
+@derive(Copy)
+@repr(C)
+pub struct MediaGlyphInfo {
+    pub struct_size: u32,
+    pub codepoint: u32,
+    pub width: u32,
+    pub height: u32,
+    pub xmin: i32,
+    pub ymin: i32,
+    pub advance_width: f32,
+    pub advance_height: f32,
+    pub bitmap_bytes: u64,
+}
+
+/// Native interleaved stereo audio metadata.
+@derive(Copy)
+@repr(C)
+pub struct MediaAudioInfo {
+    pub struct_size: u32,
+    pub sample_rate: u32,
+    pub channels: u32,
+    pub reserved: u32,
+    pub frames: u64,
+    pub sample_count: u64,
+}
+
+@link("media_codecs")
+extern "C" {
+    /// Returns the fixed native ABI revision.
+    pub fn media_codec_api_version() -> u32;
+
+    /// Probes an encoded image and writes its exact RGBA8 requirements.
+    pub fn media_codec_image_probe(
+        source: *const u8,
+        source_len: usize,
+        limits: *const MediaCodecLimits,
+        output: *mut MediaImageInfo,
+    ) -> u32;
+
+    /// Decodes an image into caller-owned tightly packed RGBA8 bytes.
+    pub fn media_codec_image_decode_rgba8(
+        source: *const u8,
+        source_len: usize,
+        limits: *const MediaCodecLimits,
+        destination: *mut u8,
+        destination_capacity: usize,
+    ) -> u32;
+
+    /// Parses one font into a validated opaque handle.
+    pub fn media_codec_font_open(
+        source: *const u8,
+        source_len: usize,
+        limits: *const MediaCodecLimits,
+        handle: *mut u64,
+    ) -> u32;
+
+    /// Reads horizontal metrics from a live font handle.
+    pub fn media_codec_font_metrics(
+        handle: u64,
+        pixel_size: f32,
+        output: *mut MediaFontMetrics,
+    ) -> u32;
+
+    /// Rasterizes one scalar into an owned alpha-coverage handle.
+    pub fn media_codec_font_rasterize(
+        font_handle: u64,
+        codepoint: u32,
+        pixel_size: f32,
+        limits: *const MediaCodecLimits,
+        glyph_handle: *mut u64,
+        output: *mut MediaGlyphInfo,
+    ) -> u32;
+
+    /// Copies a complete glyph alpha-coverage bitmap.
+    pub fn media_codec_glyph_copy(
+        handle: u64,
+        destination: *mut u8,
+        destination_capacity: usize,
+    ) -> u32;
+
+    /// Re-reads metadata for a live glyph handle.
+    pub fn media_codec_glyph_info(
+        handle: u64,
+        output: *mut MediaGlyphInfo,
+    ) -> u32;
+
+    /// Releases a font handle.
+    pub fn media_codec_font_close(handle: u64) -> u32;
+
+    /// Releases a glyph handle.
+    pub fn media_codec_glyph_close(handle: u64) -> u32;
+
+    /// Decodes and resamples one source into interleaved stereo samples.
+    pub fn media_codec_audio_decode(
+        source: *const u8,
+        source_len: usize,
+        target_sample_rate: u32,
+        limits: *const MediaCodecLimits,
+        audio_handle: *mut u64,
+        output: *mut MediaAudioInfo,
+    ) -> u32;
+
+    /// Copies a complete interleaved stereo sample buffer.
+    pub fn media_codec_audio_copy(
+        handle: u64,
+        destination: *mut f32,
+        destination_capacity: usize,
+    ) -> u32;
+
+    /// Re-reads metadata for a live audio handle.
+    pub fn media_codec_audio_info(
+        handle: u64,
+        output: *mut MediaAudioInfo,
+    ) -> u32;
+
+    /// Releases an audio handle.
+    pub fn media_codec_audio_close(handle: u64) -> u32;
+}

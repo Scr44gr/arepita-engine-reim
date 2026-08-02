@@ -1,0 +1,366 @@
+from wgpu import Adapter, BindGroup, Buffer, Color, Device, Error as WgpuError, PresentMode as WgpuPresentMode, Queue, RenderPipeline, SurfaceFrame;
+import wgpu::raw::types as types;
+from wgpu_sdl3 import WindowSurface;
+
+/// Recoverable GPU context and presentation failures.
+@derive(Copy, Clone, Debug, Eq)
+pub enum RendererError {
+    Released,
+    SurfaceCreationFailed,
+    SurfaceConfigurationFailed,
+    PresentModeUnavailable,
+    AdapterUnavailable,
+    SurfaceFormatUnavailable,
+    DeviceCreationFailed,
+    QueueCreationFailed,
+    WindowSizeUnavailable,
+    Suspended,
+    FrameUnavailable,
+    FrameRenderFailed,
+    PipelineCreationFailed,
+    BufferCreationFailed,
+    TextureCreationFailed,
+    BindingCreationFailed,
+    UploadFailed,
+    BatchCapacityExceeded,
+    PresentFailed,
+}
+
+/// Frame ordering policy used by a renderer's presentation surface.
+@derive(Copy, Clone, Debug, Eq)
+pub enum PresentationMode {
+    /// Synchronizes every frame to vertical blanking. Always supported.
+    Fifo,
+    /// Synchronizes normally but may present late frames immediately.
+    FifoRelaxed,
+    /// Presents immediately with possible tearing and minimal latency.
+    Immediate,
+    /// Presents only the newest queued frame without tearing.
+    Mailbox,
+}
+
+impl PresentationMode {
+    fn into_wgpu(self) -> WgpuPresentMode {
+        match self {
+            PresentationMode::Fifo => WgpuPresentMode::Fifo,
+            PresentationMode::FifoRelaxed => WgpuPresentMode::FifoRelaxed,
+            PresentationMode::Immediate => WgpuPresentMode::Immediate,
+            PresentationMode::Mailbox => WgpuPresentMode::Mailbox,
+        }
+    }
+}
+
+/// Linear RGBA color used when clearing a frame.
+@derive(Copy, Clone, Debug)
+pub struct ClearColor {
+    pub r: f32,
+    pub g: f32,
+    pub b: f32,
+    pub a: f32,
+}
+
+impl ClearColor {
+    /// Creates a linear RGBA clear color.
+    pub fn rgba(r: f32, g: f32, b: f32, a: f32) -> ClearColor {
+        ClearColor { r: r, g: g, b: b, a: a }
+    }
+
+    fn into_wgpu(self) -> Color {
+        Color::rgba(
+            self.r as f64,
+            self.g as f64,
+            self.b as f64,
+            self.a as f64,
+        )
+    }
+}
+
+/// Owns one adapter, device, and queue independently of a presentation surface.
+///
+/// Keeping the borrowed SDL surface separate makes its lifetime visible and
+/// allows one GPU context to survive surface recreation.
+pub struct GpuContext {
+    adapter: Adapter,
+    device: Device,
+    queue: Queue,
+    format: types::WGPUTextureFormat,
+    presentation_mode: PresentationMode,
+    width: u32,
+    height: u32,
+    suspended: bool,
+    released: bool,
+}
+
+impl GpuContext {
+    /// Creates a native wgpu context compatible with `surface`.
+    pub fn create(
+        surface: &mut WindowSurface,
+    ) -> Result<GpuContext, RendererError> {
+        GpuContext::create_with_presentation_mode(surface, PresentationMode::Fifo)
+    }
+
+    /// Creates a native context with an explicitly supported presentation mode.
+    pub fn create_with_presentation_mode(
+        surface: &mut WindowSurface,
+        presentation_mode: PresentationMode,
+    ) -> Result<GpuContext, RendererError> {
+        let mut adapter = match surface.request_adapter() {
+            Ok(value) => value,
+            Err(_) => {
+                return Err(RendererError::AdapterUnavailable);
+            },
+        };
+        let wgpu_surface = surface.surface();
+        let format = match wgpu_surface.preferred_format(&adapter) {
+            Ok(value) => value,
+            Err(_) => {
+                adapter.release();
+                return Err(RendererError::SurfaceFormatUnavailable);
+            },
+        };
+        let mut device = match adapter.request_device() {
+            Ok(value) => value,
+            Err(_) => {
+                adapter.release();
+                return Err(RendererError::DeviceCreationFailed);
+            },
+        };
+        let mut queue = match device.queue() {
+            Ok(value) => value,
+            Err(_) => {
+                device.release();
+                adapter.release();
+                return Err(RendererError::QueueCreationFailed);
+            },
+        };
+        let window = surface.window();
+        let size = match window.pixel_size() {
+            Ok(value) => value,
+            Err(_) => {
+                queue.release();
+                device.release();
+                adapter.release();
+                return Err(RendererError::WindowSizeUnavailable);
+            },
+        };
+        let suspended = size.width <= 0 || size.height <= 0;
+        let width = if suspended { 0 as u32 } else { size.width as u32 };
+        let height = if suspended { 0 as u32 } else { size.height as u32 };
+        if !suspended {
+            let wgpu_surface = surface.surface_mut();
+            match wgpu_surface.configure_with_present_mode(
+                &adapter,
+                &device,
+                format,
+                width,
+                height,
+                presentation_mode.into_wgpu(),
+            ) {
+                Ok(_) => {},
+                Err(WgpuError::PresentModeUnavailable) => {
+                    queue.release();
+                    device.release();
+                    adapter.release();
+                    return Err(RendererError::PresentModeUnavailable);
+                },
+                Err(_) => {
+                    queue.release();
+                    device.release();
+                    adapter.release();
+                    return Err(RendererError::SurfaceConfigurationFailed);
+                },
+            }
+        }
+        Ok(GpuContext {
+            adapter: adapter,
+            device: device,
+            queue: queue,
+            format: format,
+            presentation_mode: presentation_mode,
+            width: width,
+            height: height,
+            suspended: suspended,
+            released: false,
+        })
+    }
+
+    /// Reconfigures the surface after a resize or density change.
+    pub fn resize(
+        &mut self,
+        surface: &mut WindowSurface,
+    ) -> Result<(), RendererError> {
+        if self.released {
+            return Err(RendererError::Released);
+        }
+        let window = surface.window();
+        let size = match window.pixel_size() {
+            Ok(value) => value,
+            Err(_) => {
+                return Err(RendererError::WindowSizeUnavailable);
+            },
+        };
+        if size.width <= 0 || size.height <= 0 {
+            self.width = 0;
+            self.height = 0;
+            self.suspended = true;
+            return Ok(());
+        }
+        self.width = size.width as u32;
+        self.height = size.height as u32;
+        self.suspended = false;
+        let wgpu_surface = surface.surface_mut();
+        match wgpu_surface.configure_with_present_mode(
+            &self.adapter,
+            &self.device,
+            self.format,
+            self.width,
+            self.height,
+            self.presentation_mode.into_wgpu(),
+        ) {
+            Ok(_) => Ok(()),
+            Err(WgpuError::PresentModeUnavailable) => {
+                Err(RendererError::PresentModeUnavailable)
+            },
+            Err(_) => Err(RendererError::SurfaceConfigurationFailed),
+        }
+    }
+
+    /// Acquires one presentable frame.
+    pub fn acquire(
+        &self,
+        surface: &WindowSurface,
+    ) -> Result<Frame, RendererError> {
+        if self.released {
+            return Err(RendererError::Released);
+        }
+        if self.suspended {
+            return Err(RendererError::Suspended);
+        }
+        let wgpu_surface = surface.surface();
+        match wgpu_surface.acquire() {
+            Ok(value) => Ok(Frame { inner: value }),
+            Err(_) => Err(RendererError::FrameUnavailable),
+        }
+    }
+
+    /// Clears and presents one frame without allocating host-side memory.
+    pub fn clear(
+        &self,
+        surface: &WindowSurface,
+        color: ClearColor,
+    ) -> Result<(), RendererError> {
+        let frame = self.acquire(surface)?;
+        match self.device.clear_and_present(
+            &self.queue,
+            frame.inner,
+            color.into_wgpu(),
+        ) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(RendererError::FrameRenderFailed),
+        }
+    }
+
+    pub fn draw_instances(
+        &self,
+        surface: &WindowSurface,
+        color: ClearColor,
+        pipeline: &RenderPipeline,
+        bind_group: &BindGroup,
+        vertex_buffer: &Buffer,
+        vertex_count: u32,
+        instance_count: u32,
+        byte_length: u64,
+    ) -> Result<(), RendererError> {
+        let frame = self.acquire(surface)?;
+        match self.device.draw_instanced_vertices_and_present(
+            &self.queue,
+            frame.inner,
+            color.into_wgpu(),
+            pipeline,
+            bind_group,
+            vertex_buffer,
+            vertex_count,
+            instance_count,
+            byte_length,
+        ) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(RendererError::FrameRenderFailed),
+        }
+    }
+
+    pub fn device(&self) -> Result<&Device, RendererError> {
+        if self.released {
+            Err(RendererError::Released)
+        } else {
+            Ok(&self.device)
+        }
+    }
+
+    pub fn queue(&self) -> Result<&Queue, RendererError> {
+        if self.released {
+            Err(RendererError::Released)
+        } else {
+            Ok(&self.queue)
+        }
+    }
+
+    pub fn format(&self) -> Result<types::WGPUTextureFormat, RendererError> {
+        if self.released {
+            Err(RendererError::Released)
+        } else {
+            Ok(self.format)
+        }
+    }
+
+    pub fn width(&self) -> u32 { self.width }
+
+    pub fn height(&self) -> u32 { self.height }
+
+    pub fn is_suspended(&self) -> bool { self.suspended }
+
+    /// Returns the presentation policy retained across surface resizes.
+    pub fn presentation_mode(&self) -> PresentationMode {
+        self.presentation_mode
+    }
+
+    /// Returns whether the context has crossed its final release barrier.
+    pub fn is_released(&self) -> bool { self.released }
+
+    /// Unconfigures the surface and releases GPU resources in dependency order.
+    ///
+    /// Release `surface` after this method returns.
+    pub fn release(&mut self, surface: &mut WindowSurface) {
+        if self.released {
+            return;
+        }
+        let wgpu_surface = surface.surface_mut();
+        let _ = wgpu_surface.unconfigure();
+        self.queue.release();
+        self.device.release();
+        self.adapter.release();
+        self.suspended = true;
+        self.width = 0;
+        self.height = 0;
+        self.released = true;
+    }
+}
+
+/// One acquired presentation image.
+pub struct Frame {
+    inner: SurfaceFrame,
+}
+
+impl Frame {
+    /// Presents and releases this frame.
+    pub fn present(self) -> Result<(), RendererError> {
+        match self.inner.present() {
+            Ok(_) => Ok(()),
+            Err(_) => Err(RendererError::PresentFailed),
+        }
+    }
+
+    /// Releases a frame that was not submitted.
+    pub fn discard(self) {
+        self.inner.discard();
+    }
+}

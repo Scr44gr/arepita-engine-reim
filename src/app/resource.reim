@@ -1,0 +1,32 @@
+/// Marker for explicit application resources.
+pub trait Resource: Send + Sync {}
+
+/// Marker for main-thread resources such as windows, renderers, and audio.
+pub trait LocalResource {}
+
+/// A typed resource owner with no runtime name lookup.
+pub struct ResourceCell<T> {
+    value: T,
+}
+
+impl<T: Resource> ResourceCell<T> {
+    /// Wraps a resource for inclusion in application state.
+    pub fn new(value: T) -> ResourceCell<T> {
+        ResourceCell { value: value }
+    }
+
+    /// Borrows the resource for reading.
+    pub fn get(&self) -> &T {
+        &self.value
+    }
+
+    /// Borrows the resource exclusively.
+    pub fn get_mut(&mut self) -> &mut T {
+        &mut self.value
+    }
+
+    /// Unwraps the resource and transfers ownership to the caller.
+    pub fn into_inner(self) -> T {
+        self.value
+    }
+}

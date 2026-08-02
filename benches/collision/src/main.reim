@@ -1,0 +1,210 @@
+from arepita_engine::physics import ALL_LAYERS, Aabb, CollisionError, CollisionQuery, StaticCollider, StaticCollisionWorld;
+from std::alloc import AllocError, general_allocator;
+from std::collections import Vec;
+from std::io import println;
+from std::string import String;
+from std::time import Instant;
+import std::slice as slice;
+
+const SHAPE_COUNT: usize = 50_000;
+const GRID_QUERY_COUNT: usize = 200_000;
+const LINEAR_QUERY_COUNT: usize = 2_000;
+const WORLD_SIZE: f32 = 8_192.0;
+const CELL_SIZE: f32 = 64.0;
+
+fn query_bounds(index: usize) -> Aabb {
+    let x = (index * 97 % 8_000) as f32;
+    let y = (index * 193 % 8_000) as f32;
+    match Aabb::new(x, y, 96.0, 96.0) {
+        Some(value) => value,
+        None => panic("benchmark generated invalid query bounds"),
+    }
+}
+
+fn print_measurement(
+    label: str,
+    nanoseconds: u64,
+    operations: usize,
+    checksum: u64,
+    allocated_bytes: usize,
+) -> Result<(), AllocError> {
+    let allocator = general_allocator();
+    let mut message = String::with_capacity(&allocator, 192)?;
+    defer message.release();
+    message.push_format(
+        f"{label}: {nanoseconds} ns, operations={operations}, checksum={checksum}, tracked allocation={allocated_bytes} bytes",
+    )?;
+    match println(message.as_str()) {
+        Ok(_) => {},
+        Err(_) => {},
+    }
+    Ok(())
+}
+
+fn run_grid_queries(
+    world: &StaticCollisionWorld,
+    query: &mut CollisionQuery,
+    count: usize,
+) -> Result<u64, CollisionError> {
+    let mut checksum: u64 = 0;
+    let mut index: usize = 0;
+    while index < count {
+        let matches = world.query(query_bounds(index), ALL_LAYERS, query)?;
+        checksum = checksum.wrapping_add(matches as u64);
+        index += 1;
+    }
+    Ok(checksum)
+}
+
+fn run_linear_queries(shapes: &[Aabb], count: usize) -> u64 {
+    let mut checksum: u64 = 0;
+    let mut query_index: usize = 0;
+    while query_index < count {
+        let bounds = query_bounds(query_index);
+        let mut shape_index: usize = 0;
+        while shape_index < slice::len(shapes) {
+            if bounds.overlaps(shapes[shape_index]) {
+                checksum = checksum.wrapping_add(1);
+            }
+            shape_index += 1;
+        }
+        query_index += 1;
+    }
+    checksum
+}
+
+fn run() -> Result<i32, AllocError> {
+    let allocator = general_allocator();
+    let world_bounds = match Aabb::new(0.0, 0.0, WORLD_SIZE, WORLD_SIZE) {
+        Some(value) => value,
+        None => {
+            return Ok(10);
+        },
+    };
+    let mut world = match StaticCollisionWorld::with_capacity(
+        &allocator,
+        world_bounds,
+        CELL_SIZE,
+        SHAPE_COUNT,
+        SHAPE_COUNT * 4,
+    ) {
+        Ok(value) => value,
+        Err(_) => {
+            return Ok(11);
+        },
+    };
+    defer world.release();
+    let shapes_result: Result<Vec<Aabb>, AllocError> =
+        Vec::with_capacity(&allocator, SHAPE_COUNT);
+    let mut shapes = shapes_result?;
+    defer shapes.release();
+
+    let mut index: usize = 0;
+    while index < SHAPE_COUNT {
+        let column = index % 250;
+        let row = index / 250;
+        let x = column as f32 * 32.0 + (row % 3) as f32;
+        let y = row as f32 * 32.0 + (column % 5) as f32;
+        let bounds = match Aabb::new(x, y, 20.0, 20.0) {
+            Some(value) => value,
+            None => {
+                return Ok(12);
+            },
+        };
+        if !shapes.push_within_capacity(bounds) {
+            return Ok(13);
+        }
+        match world.add(StaticCollider::new(bounds, ALL_LAYERS)) {
+            Ok(_) => {},
+            Err(_) => {
+                return Ok(14);
+            },
+        }
+        index += 1;
+    }
+
+    let rebuild_start = Instant::now();
+    match world.rebuild() {
+        Ok(_) => {},
+        Err(_) => {
+            return Ok(15);
+        },
+    }
+    let rebuild_duration = rebuild_start.elapsed();
+    let rebuild_ns = rebuild_duration.as_nanoseconds();
+    let mut query = CollisionQuery::with_capacity(&allocator, SHAPE_COUNT, 256)?;
+    defer query.release();
+    let world_allocated = world.allocated_bytes();
+    let query_allocated = query.allocated_bytes();
+    let baseline_allocated = shapes.allocated_bytes();
+    let allocated = world_allocated + query_allocated + baseline_allocated;
+    print_measurement("collision index memory", 0, 0, 0, world_allocated)?;
+    print_measurement("query scratch memory", 0, 0, 0, query_allocated)?;
+    print_measurement("linear baseline memory", 0, 0, 0, baseline_allocated)?;
+    print_measurement("grid rebuild", rebuild_ns, SHAPE_COUNT, 0, allocated)?;
+
+    let grid_start = Instant::now();
+    let grid_checksum = match run_grid_queries(
+        &world,
+        &mut query,
+        GRID_QUERY_COUNT,
+    ) {
+        Ok(value) => value,
+        Err(_) => {
+            return Ok(16);
+        },
+    };
+    let grid_duration = grid_start.elapsed();
+    let grid_ns = grid_duration.as_nanoseconds();
+    print_measurement(
+        "prepared grid queries",
+        grid_ns,
+        GRID_QUERY_COUNT,
+        grid_checksum,
+        allocated,
+    )?;
+
+    let comparable_start = Instant::now();
+    let comparable_grid_checksum = match run_grid_queries(
+        &world,
+        &mut query,
+        LINEAR_QUERY_COUNT,
+    ) {
+        Ok(value) => value,
+        Err(_) => {
+            return Ok(17);
+        },
+    };
+    let comparable_grid_duration = comparable_start.elapsed();
+    let comparable_grid_ns = comparable_grid_duration.as_nanoseconds();
+    print_measurement(
+        "grid comparison window",
+        comparable_grid_ns,
+        LINEAR_QUERY_COUNT,
+        comparable_grid_checksum,
+        allocated,
+    )?;
+
+    let linear_start = Instant::now();
+    let linear_checksum = run_linear_queries(shapes.as_slice(), LINEAR_QUERY_COUNT);
+    let linear_duration = linear_start.elapsed();
+    let linear_ns = linear_duration.as_nanoseconds();
+    print_measurement(
+        "linear comparison window",
+        linear_ns,
+        LINEAR_QUERY_COUNT,
+        linear_checksum,
+        allocated,
+    )?;
+    if comparable_grid_checksum != linear_checksum {
+        return Ok(18);
+    }
+    Ok(0)
+}
+
+fn main() -> i32 {
+    match run() {
+        Ok(code) => code,
+        Err(_) => 1,
+    }
+}

@@ -1,0 +1,188 @@
+import std::c;
+import std::slice;
+
+from self::init import Subsystems;
+import self::init as init;
+import self::raw::constants as constants;
+import self::raw::functions as sdl;
+import self::raw::types as types;
+
+/// Recoverable SDL audio output failures.
+@derive(Copy, Clone, Debug, Eq)
+pub enum AudioError {
+    InvalidFormat,
+    InitializationFailed,
+    DeviceOpenFailed,
+    StreamCreationFailed,
+    StreamBindingFailed,
+    DeviceStartFailed,
+    QueueFailed,
+    QueryFailed,
+    GainFailed,
+    ClearFailed,
+}
+
+/// One owning F32 playback stream bound to the default SDL audio device.
+///
+/// Samples are interleaved by channel. SDL copies queued data and performs any
+/// device-format conversion when the physical device consumes it.
+pub struct AudioOutput {
+    subsystems: Subsystems,
+    device: types::SDL_AudioDeviceID,
+    stream: *mut types::SDL_AudioStream,
+    sample_rate: u32,
+    channels: u32,
+}
+
+impl AudioOutput {
+    /// Opens the default playback device for interleaved F32 samples.
+    pub fn create(
+        sample_rate: u32,
+        channels: u32,
+    ) -> Result<AudioOutput, AudioError> {
+        if sample_rate < 8_000
+            || sample_rate > 384_000
+            || channels == 0
+            || channels > 8
+        {
+            return Err(AudioError::InvalidFormat);
+        }
+        let mut subsystems = match Subsystems::init(init::AUDIO) {
+            Ok(value) => value,
+            Err(_) => {
+                return Err(AudioError::InitializationFailed);
+            },
+        };
+        let specification = types::SDL_AudioSpec {
+            format: constants::SDL_AUDIO_F32,
+            channels: channels as c::Int,
+            freq: sample_rate as c::Int,
+        };
+        let device = unsafe {
+            sdl::SDL_OpenAudioDevice(
+                constants::SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,
+                &specification as *const types::SDL_AudioSpec,
+            )
+        };
+        if device == 0 {
+            subsystems.release();
+            return Err(AudioError::DeviceOpenFailed);
+        }
+        let stream = unsafe {
+            sdl::SDL_CreateAudioStream(
+                &specification as *const types::SDL_AudioSpec,
+                c::null_const<types::SDL_AudioSpec>(),
+            )
+        };
+        if c::is_null_mut(stream) {
+            unsafe {
+                sdl::SDL_CloseAudioDevice(device);
+            }
+            subsystems.release();
+            return Err(AudioError::StreamCreationFailed);
+        }
+        if !unsafe { sdl::SDL_BindAudioStream(device, stream) } {
+            unsafe {
+                sdl::SDL_DestroyAudioStream(stream);
+                sdl::SDL_CloseAudioDevice(device);
+            }
+            subsystems.release();
+            return Err(AudioError::StreamBindingFailed);
+        }
+        if !unsafe { sdl::SDL_ResumeAudioDevice(device) } {
+            unsafe {
+                sdl::SDL_DestroyAudioStream(stream);
+                sdl::SDL_CloseAudioDevice(device);
+            }
+            subsystems.release();
+            return Err(AudioError::DeviceStartFailed);
+        }
+        Ok(AudioOutput {
+            subsystems: subsystems,
+            device: device,
+            stream: stream,
+            sample_rate: sample_rate,
+            channels: channels,
+        })
+    }
+
+    /// Queues complete interleaved F32 frames after validating their shape.
+    pub fn queue_f32(&self, samples: &[f32]) -> Result<(), AudioError> {
+        let sample_count = slice::len(samples);
+        if sample_count % self.channels as usize != 0 {
+            return Err(AudioError::InvalidFormat);
+        }
+        let byte_length = sample_count * slice::element_size(samples);
+        if byte_length > 0x7fff_ffff {
+            return Err(AudioError::InvalidFormat);
+        }
+        if byte_length == 0 {
+            return Ok(());
+        }
+        let pointer = slice::as_ptr(samples) as *const ();
+        if unsafe {
+            sdl::SDL_PutAudioStreamData(
+                self.stream,
+                pointer,
+                byte_length as c::Int,
+            )
+        } {
+            Ok(())
+        } else {
+            Err(AudioError::QueueFailed)
+        }
+    }
+
+    /// Returns the number of complete sample frames waiting in SDL.
+    pub fn queued_frames(&self) -> Result<u64, AudioError> {
+        let bytes = unsafe { sdl::SDL_GetAudioStreamQueued(self.stream) };
+        if bytes < 0 {
+            Err(AudioError::QueryFailed)
+        } else {
+            let frame_bytes = self.channels as u64 * 4;
+            Ok(bytes as u64 / frame_bytes)
+        }
+    }
+
+    /// Sets a non-negative stream gain; 1.0 is unchanged volume.
+    pub fn set_gain(&self, gain: f32) -> Result<(), AudioError> {
+        if gain < 0.0 {
+            return Err(AudioError::InvalidFormat);
+        }
+        if unsafe { sdl::SDL_SetAudioStreamGain(self.stream, gain) } {
+            Ok(())
+        } else {
+            Err(AudioError::GainFailed)
+        }
+    }
+
+    /// Discards samples that have not reached the device yet.
+    pub fn clear(&self) -> Result<(), AudioError> {
+        if unsafe { sdl::SDL_ClearAudioStream(self.stream) } {
+            Ok(())
+        } else {
+            Err(AudioError::ClearFailed)
+        }
+    }
+
+    pub fn sample_rate(&self) -> u32 { self.sample_rate }
+
+    pub fn channels(&self) -> u32 { self.channels }
+
+    /// Destroys the stream, closes the logical device, and releases SDL audio.
+    pub fn release(&mut self) {
+        if !c::is_null_mut(self.stream) {
+            unsafe {
+                sdl::SDL_DestroyAudioStream(self.stream);
+            }
+            self.stream = c::null<types::SDL_AudioStream>();
+        }
+        if self.device != 0 {
+            unsafe {
+                sdl::SDL_CloseAudioDevice(self.device);
+            }
+            self.device = 0;
+        }
+        self.subsystems.release();
+    }
+}

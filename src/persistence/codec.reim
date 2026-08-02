@@ -1,0 +1,290 @@
+from std::binary import from_f32_bits, read_u16_le, read_u32_le, read_u64_le, to_f32_bits;
+from std::slice import byte_range, len, mut_len;
+from std::string import equals, from_utf8;
+
+const MAX_U32: u64 = 4_294_967_295;
+
+/// Recoverable failures while encoding or decoding a save payload.
+@derive(Copy, Clone, Debug, Eq)
+pub enum SaveCodecError {
+    BufferTooSmall,
+    ValueTooLarge,
+    InvalidData,
+    TrailingData,
+}
+
+/// Allocation-free writer over caller-owned save payload storage.
+pub struct SaveWriter {
+    bytes: &mut [u8],
+    length: usize,
+    cursor: usize,
+}
+
+impl SaveWriter {
+    pub fn new(bytes: &mut [u8]) -> SaveWriter {
+        let length = mut_len(bytes);
+        SaveWriter { bytes: bytes, length: length, cursor: 0 }
+    }
+
+    pub fn position(&self) -> usize { self.cursor }
+
+    pub fn remaining(&self) -> usize {
+        if self.cursor <= self.length {
+            return self.length - self.cursor;
+        }
+        0
+    }
+
+    pub fn write_u8(&mut self, value: u8) -> Result<(), SaveCodecError> {
+        if self.remaining() < 1 {
+            return Err(SaveCodecError::BufferTooSmall);
+        }
+        self.bytes[self.cursor] = value;
+        self.cursor += 1;
+        Ok(())
+    }
+
+    pub fn write_bool(&mut self, value: bool) -> Result<(), SaveCodecError> {
+        self.write_u8(if value { 1 } else { 0 })
+    }
+
+    pub fn write_u16(&mut self, value: u16) -> Result<(), SaveCodecError> {
+        if self.remaining() < 2 {
+            return Err(SaveCodecError::BufferTooSmall);
+        }
+        let offset = self.cursor;
+        self.bytes[offset] = value as u8;
+        self.bytes[offset + 1] = (value >> 8) as u8;
+        self.cursor = offset + 2;
+        Ok(())
+    }
+
+    pub fn write_u32(&mut self, value: u32) -> Result<(), SaveCodecError> {
+        if self.remaining() < 4 {
+            return Err(SaveCodecError::BufferTooSmall);
+        }
+        let offset = self.cursor;
+        self.bytes[offset] = value as u8;
+        self.bytes[offset + 1] = (value >> 8) as u8;
+        self.bytes[offset + 2] = (value >> 16) as u8;
+        self.bytes[offset + 3] = (value >> 24) as u8;
+        self.cursor = offset + 4;
+        Ok(())
+    }
+
+    pub fn write_i32(&mut self, value: i32) -> Result<(), SaveCodecError> {
+        self.write_u32(value as u32)
+    }
+
+    pub fn write_u64(&mut self, value: u64) -> Result<(), SaveCodecError> {
+        if self.remaining() < 8 {
+            return Err(SaveCodecError::BufferTooSmall);
+        }
+        let offset = self.cursor;
+        self.bytes[offset] = value as u8;
+        self.bytes[offset + 1] = (value >> 8) as u8;
+        self.bytes[offset + 2] = (value >> 16) as u8;
+        self.bytes[offset + 3] = (value >> 24) as u8;
+        self.bytes[offset + 4] = (value >> 32) as u8;
+        self.bytes[offset + 5] = (value >> 40) as u8;
+        self.bytes[offset + 6] = (value >> 48) as u8;
+        self.bytes[offset + 7] = (value >> 56) as u8;
+        self.cursor = offset + 8;
+        Ok(())
+    }
+
+    pub fn write_f32(&mut self, value: f32) -> Result<(), SaveCodecError> {
+        self.write_u32(to_f32_bits(value))
+    }
+
+    /// Writes a length-prefixed borrowed byte sequence without partial output.
+    pub fn write_bytes(&mut self, value: &[u8]) -> Result<(), SaveCodecError> {
+        let value_length = len(value);
+        if value_length as u64 > MAX_U32 {
+            return Err(SaveCodecError::ValueTooLarge);
+        }
+        let required = match value_length.checked_add(4) {
+            Some(result) => result,
+            None => { return Err(SaveCodecError::ValueTooLarge); },
+        };
+        if self.remaining() < required {
+            return Err(SaveCodecError::BufferTooSmall);
+        }
+        let offset = self.cursor;
+        let encoded_length = value_length as u32;
+        self.bytes[offset] = encoded_length as u8;
+        self.bytes[offset + 1] = (encoded_length >> 8) as u8;
+        self.bytes[offset + 2] = (encoded_length >> 16) as u8;
+        self.bytes[offset + 3] = (encoded_length >> 24) as u8;
+        let mut index: usize = 0;
+        while index < value_length {
+            self.bytes[offset + 4 + index] = value[index];
+            index += 1;
+        }
+        self.cursor = offset + required;
+        Ok(())
+    }
+
+    /// Writes one length-prefixed UTF-8 string without allocating.
+    pub fn write_str(&mut self, value: str) -> Result<(), SaveCodecError> {
+        self.write_bytes(value.bytes())
+    }
+}
+
+/// Allocation-free reader over a validated save payload.
+pub struct SaveReader {
+    bytes: &[u8],
+    length: usize,
+    cursor: usize,
+}
+
+impl SaveReader {
+    pub fn new(bytes: &[u8]) -> SaveReader {
+        let length = len(bytes);
+        SaveReader { bytes: bytes, length: length, cursor: 0 }
+    }
+
+    pub fn position(&self) -> usize { self.cursor }
+
+    pub fn remaining(&self) -> usize {
+        if self.cursor <= self.length {
+            return self.length - self.cursor;
+        }
+        0
+    }
+
+    pub fn read_u8(&mut self) -> Result<u8, SaveCodecError> {
+        if self.remaining() < 1 {
+            return Err(SaveCodecError::BufferTooSmall);
+        }
+        let value = self.bytes[self.cursor];
+        self.cursor += 1;
+        Ok(value)
+    }
+
+    pub fn read_bool(&mut self) -> Result<bool, SaveCodecError> {
+        match self.read_u8()? {
+            0 => Ok(false),
+            1 => Ok(true),
+            _ => Err(SaveCodecError::InvalidData),
+        }
+    }
+
+    pub fn read_u16(&mut self) -> Result<u16, SaveCodecError> {
+        let value = match read_u16_le(self.bytes, self.cursor) {
+            Some(result) => result,
+            None => { return Err(SaveCodecError::BufferTooSmall); },
+        };
+        self.cursor += 2;
+        Ok(value)
+    }
+
+    pub fn read_u32(&mut self) -> Result<u32, SaveCodecError> {
+        let value = match read_u32_le(self.bytes, self.cursor) {
+            Some(result) => result,
+            None => { return Err(SaveCodecError::BufferTooSmall); },
+        };
+        self.cursor += 4;
+        Ok(value)
+    }
+
+    pub fn read_i32(&mut self) -> Result<i32, SaveCodecError> {
+        Ok(self.read_u32()? as i32)
+    }
+
+    pub fn read_u64(&mut self) -> Result<u64, SaveCodecError> {
+        let value = match read_u64_le(self.bytes, self.cursor) {
+            Some(result) => result,
+            None => { return Err(SaveCodecError::BufferTooSmall); },
+        };
+        self.cursor += 8;
+        Ok(value)
+    }
+
+    pub fn read_f32(&mut self) -> Result<f32, SaveCodecError> {
+        Ok(from_f32_bits(self.read_u32()?))
+    }
+
+    /// Borrows one length-prefixed byte sequence without copying it.
+    pub fn read_bytes(&mut self) -> Result<&[u8], SaveCodecError> {
+        let value_length = self.read_u32()? as usize;
+        let value = match byte_range(self.bytes, self.cursor, value_length) {
+            Some(result) => result,
+            None => { return Err(SaveCodecError::BufferTooSmall); },
+        };
+        self.cursor += value_length;
+        Ok(value)
+    }
+
+    /// Borrows one length-prefixed UTF-8 string after validation.
+    pub fn read_str(&mut self) -> Result<str, SaveCodecError> {
+        let bytes = self.read_bytes()?;
+        match from_utf8(bytes) {
+            Ok(value) => Ok(value),
+            Err(_) => Err(SaveCodecError::InvalidData),
+        }
+    }
+
+    /// Requires the caller to have consumed the complete payload.
+    pub fn finish(&self) -> Result<(), SaveCodecError> {
+        if self.remaining() == 0 {
+            Ok(())
+        } else {
+            Err(SaveCodecError::TrailingData)
+        }
+    }
+}
+
+fn read_expected_name(reader: &mut SaveReader, expected: str) -> bool {
+    match reader.read_str() {
+        Ok(value) => equals(value, expected),
+        Err(_) => false,
+    }
+}
+
+@test
+fn save_codec_should_round_trip_primitives_and_utf8_without_allocation() {
+    let mut storage: [u8; 32] = [
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+    ];
+    let written = {
+        let mut writer = SaveWriter::new(&mut storage);
+        match writer.write_bool(true) { Ok(_) => {}, Err(_) => panic("bool write failed"), }
+        match writer.write_i32(-42) { Ok(_) => {}, Err(_) => panic("i32 write failed"), }
+        match writer.write_f32(3.5) { Ok(_) => {}, Err(_) => panic("f32 write failed"), }
+        match writer.write_str("café") { Ok(_) => {}, Err(_) => panic("string write failed"), }
+        writer.position()
+    };
+    let payload = match byte_range(&storage, 0, written) {
+        Some(value) => value,
+        None => panic("encoded payload range failed"),
+    };
+    let mut reader = SaveReader::new(payload);
+    assert(match reader.read_bool() { Ok(value) => value, Err(_) => false });
+    assert(match reader.read_i32() { Ok(value) => value == -42, Err(_) => false });
+    assert(match reader.read_f32() { Ok(value) => value == 3.5, Err(_) => false });
+    assert(read_expected_name(&mut reader, "café"));
+    assert(match reader.finish() { Ok(_) => true, Err(_) => false });
+}
+
+@test
+fn save_codec_should_reject_invalid_boole_and_partial_writes() {
+    let invalid: [u8; 1] = [2];
+    {
+        let mut reader = SaveReader::new(&invalid);
+        assert(match reader.read_bool() {
+            Err(SaveCodecError::InvalidData) => true,
+            _ => false,
+        });
+    }
+    let mut storage: [u8; 4] = [0, 0, 0, 0];
+    let mut writer = SaveWriter::new(&mut storage);
+    assert(match writer.write_str("too large") {
+        Err(SaveCodecError::BufferTooSmall) => true,
+        _ => false,
+    });
+    assert(writer.position() == 0);
+}

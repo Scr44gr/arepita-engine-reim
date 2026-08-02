@@ -1,0 +1,121 @@
+from arepita_engine::ecs import Component, ComponentStore, Entities;
+from std::alloc import AllocError, general_allocator;
+from std::io import println;
+from std::job import JobError, JobPool, JobPoolConfig, chunk_len, parallel_for_mut;
+from std::string import String;
+from std::time import Instant;
+
+const ENTITY_COUNT: usize = 200_000;
+const UPDATE_PASSES: usize = 120;
+
+@derive(Copy, Component)
+struct Transform {
+    x: f32,
+    y: f32,
+    velocity_x: f32,
+    velocity_y: f32,
+}
+
+fn update_chunk(values: &mut [Transform]) {
+    let mut index: usize = 0;
+    let length = chunk_len(values);
+    while index < length {
+        let mut value = values[index];
+        value.x += value.velocity_x;
+        value.y += value.velocity_y;
+        values[index] = value;
+        index += 1;
+    }
+}
+
+fn print_measurement(
+    label: str,
+    nanoseconds: u64,
+    allocated_bytes: usize,
+) -> Result<(), AllocError> {
+    let allocator = general_allocator();
+    let mut message = String::with_capacity(&allocator, 128)?;
+    defer message.deinit();
+    message.push_format(
+        f"{label}: {nanoseconds} ns, tracked allocation={allocated_bytes} bytes",
+    )?;
+    match println(message.as_str()) {
+        Ok(_) => {},
+        Err(_) => {},
+    }
+    Ok(())
+}
+
+fn run() -> Result<i32, AllocError> {
+    let allocator = general_allocator();
+    let mut entities = Entities::new(&allocator)?;
+    defer entities.deinit();
+    let created: Result<ComponentStore<Transform>, AllocError> =
+        ComponentStore::new(&allocator);
+    let mut transforms = created?;
+    defer transforms.deinit();
+
+    let creation_start = Instant::now();
+    let mut index: usize = 0;
+    while index < ENTITY_COUNT {
+        let entity = match entities.spawn() {
+            Ok(value) => value,
+            Err(_) => {
+                return Ok(10);
+            },
+        };
+        transforms.insert(entity, Transform {
+            x: index as f32,
+            y: 0.0,
+            velocity_x: 1.0,
+            velocity_y: -0.25,
+        })?;
+        index += 1;
+    }
+    let creation_duration = creation_start.elapsed();
+    let creation_ns = creation_duration.as_nanoseconds();
+    let allocated = entities.allocated_bytes() + transforms.allocated_bytes();
+    print_measurement("create + insert", creation_ns, allocated)?;
+
+    let sequential_start = Instant::now();
+    let mut pass: usize = 0;
+    while pass < UPDATE_PASSES {
+        update_chunk(transforms.values_mut());
+        pass += 1;
+    }
+    let sequential_duration = sequential_start.elapsed();
+    let sequential_ns = sequential_duration.as_nanoseconds();
+    print_measurement("packed sequential update", sequential_ns, allocated)?;
+
+    let pool_result: Result<JobPool, JobError> =
+        JobPool::init(&allocator, JobPoolConfig::fixed(4));
+    let mut pool = match pool_result {
+        Ok(value) => value,
+        Err(_) => {
+            return Ok(11);
+        },
+    };
+    defer pool.deinit();
+    let parallel_start = Instant::now();
+    pass = 0;
+    while pass < UPDATE_PASSES {
+        match parallel_for_mut(&pool, transforms.values_mut(), update_chunk, 4_096) {
+            Ok(_) => {},
+            Err(_) => {
+                return Ok(12);
+            },
+        }
+        pass += 1;
+    }
+    let parallel_duration = parallel_start.elapsed();
+    let parallel_ns = parallel_duration.as_nanoseconds();
+    print_measurement("packed four-worker update", parallel_ns, allocated)?;
+    Ok(0)
+}
+
+fn main() -> i32 {
+    match run() {
+        Ok(code) => code,
+        Err(_) => 1,
+    }
+}

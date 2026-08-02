@@ -1,0 +1,3552 @@
+// Generated from wgpu-native 29.0.1.1: raw C types. Do not edit by hand.
+// Run `vendor/wgpu/tools/generate.ps1` to update this file.
+
+import std::c;
+
+/// Opaque, non-dispatchable handles to WebGPU objects.
+pub type WGPUAdapter = *mut ();
+
+/// Opaque, reference-counted `WGPUBindGroup` WebGPU object handle.
+pub type WGPUBindGroup = *mut ();
+
+/// Opaque, reference-counted `WGPUBindGroupLayout` WebGPU object handle.
+pub type WGPUBindGroupLayout = *mut ();
+
+/// Opaque, reference-counted `WGPUBuffer` WebGPU object handle.
+pub type WGPUBuffer = *mut ();
+
+/// Opaque, reference-counted `WGPUCommandBuffer` WebGPU object handle.
+pub type WGPUCommandBuffer = *mut ();
+
+/// Opaque, reference-counted `WGPUCommandEncoder` WebGPU object handle.
+pub type WGPUCommandEncoder = *mut ();
+
+/// Opaque, reference-counted `WGPUComputePassEncoder` WebGPU object handle.
+pub type WGPUComputePassEncoder = *mut ();
+
+/// Opaque, reference-counted `WGPUComputePipeline` WebGPU object handle.
+pub type WGPUComputePipeline = *mut ();
+
+/// Releasing the last ref to a `WGPUDevice` also calls wgpuDeviceDestroy.
+/// For more info, see DeviceRelease.
+pub type WGPUDevice = *mut ();
+
+/// A sampleable 2D texture that may perform 0-copy YUV sampling internally. Creation of WGPUExternalTexture is extremely implementation-dependent and not defined in this header.
+pub type WGPUExternalTexture = *mut ();
+
+/// Opaque, reference-counted `WGPUInstance` WebGPU object handle.
+pub type WGPUInstance = *mut ();
+
+/// Opaque, reference-counted `WGPUPipelineLayout` WebGPU object handle.
+pub type WGPUPipelineLayout = *mut ();
+
+/// Opaque, reference-counted `WGPUQuerySet` WebGPU object handle.
+pub type WGPUQuerySet = *mut ();
+
+/// Opaque, reference-counted `WGPUQueue` WebGPU object handle.
+pub type WGPUQueue = *mut ();
+
+/// Opaque, reference-counted `WGPURenderBundle` WebGPU object handle.
+pub type WGPURenderBundle = *mut ();
+
+/// Opaque, reference-counted `WGPURenderBundleEncoder` WebGPU object handle.
+pub type WGPURenderBundleEncoder = *mut ();
+
+/// Opaque, reference-counted `WGPURenderPassEncoder` WebGPU object handle.
+pub type WGPURenderPassEncoder = *mut ();
+
+/// Opaque, reference-counted `WGPURenderPipeline` WebGPU object handle.
+pub type WGPURenderPipeline = *mut ();
+
+/// Opaque, reference-counted `WGPUSampler` WebGPU object handle.
+pub type WGPUSampler = *mut ();
+
+/// Opaque, reference-counted `WGPUShaderModule` WebGPU object handle.
+pub type WGPUShaderModule = *mut ();
+
+/// An object used to continuously present image data to the user, see Surfaces for more details.
+pub type WGPUSurface = *mut ();
+
+/// Opaque, reference-counted `WGPUTexture` WebGPU object handle.
+pub type WGPUTexture = *mut ();
+
+/// Opaque, reference-counted `WGPUTextureView` WebGPU object handle.
+pub type WGPUTextureView = *mut ();
+
+/// C-compatible `WGPUFlags` value.
+pub type WGPUFlags = u64;
+
+/// C-compatible `WGPUBool` value.
+pub type WGPUBool = u32;
+
+/// For reserved non-standard bitflag values, see BitflagRegistry.
+pub type WGPUBufferUsage = WGPUFlags;
+
+/// For reserved non-standard bitflag values, see BitflagRegistry.
+pub type WGPUColorWriteMask = WGPUFlags;
+
+/// For reserved non-standard bitflag values, see BitflagRegistry.
+pub type WGPUMapMode = WGPUFlags;
+
+/// For reserved non-standard bitflag values, see BitflagRegistry.
+pub type WGPUShaderStage = WGPUFlags;
+
+/// For reserved non-standard bitflag values, see BitflagRegistry.
+pub type WGPUTextureUsage = WGPUFlags;
+
+/// Bitflags selecting which graphics backends the WGPUInstance should
+/// enable.
+///
+/// Pass in the backends field of WGPUInstanceExtras.
+pub type WGPUInstanceBackend = WGPUFlags;
+
+/// Bitflags controlling instance debugging and validation behavior.
+///
+/// These are not part of the WebGPU standard.
+///
+/// Pass in the flags field of WGPUInstanceExtras.
+pub type WGPUInstanceFlag = WGPUFlags;
+
+/// Identifier for a particular call to wgpuQueueSubmitForIndex.
+///
+/// Can be passed to wgpuDevicePoll to block until a particular
+/// submission has finished execution.
+///
+/// This type is unique to wgpu-native; there is no analogue in the
+/// WebGPU specification.
+pub type WGPUSubmissionIndex = u64;
+
+/// Describes how shader bound checks should be performed.
+pub type WGPUShaderRuntimeChecks = WGPUFlags;
+
+/// Enums.
+pub type WGPUAdapterType = c::Int;
+
+/// C enumeration storage for `WGPUAddressMode`.
+pub type WGPUAddressMode = c::Int;
+
+/// C enumeration storage for `WGPUBackendType`.
+pub type WGPUBackendType = c::Int;
+
+/// C enumeration storage for `WGPUBlendFactor`.
+pub type WGPUBlendFactor = c::Int;
+
+/// C enumeration storage for `WGPUBlendOperation`.
+pub type WGPUBlendOperation = c::Int;
+
+/// C enumeration storage for `WGPUBufferBindingType`.
+pub type WGPUBufferBindingType = c::Int;
+
+/// C enumeration storage for `WGPUBufferMapState`.
+pub type WGPUBufferMapState = c::Int;
+
+/// The callback mode controls how a callback for an asynchronous operation may be fired. See Asynchronous-Operations for how these are used.
+pub type WGPUCallbackMode = c::Int;
+
+/// C enumeration storage for `WGPUCompareFunction`.
+pub type WGPUCompareFunction = c::Int;
+
+/// C enumeration storage for `WGPUCompilationInfoRequestStatus`.
+pub type WGPUCompilationInfoRequestStatus = c::Int;
+
+/// C enumeration storage for `WGPUCompilationMessageType`.
+pub type WGPUCompilationMessageType = c::Int;
+
+/// C enumeration storage for `WGPUComponentSwizzle`.
+pub type WGPUComponentSwizzle = c::Int;
+
+/// Describes how frames are composited with other contents on the screen when wgpuSurfacePresent is called.
+pub type WGPUCompositeAlphaMode = c::Int;
+
+/// C enumeration storage for `WGPUCreatePipelineAsyncStatus`.
+pub type WGPUCreatePipelineAsyncStatus = c::Int;
+
+/// C enumeration storage for `WGPUCullMode`.
+pub type WGPUCullMode = c::Int;
+
+/// C enumeration storage for `WGPUDeviceLostReason`.
+pub type WGPUDeviceLostReason = c::Int;
+
+/// C enumeration storage for `WGPUErrorFilter`.
+pub type WGPUErrorFilter = c::Int;
+
+/// C enumeration storage for `WGPUErrorType`.
+pub type WGPUErrorType = c::Int;
+
+/// See WGPURequestAdapterOptions::featureLevel.
+pub type WGPUFeatureLevel = c::Int;
+
+/// C enumeration storage for `WGPUFeatureName`.
+pub type WGPUFeatureName = c::Int;
+
+/// C enumeration storage for `WGPUFilterMode`.
+pub type WGPUFilterMode = c::Int;
+
+/// C enumeration storage for `WGPUFrontFace`.
+pub type WGPUFrontFace = c::Int;
+
+/// C enumeration storage for `WGPUIndexFormat`.
+pub type WGPUIndexFormat = c::Int;
+
+/// C enumeration storage for `WGPUInstanceFeatureName`.
+pub type WGPUInstanceFeatureName = c::Int;
+
+/// C enumeration storage for `WGPULoadOp`.
+pub type WGPULoadOp = c::Int;
+
+/// C enumeration storage for `WGPUMapAsyncStatus`.
+pub type WGPUMapAsyncStatus = c::Int;
+
+/// C enumeration storage for `WGPUMipmapFilterMode`.
+pub type WGPUMipmapFilterMode = c::Int;
+
+/// C enumeration storage for `WGPUOptionalBool`.
+pub type WGPUOptionalBool = c::Int;
+
+/// C enumeration storage for `WGPUPopErrorScopeStatus`.
+pub type WGPUPopErrorScopeStatus = c::Int;
+
+/// C enumeration storage for `WGPUPowerPreference`.
+pub type WGPUPowerPreference = c::Int;
+
+/// C enumeration storage for `WGPUPredefinedColorSpace`.
+pub type WGPUPredefinedColorSpace = c::Int;
+
+/// Describes when and in which order frames are presented on the screen when wgpuSurfacePresent is called.
+pub type WGPUPresentMode = c::Int;
+
+/// C enumeration storage for `WGPUPrimitiveTopology`.
+pub type WGPUPrimitiveTopology = c::Int;
+
+/// C enumeration storage for `WGPUQueryType`.
+pub type WGPUQueryType = c::Int;
+
+/// C enumeration storage for `WGPUQueueWorkDoneStatus`.
+pub type WGPUQueueWorkDoneStatus = c::Int;
+
+/// C enumeration storage for `WGPURequestAdapterStatus`.
+pub type WGPURequestAdapterStatus = c::Int;
+
+/// C enumeration storage for `WGPURequestDeviceStatus`.
+pub type WGPURequestDeviceStatus = c::Int;
+
+/// C enumeration storage for `WGPUSamplerBindingType`.
+pub type WGPUSamplerBindingType = c::Int;
+
+/// Status code returned (synchronously) from many operations. Generally
+/// indicates an invalid input like an unknown enum value or OutStructChainError.
+/// Read the function's documentation for specific error conditions.
+pub type WGPUStatus = c::Int;
+
+/// C enumeration storage for `WGPUStencilOperation`.
+pub type WGPUStencilOperation = c::Int;
+
+/// C enumeration storage for `WGPUStorageTextureAccess`.
+pub type WGPUStorageTextureAccess = c::Int;
+
+/// C enumeration storage for `WGPUStoreOp`.
+pub type WGPUStoreOp = c::Int;
+
+/// C enumeration storage for `WGPUSType`.
+pub type WGPUSType = c::Int;
+
+/// The status enum for wgpuSurfaceGetCurrentTexture.
+pub type WGPUSurfaceGetCurrentTextureStatus = c::Int;
+
+/// C enumeration storage for `WGPUTextureAspect`.
+pub type WGPUTextureAspect = c::Int;
+
+/// C enumeration storage for `WGPUTextureDimension`.
+pub type WGPUTextureDimension = c::Int;
+
+/// C enumeration storage for `WGPUTextureFormat`.
+pub type WGPUTextureFormat = c::Int;
+
+/// C enumeration storage for `WGPUTextureSampleType`.
+pub type WGPUTextureSampleType = c::Int;
+
+/// C enumeration storage for `WGPUTextureViewDimension`.
+pub type WGPUTextureViewDimension = c::Int;
+
+/// C enumeration storage for `WGPUToneMappingMode`.
+pub type WGPUToneMappingMode = c::Int;
+
+/// C enumeration storage for `WGPUVertexFormat`.
+pub type WGPUVertexFormat = c::Int;
+
+/// C enumeration storage for `WGPUVertexStepMode`.
+pub type WGPUVertexStepMode = c::Int;
+
+/// Status returned from a call to ::wgpuInstanceWaitAny.
+pub type WGPUWaitStatus = c::Int;
+
+/// C enumeration storage for `WGPUWGSLLanguageFeatureName`.
+pub type WGPUWGSLLanguageFeatureName = c::Int;
+
+/// @file wgpu.h
+/// wgpu-native specific extensions to the standard WebGPU C API.
+///
+/// This header defines native-only types, enumerations, structures, and functions
+/// that extend the WebGPU specification defined in webgpu.h. All extension
+/// enum values and struct type identifiers (WGPUNativeSType) are allocated
+/// within the 0x0003XXXX range reserved for wgpu-native.
+///
+/// Include this header after webgpu.h (it is included automatically).
+pub type WGPUNativeSType = c::Int;
+
+/// Additional surface-get-current-texture status codes defined by wgpu-native.
+///
+/// These extend the standard WGPUSurfaceGetCurrentTextureStatus values.
+pub type WGPUNativeSurfaceGetCurrentTextureStatus = c::Int;
+
+/// Native-only device features.
+///
+/// These extend the standard WGPUFeatureName values and can be passed to
+/// WGPUDeviceDescriptor::requiredFeatures to request additional
+/// capabilities when creating a device.
+pub type WGPUNativeFeature = c::Int;
+
+/// C enumeration storage for `WGPULogLevel`.
+pub type WGPULogLevel = c::Int;
+
+/// C enumeration storage for `WGPUDx12Compiler`.
+pub type WGPUDx12Compiler = c::Int;
+
+/// C enumeration storage for `WGPUGles3MinorVersion`.
+pub type WGPUGles3MinorVersion = c::Int;
+
+/// C enumeration storage for `WGPUPipelineStatisticName`.
+pub type WGPUPipelineStatisticName = c::Int;
+
+/// C enumeration storage for `WGPUNativeQueryType`.
+pub type WGPUNativeQueryType = c::Int;
+
+/// C enumeration storage for `WGPUDxcMaxShaderModel`.
+pub type WGPUDxcMaxShaderModel = c::Int;
+
+/// C enumeration storage for `WGPUGLFenceBehaviour`.
+pub type WGPUGLFenceBehaviour = c::Int;
+
+/// C enumeration storage for `WGPUDx12SwapchainKind`.
+pub type WGPUDx12SwapchainKind = c::Int;
+
+/// Discriminant for WGPUNativeDisplayHandle.
+///
+/// Identifies which platform's display connection is stored in the tagged union.
+/// Use WGPUNativeDisplayHandleType_None (the default when zero-initialized) when
+/// no display handle is needed. Platforms with no display connection data (Windows,
+/// macOS, iOS, Android) should use WGPUNativeDisplayHandleType_None.
+pub type WGPUNativeDisplayHandleType = c::Int;
+
+/// C enumeration storage for `WGPUPolygonMode`.
+pub type WGPUPolygonMode = c::Int;
+
+/// C enumeration storage for `WGPUNativeTextureFormat`.
+pub type WGPUNativeTextureFormat = c::Int;
+
+/// C enumeration storage for `WGPUNativeAddressMode`.
+pub type WGPUNativeAddressMode = c::Int;
+
+/// C enumeration storage for `WGPUSamplerBorderColor`.
+pub type WGPUSamplerBorderColor = c::Int;
+
+/// Opaque C callback address for `WGPUProc`.
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProc = *mut ();
+
+/// See also CallbackError.
+///
+/// Parameter message
+/// This parameter is PassedWithoutOwnership.
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUBufferMapCallback = *mut ();
+
+/// See also CallbackError.
+///
+/// Parameter compilationInfo
+/// This argument contains multiple ImplementationAllocatedStructChain roots.
+/// Arbitrary chains must be handled gracefully by the application!
+/// This parameter is PassedWithoutOwnership.
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUCompilationInfoCallback = *mut ();
+
+/// See also CallbackError.
+///
+/// Parameter pipeline
+/// This parameter is PassedWithOwnership.
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUCreateComputePipelineAsyncCallback = *mut ();
+
+/// See also CallbackError.
+///
+/// Parameter pipeline
+/// This parameter is PassedWithOwnership.
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUCreateRenderPipelineAsyncCallback = *mut ();
+
+/// See also CallbackError.
+///
+/// Parameter device
+/// Pointer to the device which was lost. This is always a non-null pointer.
+/// The pointed-to WGPUDevice will be null if, and only if, either:
+/// (1) The `reason` is WGPUDeviceLostReason_FailedCreation.
+/// (2) The last ref of the device has been (or is being) released: see DeviceRelease.
+/// This parameter is PassedWithoutOwnership.
+///
+/// Parameter reason
+/// An error code explaining why the device was lost.
+///
+/// Parameter message
+/// A LocalizableHumanReadableMessageString describing why the device was lost.
+/// This parameter is PassedWithoutOwnership.
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUDeviceLostCallback = *mut ();
+
+/// See also CallbackError.
+///
+/// Parameter status
+/// See WGPUPopErrorScopeStatus.
+///
+/// Parameter type
+/// The type of the error caught by the scope, or WGPUErrorType_NoError if there was none.
+/// If the `status` is not WGPUPopErrorScopeStatus_Success, this is WGPUErrorType_NoError.
+///
+/// Parameter message
+/// If the `status` is not WGPUPopErrorScopeStatus_Success **or**
+/// the `type` is not WGPUErrorType_NoError, this is a non-empty
+/// LocalizableHumanReadableMessageString;
+/// otherwise, this is an empty string.
+/// This parameter is PassedWithoutOwnership.
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUPopErrorScopeCallback = *mut ();
+
+/// See also CallbackError.
+///
+/// Parameter status
+/// See WGPUQueueWorkDoneStatus.
+///
+/// Parameter message
+/// If the `status` is not WGPUQueueWorkDoneStatus_Success,
+/// this is a non-empty LocalizableHumanReadableMessageString;
+/// otherwise, this is an empty string.
+/// This parameter is PassedWithoutOwnership.
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUQueueWorkDoneCallback = *mut ();
+
+/// See also CallbackError.
+///
+/// Parameter adapter
+/// This parameter is PassedWithOwnership.
+///
+/// Parameter message
+/// This parameter is PassedWithoutOwnership.
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPURequestAdapterCallback = *mut ();
+
+/// See also CallbackError.
+///
+/// Parameter device
+/// This parameter is PassedWithOwnership.
+///
+/// Parameter message
+/// This parameter is PassedWithoutOwnership.
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPURequestDeviceCallback = *mut ();
+
+/// See also CallbackError.
+///
+/// Parameter device
+/// This parameter is PassedWithoutOwnership.
+///
+/// Parameter message
+/// This parameter is PassedWithoutOwnership.
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUUncapturedErrorCallback = *mut ();
+
+/// Proc pointer type for wgpuCreateInstance:
+/// > @copydoc wgpuCreateInstance
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcCreateInstance = *mut ();
+
+/// Proc pointer type for wgpuGetInstanceFeatures:
+/// > @copydoc wgpuGetInstanceFeatures
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcGetInstanceFeatures = *mut ();
+
+/// Proc pointer type for wgpuGetInstanceLimits:
+/// > @copydoc wgpuGetInstanceLimits
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcGetInstanceLimits = *mut ();
+
+/// Proc pointer type for wgpuHasInstanceFeature:
+/// > @copydoc wgpuHasInstanceFeature
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcHasInstanceFeature = *mut ();
+
+/// Proc pointer type for wgpuGetProcAddress:
+/// > @copydoc wgpuGetProcAddress
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcGetProcAddress = *mut ();
+
+/// Proc pointer type for wgpuAdapterGetFeatures:
+/// > @copydoc wgpuAdapterGetFeatures
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcAdapterGetFeatures = *mut ();
+
+/// Proc pointer type for wgpuAdapterGetInfo:
+/// > @copydoc wgpuAdapterGetInfo
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcAdapterGetInfo = *mut ();
+
+/// Proc pointer type for wgpuAdapterGetLimits:
+/// > @copydoc wgpuAdapterGetLimits
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcAdapterGetLimits = *mut ();
+
+/// Proc pointer type for wgpuAdapterHasFeature:
+/// > @copydoc wgpuAdapterHasFeature
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcAdapterHasFeature = *mut ();
+
+/// Proc pointer type for wgpuAdapterRequestDevice:
+/// > @copydoc wgpuAdapterRequestDevice
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcAdapterRequestDevice = *mut ();
+
+/// Proc pointer type for wgpuAdapterAddRef:
+/// > @copydoc wgpuAdapterAddRef
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcAdapterAddRef = *mut ();
+
+/// Proc pointer type for wgpuAdapterRelease:
+/// > @copydoc wgpuAdapterRelease
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcAdapterRelease = *mut ();
+
+/// Proc pointer type for wgpuAdapterInfoFreeMembers:
+/// > @copydoc wgpuAdapterInfoFreeMembers
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcAdapterInfoFreeMembers = *mut ();
+
+/// Proc pointer type for wgpuBindGroupSetLabel:
+/// > @copydoc wgpuBindGroupSetLabel
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcBindGroupSetLabel = *mut ();
+
+/// Proc pointer type for wgpuBindGroupAddRef:
+/// > @copydoc wgpuBindGroupAddRef
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcBindGroupAddRef = *mut ();
+
+/// Proc pointer type for wgpuBindGroupRelease:
+/// > @copydoc wgpuBindGroupRelease
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcBindGroupRelease = *mut ();
+
+/// Proc pointer type for wgpuBindGroupLayoutSetLabel:
+/// > @copydoc wgpuBindGroupLayoutSetLabel
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcBindGroupLayoutSetLabel = *mut ();
+
+/// Proc pointer type for wgpuBindGroupLayoutAddRef:
+/// > @copydoc wgpuBindGroupLayoutAddRef
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcBindGroupLayoutAddRef = *mut ();
+
+/// Proc pointer type for wgpuBindGroupLayoutRelease:
+/// > @copydoc wgpuBindGroupLayoutRelease
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcBindGroupLayoutRelease = *mut ();
+
+/// Proc pointer type for wgpuBufferDestroy:
+/// > @copydoc wgpuBufferDestroy
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcBufferDestroy = *mut ();
+
+/// Proc pointer type for wgpuBufferGetConstMappedRange:
+/// > @copydoc wgpuBufferGetConstMappedRange
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcBufferGetConstMappedRange = *mut ();
+
+/// Proc pointer type for wgpuBufferGetMappedRange:
+/// > @copydoc wgpuBufferGetMappedRange
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcBufferGetMappedRange = *mut ();
+
+/// Proc pointer type for wgpuBufferGetMapState:
+/// > @copydoc wgpuBufferGetMapState
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcBufferGetMapState = *mut ();
+
+/// Proc pointer type for wgpuBufferGetSize:
+/// > @copydoc wgpuBufferGetSize
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcBufferGetSize = *mut ();
+
+/// Proc pointer type for wgpuBufferGetUsage:
+/// > @copydoc wgpuBufferGetUsage
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcBufferGetUsage = *mut ();
+
+/// Proc pointer type for wgpuBufferMapAsync:
+/// > @copydoc wgpuBufferMapAsync
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcBufferMapAsync = *mut ();
+
+/// Proc pointer type for wgpuBufferReadMappedRange:
+/// > @copydoc wgpuBufferReadMappedRange
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcBufferReadMappedRange = *mut ();
+
+/// Proc pointer type for wgpuBufferSetLabel:
+/// > @copydoc wgpuBufferSetLabel
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcBufferSetLabel = *mut ();
+
+/// Proc pointer type for wgpuBufferUnmap:
+/// > @copydoc wgpuBufferUnmap
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcBufferUnmap = *mut ();
+
+/// Proc pointer type for wgpuBufferWriteMappedRange:
+/// > @copydoc wgpuBufferWriteMappedRange
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcBufferWriteMappedRange = *mut ();
+
+/// Proc pointer type for wgpuBufferAddRef:
+/// > @copydoc wgpuBufferAddRef
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcBufferAddRef = *mut ();
+
+/// Proc pointer type for wgpuBufferRelease:
+/// > @copydoc wgpuBufferRelease
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcBufferRelease = *mut ();
+
+/// Proc pointer type for wgpuCommandBufferSetLabel:
+/// > @copydoc wgpuCommandBufferSetLabel
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcCommandBufferSetLabel = *mut ();
+
+/// Proc pointer type for wgpuCommandBufferAddRef:
+/// > @copydoc wgpuCommandBufferAddRef
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcCommandBufferAddRef = *mut ();
+
+/// Proc pointer type for wgpuCommandBufferRelease:
+/// > @copydoc wgpuCommandBufferRelease
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcCommandBufferRelease = *mut ();
+
+/// Proc pointer type for wgpuCommandEncoderBeginComputePass:
+/// > @copydoc wgpuCommandEncoderBeginComputePass
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcCommandEncoderBeginComputePass = *mut ();
+
+/// Proc pointer type for wgpuCommandEncoderBeginRenderPass:
+/// > @copydoc wgpuCommandEncoderBeginRenderPass
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcCommandEncoderBeginRenderPass = *mut ();
+
+/// Proc pointer type for wgpuCommandEncoderClearBuffer:
+/// > @copydoc wgpuCommandEncoderClearBuffer
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcCommandEncoderClearBuffer = *mut ();
+
+/// Proc pointer type for wgpuCommandEncoderCopyBufferToBuffer:
+/// > @copydoc wgpuCommandEncoderCopyBufferToBuffer
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcCommandEncoderCopyBufferToBuffer = *mut ();
+
+/// Proc pointer type for wgpuCommandEncoderCopyBufferToTexture:
+/// > @copydoc wgpuCommandEncoderCopyBufferToTexture
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcCommandEncoderCopyBufferToTexture = *mut ();
+
+/// Proc pointer type for wgpuCommandEncoderCopyTextureToBuffer:
+/// > @copydoc wgpuCommandEncoderCopyTextureToBuffer
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcCommandEncoderCopyTextureToBuffer = *mut ();
+
+/// Proc pointer type for wgpuCommandEncoderCopyTextureToTexture:
+/// > @copydoc wgpuCommandEncoderCopyTextureToTexture
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcCommandEncoderCopyTextureToTexture = *mut ();
+
+/// Proc pointer type for wgpuCommandEncoderFinish:
+/// > @copydoc wgpuCommandEncoderFinish
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcCommandEncoderFinish = *mut ();
+
+/// Proc pointer type for wgpuCommandEncoderInsertDebugMarker:
+/// > @copydoc wgpuCommandEncoderInsertDebugMarker
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcCommandEncoderInsertDebugMarker = *mut ();
+
+/// Proc pointer type for wgpuCommandEncoderPopDebugGroup:
+/// > @copydoc wgpuCommandEncoderPopDebugGroup
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcCommandEncoderPopDebugGroup = *mut ();
+
+/// Proc pointer type for wgpuCommandEncoderPushDebugGroup:
+/// > @copydoc wgpuCommandEncoderPushDebugGroup
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcCommandEncoderPushDebugGroup = *mut ();
+
+/// Proc pointer type for wgpuCommandEncoderResolveQuerySet:
+/// > @copydoc wgpuCommandEncoderResolveQuerySet
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcCommandEncoderResolveQuerySet = *mut ();
+
+/// Proc pointer type for wgpuCommandEncoderSetLabel:
+/// > @copydoc wgpuCommandEncoderSetLabel
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcCommandEncoderSetLabel = *mut ();
+
+/// Proc pointer type for wgpuCommandEncoderWriteTimestamp:
+/// > @copydoc wgpuCommandEncoderWriteTimestamp
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcCommandEncoderWriteTimestamp = *mut ();
+
+/// Proc pointer type for wgpuCommandEncoderAddRef:
+/// > @copydoc wgpuCommandEncoderAddRef
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcCommandEncoderAddRef = *mut ();
+
+/// Proc pointer type for wgpuCommandEncoderRelease:
+/// > @copydoc wgpuCommandEncoderRelease
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcCommandEncoderRelease = *mut ();
+
+/// Proc pointer type for wgpuComputePassEncoderDispatchWorkgroups:
+/// > @copydoc wgpuComputePassEncoderDispatchWorkgroups
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcComputePassEncoderDispatchWorkgroups = *mut ();
+
+/// Proc pointer type for wgpuComputePassEncoderDispatchWorkgroupsIndirect:
+/// > @copydoc wgpuComputePassEncoderDispatchWorkgroupsIndirect
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcComputePassEncoderDispatchWorkgroupsIndirect = *mut ();
+
+/// Proc pointer type for wgpuComputePassEncoderEnd:
+/// > @copydoc wgpuComputePassEncoderEnd
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcComputePassEncoderEnd = *mut ();
+
+/// Proc pointer type for wgpuComputePassEncoderInsertDebugMarker:
+/// > @copydoc wgpuComputePassEncoderInsertDebugMarker
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcComputePassEncoderInsertDebugMarker = *mut ();
+
+/// Proc pointer type for wgpuComputePassEncoderPopDebugGroup:
+/// > @copydoc wgpuComputePassEncoderPopDebugGroup
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcComputePassEncoderPopDebugGroup = *mut ();
+
+/// Proc pointer type for wgpuComputePassEncoderPushDebugGroup:
+/// > @copydoc wgpuComputePassEncoderPushDebugGroup
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcComputePassEncoderPushDebugGroup = *mut ();
+
+/// Proc pointer type for wgpuComputePassEncoderSetBindGroup:
+/// > @copydoc wgpuComputePassEncoderSetBindGroup
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcComputePassEncoderSetBindGroup = *mut ();
+
+/// Proc pointer type for wgpuComputePassEncoderSetImmediates:
+/// > @copydoc wgpuComputePassEncoderSetImmediates
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcComputePassEncoderSetImmediates = *mut ();
+
+/// Proc pointer type for wgpuComputePassEncoderSetLabel:
+/// > @copydoc wgpuComputePassEncoderSetLabel
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcComputePassEncoderSetLabel = *mut ();
+
+/// Proc pointer type for wgpuComputePassEncoderSetPipeline:
+/// > @copydoc wgpuComputePassEncoderSetPipeline
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcComputePassEncoderSetPipeline = *mut ();
+
+/// Proc pointer type for wgpuComputePassEncoderAddRef:
+/// > @copydoc wgpuComputePassEncoderAddRef
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcComputePassEncoderAddRef = *mut ();
+
+/// Proc pointer type for wgpuComputePassEncoderRelease:
+/// > @copydoc wgpuComputePassEncoderRelease
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcComputePassEncoderRelease = *mut ();
+
+/// Proc pointer type for wgpuComputePipelineGetBindGroupLayout:
+/// > @copydoc wgpuComputePipelineGetBindGroupLayout
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcComputePipelineGetBindGroupLayout = *mut ();
+
+/// Proc pointer type for wgpuComputePipelineSetLabel:
+/// > @copydoc wgpuComputePipelineSetLabel
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcComputePipelineSetLabel = *mut ();
+
+/// Proc pointer type for wgpuComputePipelineAddRef:
+/// > @copydoc wgpuComputePipelineAddRef
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcComputePipelineAddRef = *mut ();
+
+/// Proc pointer type for wgpuComputePipelineRelease:
+/// > @copydoc wgpuComputePipelineRelease
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcComputePipelineRelease = *mut ();
+
+/// Proc pointer type for wgpuDeviceCreateBindGroup:
+/// > @copydoc wgpuDeviceCreateBindGroup
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcDeviceCreateBindGroup = *mut ();
+
+/// Proc pointer type for wgpuDeviceCreateBindGroupLayout:
+/// > @copydoc wgpuDeviceCreateBindGroupLayout
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcDeviceCreateBindGroupLayout = *mut ();
+
+/// Proc pointer type for wgpuDeviceCreateBuffer:
+/// > @copydoc wgpuDeviceCreateBuffer
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcDeviceCreateBuffer = *mut ();
+
+/// Proc pointer type for wgpuDeviceCreateCommandEncoder:
+/// > @copydoc wgpuDeviceCreateCommandEncoder
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcDeviceCreateCommandEncoder = *mut ();
+
+/// Proc pointer type for wgpuDeviceCreateComputePipeline:
+/// > @copydoc wgpuDeviceCreateComputePipeline
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcDeviceCreateComputePipeline = *mut ();
+
+/// Proc pointer type for wgpuDeviceCreateComputePipelineAsync:
+/// > @copydoc wgpuDeviceCreateComputePipelineAsync
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcDeviceCreateComputePipelineAsync = *mut ();
+
+/// Proc pointer type for wgpuDeviceCreatePipelineLayout:
+/// > @copydoc wgpuDeviceCreatePipelineLayout
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcDeviceCreatePipelineLayout = *mut ();
+
+/// Proc pointer type for wgpuDeviceCreateQuerySet:
+/// > @copydoc wgpuDeviceCreateQuerySet
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcDeviceCreateQuerySet = *mut ();
+
+/// Proc pointer type for wgpuDeviceCreateRenderBundleEncoder:
+/// > @copydoc wgpuDeviceCreateRenderBundleEncoder
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcDeviceCreateRenderBundleEncoder = *mut ();
+
+/// Proc pointer type for wgpuDeviceCreateRenderPipeline:
+/// > @copydoc wgpuDeviceCreateRenderPipeline
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcDeviceCreateRenderPipeline = *mut ();
+
+/// Proc pointer type for wgpuDeviceCreateRenderPipelineAsync:
+/// > @copydoc wgpuDeviceCreateRenderPipelineAsync
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcDeviceCreateRenderPipelineAsync = *mut ();
+
+/// Proc pointer type for wgpuDeviceCreateSampler:
+/// > @copydoc wgpuDeviceCreateSampler
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcDeviceCreateSampler = *mut ();
+
+/// Proc pointer type for wgpuDeviceCreateShaderModule:
+/// > @copydoc wgpuDeviceCreateShaderModule
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcDeviceCreateShaderModule = *mut ();
+
+/// Proc pointer type for wgpuDeviceCreateTexture:
+/// > @copydoc wgpuDeviceCreateTexture
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcDeviceCreateTexture = *mut ();
+
+/// Proc pointer type for wgpuDeviceDestroy:
+/// > @copydoc wgpuDeviceDestroy
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcDeviceDestroy = *mut ();
+
+/// Proc pointer type for wgpuDeviceGetAdapterInfo:
+/// > @copydoc wgpuDeviceGetAdapterInfo
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcDeviceGetAdapterInfo = *mut ();
+
+/// Proc pointer type for wgpuDeviceGetFeatures:
+/// > @copydoc wgpuDeviceGetFeatures
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcDeviceGetFeatures = *mut ();
+
+/// Proc pointer type for wgpuDeviceGetLimits:
+/// > @copydoc wgpuDeviceGetLimits
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcDeviceGetLimits = *mut ();
+
+/// Proc pointer type for wgpuDeviceGetLostFuture:
+/// > @copydoc wgpuDeviceGetLostFuture
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcDeviceGetLostFuture = *mut ();
+
+/// Proc pointer type for wgpuDeviceGetQueue:
+/// > @copydoc wgpuDeviceGetQueue
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcDeviceGetQueue = *mut ();
+
+/// Proc pointer type for wgpuDeviceHasFeature:
+/// > @copydoc wgpuDeviceHasFeature
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcDeviceHasFeature = *mut ();
+
+/// Proc pointer type for wgpuDevicePopErrorScope:
+/// > @copydoc wgpuDevicePopErrorScope
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcDevicePopErrorScope = *mut ();
+
+/// Proc pointer type for wgpuDevicePushErrorScope:
+/// > @copydoc wgpuDevicePushErrorScope
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcDevicePushErrorScope = *mut ();
+
+/// Proc pointer type for wgpuDeviceSetLabel:
+/// > @copydoc wgpuDeviceSetLabel
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcDeviceSetLabel = *mut ();
+
+/// Proc pointer type for wgpuDeviceAddRef:
+/// > @copydoc wgpuDeviceAddRef
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcDeviceAddRef = *mut ();
+
+/// Proc pointer type for wgpuDeviceRelease:
+/// > @copydoc wgpuDeviceRelease
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcDeviceRelease = *mut ();
+
+/// Proc pointer type for wgpuExternalTextureSetLabel:
+/// > @copydoc wgpuExternalTextureSetLabel
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcExternalTextureSetLabel = *mut ();
+
+/// Proc pointer type for wgpuExternalTextureAddRef:
+/// > @copydoc wgpuExternalTextureAddRef
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcExternalTextureAddRef = *mut ();
+
+/// Proc pointer type for wgpuExternalTextureRelease:
+/// > @copydoc wgpuExternalTextureRelease
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcExternalTextureRelease = *mut ();
+
+/// Proc pointer type for wgpuInstanceCreateSurface:
+/// > @copydoc wgpuInstanceCreateSurface
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcInstanceCreateSurface = *mut ();
+
+/// Proc pointer type for wgpuInstanceGetWGSLLanguageFeatures:
+/// > @copydoc wgpuInstanceGetWGSLLanguageFeatures
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcInstanceGetWGSLLanguageFeatures = *mut ();
+
+/// Proc pointer type for wgpuInstanceHasWGSLLanguageFeature:
+/// > @copydoc wgpuInstanceHasWGSLLanguageFeature
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcInstanceHasWGSLLanguageFeature = *mut ();
+
+/// Proc pointer type for wgpuInstanceProcessEvents:
+/// > @copydoc wgpuInstanceProcessEvents
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcInstanceProcessEvents = *mut ();
+
+/// Proc pointer type for wgpuInstanceRequestAdapter:
+/// > @copydoc wgpuInstanceRequestAdapter
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcInstanceRequestAdapter = *mut ();
+
+/// Proc pointer type for wgpuInstanceWaitAny:
+/// > @copydoc wgpuInstanceWaitAny
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcInstanceWaitAny = *mut ();
+
+/// Proc pointer type for wgpuInstanceAddRef:
+/// > @copydoc wgpuInstanceAddRef
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcInstanceAddRef = *mut ();
+
+/// Proc pointer type for wgpuInstanceRelease:
+/// > @copydoc wgpuInstanceRelease
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcInstanceRelease = *mut ();
+
+/// Proc pointer type for wgpuPipelineLayoutSetLabel:
+/// > @copydoc wgpuPipelineLayoutSetLabel
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcPipelineLayoutSetLabel = *mut ();
+
+/// Proc pointer type for wgpuPipelineLayoutAddRef:
+/// > @copydoc wgpuPipelineLayoutAddRef
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcPipelineLayoutAddRef = *mut ();
+
+/// Proc pointer type for wgpuPipelineLayoutRelease:
+/// > @copydoc wgpuPipelineLayoutRelease
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcPipelineLayoutRelease = *mut ();
+
+/// Proc pointer type for wgpuQuerySetDestroy:
+/// > @copydoc wgpuQuerySetDestroy
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcQuerySetDestroy = *mut ();
+
+/// Proc pointer type for wgpuQuerySetGetCount:
+/// > @copydoc wgpuQuerySetGetCount
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcQuerySetGetCount = *mut ();
+
+/// Proc pointer type for wgpuQuerySetGetType:
+/// > @copydoc wgpuQuerySetGetType
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcQuerySetGetType = *mut ();
+
+/// Proc pointer type for wgpuQuerySetSetLabel:
+/// > @copydoc wgpuQuerySetSetLabel
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcQuerySetSetLabel = *mut ();
+
+/// Proc pointer type for wgpuQuerySetAddRef:
+/// > @copydoc wgpuQuerySetAddRef
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcQuerySetAddRef = *mut ();
+
+/// Proc pointer type for wgpuQuerySetRelease:
+/// > @copydoc wgpuQuerySetRelease
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcQuerySetRelease = *mut ();
+
+/// Proc pointer type for wgpuQueueOnSubmittedWorkDone:
+/// > @copydoc wgpuQueueOnSubmittedWorkDone
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcQueueOnSubmittedWorkDone = *mut ();
+
+/// Proc pointer type for wgpuQueueSetLabel:
+/// > @copydoc wgpuQueueSetLabel
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcQueueSetLabel = *mut ();
+
+/// Proc pointer type for wgpuQueueSubmit:
+/// > @copydoc wgpuQueueSubmit
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcQueueSubmit = *mut ();
+
+/// Proc pointer type for wgpuQueueWriteBuffer:
+/// > @copydoc wgpuQueueWriteBuffer
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcQueueWriteBuffer = *mut ();
+
+/// Proc pointer type for wgpuQueueWriteTexture:
+/// > @copydoc wgpuQueueWriteTexture
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcQueueWriteTexture = *mut ();
+
+/// Proc pointer type for wgpuQueueAddRef:
+/// > @copydoc wgpuQueueAddRef
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcQueueAddRef = *mut ();
+
+/// Proc pointer type for wgpuQueueRelease:
+/// > @copydoc wgpuQueueRelease
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcQueueRelease = *mut ();
+
+/// Proc pointer type for wgpuRenderBundleSetLabel:
+/// > @copydoc wgpuRenderBundleSetLabel
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderBundleSetLabel = *mut ();
+
+/// Proc pointer type for wgpuRenderBundleAddRef:
+/// > @copydoc wgpuRenderBundleAddRef
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderBundleAddRef = *mut ();
+
+/// Proc pointer type for wgpuRenderBundleRelease:
+/// > @copydoc wgpuRenderBundleRelease
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderBundleRelease = *mut ();
+
+/// Proc pointer type for wgpuRenderBundleEncoderDraw:
+/// > @copydoc wgpuRenderBundleEncoderDraw
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderBundleEncoderDraw = *mut ();
+
+/// Proc pointer type for wgpuRenderBundleEncoderDrawIndexed:
+/// > @copydoc wgpuRenderBundleEncoderDrawIndexed
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderBundleEncoderDrawIndexed = *mut ();
+
+/// Proc pointer type for wgpuRenderBundleEncoderDrawIndexedIndirect:
+/// > @copydoc wgpuRenderBundleEncoderDrawIndexedIndirect
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderBundleEncoderDrawIndexedIndirect = *mut ();
+
+/// Proc pointer type for wgpuRenderBundleEncoderDrawIndirect:
+/// > @copydoc wgpuRenderBundleEncoderDrawIndirect
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderBundleEncoderDrawIndirect = *mut ();
+
+/// Proc pointer type for wgpuRenderBundleEncoderFinish:
+/// > @copydoc wgpuRenderBundleEncoderFinish
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderBundleEncoderFinish = *mut ();
+
+/// Proc pointer type for wgpuRenderBundleEncoderInsertDebugMarker:
+/// > @copydoc wgpuRenderBundleEncoderInsertDebugMarker
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderBundleEncoderInsertDebugMarker = *mut ();
+
+/// Proc pointer type for wgpuRenderBundleEncoderPopDebugGroup:
+/// > @copydoc wgpuRenderBundleEncoderPopDebugGroup
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderBundleEncoderPopDebugGroup = *mut ();
+
+/// Proc pointer type for wgpuRenderBundleEncoderPushDebugGroup:
+/// > @copydoc wgpuRenderBundleEncoderPushDebugGroup
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderBundleEncoderPushDebugGroup = *mut ();
+
+/// Proc pointer type for wgpuRenderBundleEncoderSetBindGroup:
+/// > @copydoc wgpuRenderBundleEncoderSetBindGroup
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderBundleEncoderSetBindGroup = *mut ();
+
+/// Proc pointer type for wgpuRenderBundleEncoderSetImmediates:
+/// > @copydoc wgpuRenderBundleEncoderSetImmediates
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderBundleEncoderSetImmediates = *mut ();
+
+/// Proc pointer type for wgpuRenderBundleEncoderSetIndexBuffer:
+/// > @copydoc wgpuRenderBundleEncoderSetIndexBuffer
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderBundleEncoderSetIndexBuffer = *mut ();
+
+/// Proc pointer type for wgpuRenderBundleEncoderSetLabel:
+/// > @copydoc wgpuRenderBundleEncoderSetLabel
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderBundleEncoderSetLabel = *mut ();
+
+/// Proc pointer type for wgpuRenderBundleEncoderSetPipeline:
+/// > @copydoc wgpuRenderBundleEncoderSetPipeline
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderBundleEncoderSetPipeline = *mut ();
+
+/// Proc pointer type for wgpuRenderBundleEncoderSetVertexBuffer:
+/// > @copydoc wgpuRenderBundleEncoderSetVertexBuffer
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderBundleEncoderSetVertexBuffer = *mut ();
+
+/// Proc pointer type for wgpuRenderBundleEncoderAddRef:
+/// > @copydoc wgpuRenderBundleEncoderAddRef
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderBundleEncoderAddRef = *mut ();
+
+/// Proc pointer type for wgpuRenderBundleEncoderRelease:
+/// > @copydoc wgpuRenderBundleEncoderRelease
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderBundleEncoderRelease = *mut ();
+
+/// Proc pointer type for wgpuRenderPassEncoderBeginOcclusionQuery:
+/// > @copydoc wgpuRenderPassEncoderBeginOcclusionQuery
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderPassEncoderBeginOcclusionQuery = *mut ();
+
+/// Proc pointer type for wgpuRenderPassEncoderDraw:
+/// > @copydoc wgpuRenderPassEncoderDraw
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderPassEncoderDraw = *mut ();
+
+/// Proc pointer type for wgpuRenderPassEncoderDrawIndexed:
+/// > @copydoc wgpuRenderPassEncoderDrawIndexed
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderPassEncoderDrawIndexed = *mut ();
+
+/// Proc pointer type for wgpuRenderPassEncoderDrawIndexedIndirect:
+/// > @copydoc wgpuRenderPassEncoderDrawIndexedIndirect
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderPassEncoderDrawIndexedIndirect = *mut ();
+
+/// Proc pointer type for wgpuRenderPassEncoderDrawIndirect:
+/// > @copydoc wgpuRenderPassEncoderDrawIndirect
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderPassEncoderDrawIndirect = *mut ();
+
+/// Proc pointer type for wgpuRenderPassEncoderEnd:
+/// > @copydoc wgpuRenderPassEncoderEnd
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderPassEncoderEnd = *mut ();
+
+/// Proc pointer type for wgpuRenderPassEncoderEndOcclusionQuery:
+/// > @copydoc wgpuRenderPassEncoderEndOcclusionQuery
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderPassEncoderEndOcclusionQuery = *mut ();
+
+/// Proc pointer type for wgpuRenderPassEncoderExecuteBundles:
+/// > @copydoc wgpuRenderPassEncoderExecuteBundles
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderPassEncoderExecuteBundles = *mut ();
+
+/// Proc pointer type for wgpuRenderPassEncoderInsertDebugMarker:
+/// > @copydoc wgpuRenderPassEncoderInsertDebugMarker
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderPassEncoderInsertDebugMarker = *mut ();
+
+/// Proc pointer type for wgpuRenderPassEncoderPopDebugGroup:
+/// > @copydoc wgpuRenderPassEncoderPopDebugGroup
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderPassEncoderPopDebugGroup = *mut ();
+
+/// Proc pointer type for wgpuRenderPassEncoderPushDebugGroup:
+/// > @copydoc wgpuRenderPassEncoderPushDebugGroup
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderPassEncoderPushDebugGroup = *mut ();
+
+/// Proc pointer type for wgpuRenderPassEncoderSetBindGroup:
+/// > @copydoc wgpuRenderPassEncoderSetBindGroup
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderPassEncoderSetBindGroup = *mut ();
+
+/// Proc pointer type for wgpuRenderPassEncoderSetBlendConstant:
+/// > @copydoc wgpuRenderPassEncoderSetBlendConstant
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderPassEncoderSetBlendConstant = *mut ();
+
+/// Proc pointer type for wgpuRenderPassEncoderSetImmediates:
+/// > @copydoc wgpuRenderPassEncoderSetImmediates
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderPassEncoderSetImmediates = *mut ();
+
+/// Proc pointer type for wgpuRenderPassEncoderSetIndexBuffer:
+/// > @copydoc wgpuRenderPassEncoderSetIndexBuffer
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderPassEncoderSetIndexBuffer = *mut ();
+
+/// Proc pointer type for wgpuRenderPassEncoderSetLabel:
+/// > @copydoc wgpuRenderPassEncoderSetLabel
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderPassEncoderSetLabel = *mut ();
+
+/// Proc pointer type for wgpuRenderPassEncoderSetPipeline:
+/// > @copydoc wgpuRenderPassEncoderSetPipeline
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderPassEncoderSetPipeline = *mut ();
+
+/// Proc pointer type for wgpuRenderPassEncoderSetScissorRect:
+/// > @copydoc wgpuRenderPassEncoderSetScissorRect
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderPassEncoderSetScissorRect = *mut ();
+
+/// Proc pointer type for wgpuRenderPassEncoderSetStencilReference:
+/// > @copydoc wgpuRenderPassEncoderSetStencilReference
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderPassEncoderSetStencilReference = *mut ();
+
+/// Proc pointer type for wgpuRenderPassEncoderSetVertexBuffer:
+/// > @copydoc wgpuRenderPassEncoderSetVertexBuffer
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderPassEncoderSetVertexBuffer = *mut ();
+
+/// Proc pointer type for wgpuRenderPassEncoderSetViewport:
+/// > @copydoc wgpuRenderPassEncoderSetViewport
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderPassEncoderSetViewport = *mut ();
+
+/// Proc pointer type for wgpuRenderPassEncoderAddRef:
+/// > @copydoc wgpuRenderPassEncoderAddRef
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderPassEncoderAddRef = *mut ();
+
+/// Proc pointer type for wgpuRenderPassEncoderRelease:
+/// > @copydoc wgpuRenderPassEncoderRelease
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderPassEncoderRelease = *mut ();
+
+/// Proc pointer type for wgpuRenderPipelineGetBindGroupLayout:
+/// > @copydoc wgpuRenderPipelineGetBindGroupLayout
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderPipelineGetBindGroupLayout = *mut ();
+
+/// Proc pointer type for wgpuRenderPipelineSetLabel:
+/// > @copydoc wgpuRenderPipelineSetLabel
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderPipelineSetLabel = *mut ();
+
+/// Proc pointer type for wgpuRenderPipelineAddRef:
+/// > @copydoc wgpuRenderPipelineAddRef
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderPipelineAddRef = *mut ();
+
+/// Proc pointer type for wgpuRenderPipelineRelease:
+/// > @copydoc wgpuRenderPipelineRelease
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcRenderPipelineRelease = *mut ();
+
+/// Proc pointer type for wgpuSamplerSetLabel:
+/// > @copydoc wgpuSamplerSetLabel
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcSamplerSetLabel = *mut ();
+
+/// Proc pointer type for wgpuSamplerAddRef:
+/// > @copydoc wgpuSamplerAddRef
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcSamplerAddRef = *mut ();
+
+/// Proc pointer type for wgpuSamplerRelease:
+/// > @copydoc wgpuSamplerRelease
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcSamplerRelease = *mut ();
+
+/// Proc pointer type for wgpuShaderModuleGetCompilationInfo:
+/// > @copydoc wgpuShaderModuleGetCompilationInfo
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcShaderModuleGetCompilationInfo = *mut ();
+
+/// Proc pointer type for wgpuShaderModuleSetLabel:
+/// > @copydoc wgpuShaderModuleSetLabel
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcShaderModuleSetLabel = *mut ();
+
+/// Proc pointer type for wgpuShaderModuleAddRef:
+/// > @copydoc wgpuShaderModuleAddRef
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcShaderModuleAddRef = *mut ();
+
+/// Proc pointer type for wgpuShaderModuleRelease:
+/// > @copydoc wgpuShaderModuleRelease
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcShaderModuleRelease = *mut ();
+
+/// Proc pointer type for wgpuSupportedFeaturesFreeMembers:
+/// > @copydoc wgpuSupportedFeaturesFreeMembers
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcSupportedFeaturesFreeMembers = *mut ();
+
+/// Proc pointer type for wgpuSupportedInstanceFeaturesFreeMembers:
+/// > @copydoc wgpuSupportedInstanceFeaturesFreeMembers
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcSupportedInstanceFeaturesFreeMembers = *mut ();
+
+/// Proc pointer type for wgpuSupportedWGSLLanguageFeaturesFreeMembers:
+/// > @copydoc wgpuSupportedWGSLLanguageFeaturesFreeMembers
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcSupportedWGSLLanguageFeaturesFreeMembers = *mut ();
+
+/// Proc pointer type for wgpuSurfaceConfigure:
+/// > @copydoc wgpuSurfaceConfigure
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcSurfaceConfigure = *mut ();
+
+/// Proc pointer type for wgpuSurfaceGetCapabilities:
+/// > @copydoc wgpuSurfaceGetCapabilities
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcSurfaceGetCapabilities = *mut ();
+
+/// Proc pointer type for wgpuSurfaceGetCurrentTexture:
+/// > @copydoc wgpuSurfaceGetCurrentTexture
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcSurfaceGetCurrentTexture = *mut ();
+
+/// Proc pointer type for wgpuSurfacePresent:
+/// > @copydoc wgpuSurfacePresent
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcSurfacePresent = *mut ();
+
+/// Proc pointer type for wgpuSurfaceSetLabel:
+/// > @copydoc wgpuSurfaceSetLabel
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcSurfaceSetLabel = *mut ();
+
+/// Proc pointer type for wgpuSurfaceUnconfigure:
+/// > @copydoc wgpuSurfaceUnconfigure
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcSurfaceUnconfigure = *mut ();
+
+/// Proc pointer type for wgpuSurfaceAddRef:
+/// > @copydoc wgpuSurfaceAddRef
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcSurfaceAddRef = *mut ();
+
+/// Proc pointer type for wgpuSurfaceRelease:
+/// > @copydoc wgpuSurfaceRelease
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcSurfaceRelease = *mut ();
+
+/// Proc pointer type for wgpuSurfaceCapabilitiesFreeMembers:
+/// > @copydoc wgpuSurfaceCapabilitiesFreeMembers
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcSurfaceCapabilitiesFreeMembers = *mut ();
+
+/// Proc pointer type for wgpuTextureCreateView:
+/// > @copydoc wgpuTextureCreateView
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcTextureCreateView = *mut ();
+
+/// Proc pointer type for wgpuTextureDestroy:
+/// > @copydoc wgpuTextureDestroy
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcTextureDestroy = *mut ();
+
+/// Proc pointer type for wgpuTextureGetDepthOrArrayLayers:
+/// > @copydoc wgpuTextureGetDepthOrArrayLayers
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcTextureGetDepthOrArrayLayers = *mut ();
+
+/// Proc pointer type for wgpuTextureGetDimension:
+/// > @copydoc wgpuTextureGetDimension
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcTextureGetDimension = *mut ();
+
+/// Proc pointer type for wgpuTextureGetFormat:
+/// > @copydoc wgpuTextureGetFormat
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcTextureGetFormat = *mut ();
+
+/// Proc pointer type for wgpuTextureGetHeight:
+/// > @copydoc wgpuTextureGetHeight
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcTextureGetHeight = *mut ();
+
+/// Proc pointer type for wgpuTextureGetMipLevelCount:
+/// > @copydoc wgpuTextureGetMipLevelCount
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcTextureGetMipLevelCount = *mut ();
+
+/// Proc pointer type for wgpuTextureGetSampleCount:
+/// > @copydoc wgpuTextureGetSampleCount
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcTextureGetSampleCount = *mut ();
+
+/// Proc pointer type for wgpuTextureGetTextureBindingViewDimension:
+/// > @copydoc wgpuTextureGetTextureBindingViewDimension
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcTextureGetTextureBindingViewDimension = *mut ();
+
+/// Proc pointer type for wgpuTextureGetUsage:
+/// > @copydoc wgpuTextureGetUsage
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcTextureGetUsage = *mut ();
+
+/// Proc pointer type for wgpuTextureGetWidth:
+/// > @copydoc wgpuTextureGetWidth
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcTextureGetWidth = *mut ();
+
+/// Proc pointer type for wgpuTextureSetLabel:
+/// > @copydoc wgpuTextureSetLabel
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcTextureSetLabel = *mut ();
+
+/// Proc pointer type for wgpuTextureAddRef:
+/// > @copydoc wgpuTextureAddRef
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcTextureAddRef = *mut ();
+
+/// Proc pointer type for wgpuTextureRelease:
+/// > @copydoc wgpuTextureRelease
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcTextureRelease = *mut ();
+
+/// Proc pointer type for wgpuTextureViewSetLabel:
+/// > @copydoc wgpuTextureViewSetLabel
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcTextureViewSetLabel = *mut ();
+
+/// Proc pointer type for wgpuTextureViewAddRef:
+/// > @copydoc wgpuTextureViewAddRef
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcTextureViewAddRef = *mut ();
+
+/// Proc pointer type for wgpuTextureViewRelease:
+/// > @copydoc wgpuTextureViewRelease
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPUProcTextureViewRelease = *mut ();
+
+/// Opaque C callback address for `WGPULogCallback`.
+/// Use the safe facade for callback-driven operations; it supplies ABI-correct native trampolines.
+pub type WGPULogCallback = *mut ();
+
+/// Nullable value defining a pointer+length view into a UTF-8 encoded string.
+///
+/// Values passed into the API may use the special length value WGPU_STRLEN
+/// to indicate a null-terminated string.
+/// Non-null values passed out of the API (for example as callback arguments)
+/// always provide an explicit length and **may or may not be null-terminated**.
+///
+/// Some inputs to the API accept null values. Those which do not accept null
+/// values "default" to the empty string when null values are passed.
+///
+/// Values are encoded as follows:
+/// - `{NULL, WGPU_STRLEN}`: the null value.
+/// - `{non_null_pointer, WGPU_STRLEN}`: a null-terminated string view.
+/// - `{any, 0}`: the empty string.
+/// - `{NULL, non_zero_length}`: not allowed (null dereference).
+/// - `{non_null_pointer, non_zero_length}`: an explictly-sized string view with
+/// size `non_zero_length` (in bytes).
+///
+/// For info on how this is used in various places, see Strings.
+@repr(C)
+pub struct WGPUStringView {
+    /// Native `data` field.
+    pub data: *const c::Char,
+    /// Native `length` field.
+    pub length: usize,
+}
+
+/// Structures used to extend descriptors.
+@repr(C)
+pub struct WGPUChainedStruct {
+    /// Native `next` field.
+    pub next: *mut WGPUChainedStruct,
+    /// Native `sType` field.
+    pub s_type: WGPUSType,
+}
+
+/// Callback info structures that are used in asynchronous functions.
+@repr(C)
+pub struct WGPUBufferMapCallbackInfo {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// Controls when the callback may be called.
+    ///
+    /// Has no default. The `INIT` macro sets this to (WGPUCallbackMode)0.
+    pub mode: WGPUCallbackMode,
+    /// Native `callback` field.
+    pub callback: WGPUBufferMapCallback,
+    /// Native `userdata1` field.
+    pub userdata1: *mut (),
+    /// Native `userdata2` field.
+    pub userdata2: *mut (),
+}
+
+/// C-compatible storage for WebGPU's `WGPUCompilationInfoCallbackInfo` structure.
+@repr(C)
+pub struct WGPUCompilationInfoCallbackInfo {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// Controls when the callback may be called.
+    ///
+    /// Has no default. The `INIT` macro sets this to (WGPUCallbackMode)0.
+    pub mode: WGPUCallbackMode,
+    /// Native `callback` field.
+    pub callback: WGPUCompilationInfoCallback,
+    /// Native `userdata1` field.
+    pub userdata1: *mut (),
+    /// Native `userdata2` field.
+    pub userdata2: *mut (),
+}
+
+/// C-compatible storage for WebGPU's `WGPUCreateComputePipelineAsyncCallbackInfo` structure.
+@repr(C)
+pub struct WGPUCreateComputePipelineAsyncCallbackInfo {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// Controls when the callback may be called.
+    ///
+    /// Has no default. The `INIT` macro sets this to (WGPUCallbackMode)0.
+    pub mode: WGPUCallbackMode,
+    /// Native `callback` field.
+    pub callback: WGPUCreateComputePipelineAsyncCallback,
+    /// Native `userdata1` field.
+    pub userdata1: *mut (),
+    /// Native `userdata2` field.
+    pub userdata2: *mut (),
+}
+
+/// C-compatible storage for WebGPU's `WGPUCreateRenderPipelineAsyncCallbackInfo` structure.
+@repr(C)
+pub struct WGPUCreateRenderPipelineAsyncCallbackInfo {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// Controls when the callback may be called.
+    ///
+    /// Has no default. The `INIT` macro sets this to (WGPUCallbackMode)0.
+    pub mode: WGPUCallbackMode,
+    /// Native `callback` field.
+    pub callback: WGPUCreateRenderPipelineAsyncCallback,
+    /// Native `userdata1` field.
+    pub userdata1: *mut (),
+    /// Native `userdata2` field.
+    pub userdata2: *mut (),
+}
+
+/// C-compatible storage for WebGPU's `WGPUDeviceLostCallbackInfo` structure.
+@repr(C)
+pub struct WGPUDeviceLostCallbackInfo {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// Controls when the callback may be called.
+    ///
+    /// Has no default. The `INIT` macro sets this to (WGPUCallbackMode)0.
+    pub mode: WGPUCallbackMode,
+    /// Native `callback` field.
+    pub callback: WGPUDeviceLostCallback,
+    /// Native `userdata1` field.
+    pub userdata1: *mut (),
+    /// Native `userdata2` field.
+    pub userdata2: *mut (),
+}
+
+/// C-compatible storage for WebGPU's `WGPUPopErrorScopeCallbackInfo` structure.
+@repr(C)
+pub struct WGPUPopErrorScopeCallbackInfo {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// Controls when the callback may be called.
+    ///
+    /// Has no default. The `INIT` macro sets this to (WGPUCallbackMode)0.
+    pub mode: WGPUCallbackMode,
+    /// Native `callback` field.
+    pub callback: WGPUPopErrorScopeCallback,
+    /// Native `userdata1` field.
+    pub userdata1: *mut (),
+    /// Native `userdata2` field.
+    pub userdata2: *mut (),
+}
+
+/// C-compatible storage for WebGPU's `WGPUQueueWorkDoneCallbackInfo` structure.
+@repr(C)
+pub struct WGPUQueueWorkDoneCallbackInfo {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// Controls when the callback may be called.
+    ///
+    /// Has no default. The `INIT` macro sets this to (WGPUCallbackMode)0.
+    pub mode: WGPUCallbackMode,
+    /// Native `callback` field.
+    pub callback: WGPUQueueWorkDoneCallback,
+    /// Native `userdata1` field.
+    pub userdata1: *mut (),
+    /// Native `userdata2` field.
+    pub userdata2: *mut (),
+}
+
+/// C-compatible storage for WebGPU's `WGPURequestAdapterCallbackInfo` structure.
+@repr(C)
+pub struct WGPURequestAdapterCallbackInfo {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// Controls when the callback may be called.
+    ///
+    /// Has no default. The `INIT` macro sets this to (WGPUCallbackMode)0.
+    pub mode: WGPUCallbackMode,
+    /// Native `callback` field.
+    pub callback: WGPURequestAdapterCallback,
+    /// Native `userdata1` field.
+    pub userdata1: *mut (),
+    /// Native `userdata2` field.
+    pub userdata2: *mut (),
+}
+
+/// C-compatible storage for WebGPU's `WGPURequestDeviceCallbackInfo` structure.
+@repr(C)
+pub struct WGPURequestDeviceCallbackInfo {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// Controls when the callback may be called.
+    ///
+    /// Has no default. The `INIT` macro sets this to (WGPUCallbackMode)0.
+    pub mode: WGPUCallbackMode,
+    /// Native `callback` field.
+    pub callback: WGPURequestDeviceCallback,
+    /// Native `userdata1` field.
+    pub userdata1: *mut (),
+    /// Native `userdata2` field.
+    pub userdata2: *mut (),
+}
+
+/// C-compatible storage for WebGPU's `WGPUUncapturedErrorCallbackInfo` structure.
+@repr(C)
+pub struct WGPUUncapturedErrorCallbackInfo {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// Native `callback` field.
+    pub callback: WGPUUncapturedErrorCallback,
+    /// Native `userdata1` field.
+    pub userdata1: *mut (),
+    /// Native `userdata2` field.
+    pub userdata2: *mut (),
+}
+
+/// Default values can be set using WGPU_ADAPTER_INFO_INIT as initializer.
+@repr(C)
+pub struct WGPUAdapterInfo {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// This is an OutputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub vendor: WGPUStringView,
+    /// This is an OutputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub architecture: WGPUStringView,
+    /// This is an OutputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub device: WGPUStringView,
+    /// This is an OutputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub description: WGPUStringView,
+    /// The `INIT` macro sets this to WGPUBackendType_Undefined.
+    pub backend_type: WGPUBackendType,
+    /// The `INIT` macro sets this to (WGPUAdapterType)0.
+    pub adapter_type: WGPUAdapterType,
+    /// The `INIT` macro sets this to `0`.
+    pub vendor_id: u32,
+    /// The `INIT` macro sets this to `0`.
+    pub device_id: u32,
+    /// The `INIT` macro sets this to `0`.
+    pub subgroup_min_size: u32,
+    /// The `INIT` macro sets this to `0`.
+    pub subgroup_max_size: u32,
+}
+
+/// Default values can be set using WGPU_BLEND_COMPONENT_INIT as initializer.
+@repr(C)
+pub struct WGPUBlendComponent {
+    /// If set to WGPUBlendOperation_Undefined,
+    /// [defaults](SentinelValues) to WGPUBlendOperation_Add.
+    ///
+    /// The `INIT` macro sets this to WGPUBlendOperation_Undefined.
+    pub operation: WGPUBlendOperation,
+    /// If set to WGPUBlendFactor_Undefined,
+    /// [defaults](SentinelValues) to WGPUBlendFactor_One.
+    ///
+    /// The `INIT` macro sets this to WGPUBlendFactor_Undefined.
+    pub src_factor: WGPUBlendFactor,
+    /// If set to WGPUBlendFactor_Undefined,
+    /// [defaults](SentinelValues) to WGPUBlendFactor_Zero.
+    ///
+    /// The `INIT` macro sets this to WGPUBlendFactor_Undefined.
+    pub dst_factor: WGPUBlendFactor,
+}
+
+/// Default values can be set using WGPU_BUFFER_BINDING_LAYOUT_INIT as initializer.
+@repr(C)
+pub struct WGPUBufferBindingLayout {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// If set to WGPUBufferBindingType_Undefined,
+    /// [defaults](SentinelValues) to WGPUBufferBindingType_Uniform.
+    ///
+    /// The `INIT` macro sets this to WGPUBufferBindingType_Undefined.
+    pub type_value: WGPUBufferBindingType,
+    /// The `INIT` macro sets this to `WGPU_FALSE`.
+    pub has_dynamic_offset: WGPUBool,
+    /// The `INIT` macro sets this to `0`.
+    pub min_binding_size: u64,
+}
+
+/// Default values can be set using WGPU_BUFFER_DESCRIPTOR_INIT as initializer.
+@repr(C)
+pub struct WGPUBufferDescriptor {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// This is a NonNullInputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub label: WGPUStringView,
+    /// The `INIT` macro sets this to WGPUBufferUsage_None.
+    pub usage: WGPUBufferUsage,
+    /// The `INIT` macro sets this to `0`.
+    pub size: u64,
+    /// When true, the buffer is mapped in write mode at creation. It should thus be unmapped once its initial data has been written.
+    ///
+    /// Note: Mapping at creation does **not** require the usage WGPUBufferUsage_MapWrite.
+    ///
+    /// The `INIT` macro sets this to `WGPU_FALSE`.
+    pub mapped_at_creation: WGPUBool,
+}
+
+/// An RGBA color. Represents a `f32`, `i32`, or `u32` color using DoubleAsSupertype.
+///
+/// If any channel is non-finite, produces a NonFiniteFloatValueError.
+///
+/// Default values can be set using WGPU_COLOR_INIT as initializer.
+@repr(C)
+pub struct WGPUColor {
+    /// The `INIT` macro sets this to `0.`.
+    pub r: f64,
+    /// The `INIT` macro sets this to `0.`.
+    pub g: f64,
+    /// The `INIT` macro sets this to `0.`.
+    pub b: f64,
+    /// The `INIT` macro sets this to `0.`.
+    pub a: f64,
+}
+
+/// Default values can be set using WGPU_COMMAND_BUFFER_DESCRIPTOR_INIT as initializer.
+@repr(C)
+pub struct WGPUCommandBufferDescriptor {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// This is a NonNullInputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub label: WGPUStringView,
+}
+
+/// Default values can be set using WGPU_COMMAND_ENCODER_DESCRIPTOR_INIT as initializer.
+@repr(C)
+pub struct WGPUCommandEncoderDescriptor {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// This is a NonNullInputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub label: WGPUStringView,
+}
+
+/// Note: While Compatibility Mode is optional to implement, this extension struct
+/// is required to be supported (for both queries and requests) and behave as
+/// defined in the WebGPU spec.
+///
+/// Default values can be set using WGPU_COMPATIBILITY_MODE_LIMITS_INIT as initializer.
+@repr(C)
+pub struct WGPUCompatibilityModeLimits {
+    /// Native `chain` field.
+    pub chain: WGPUChainedStruct,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_storage_buffers_in_vertex_stage: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_storage_textures_in_vertex_stage: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_storage_buffers_in_fragment_stage: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_storage_textures_in_fragment_stage: u32,
+}
+
+/// This is an ImplementationAllocatedStructChain root.
+/// Arbitrary chains must be handled gracefully by the application!
+///
+/// Default values can be set using WGPU_COMPILATION_MESSAGE_INIT as initializer.
+@repr(C)
+pub struct WGPUCompilationMessage {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// A LocalizableHumanReadableMessageString.
+    ///
+    /// This is an OutputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub message: WGPUStringView,
+    /// Severity level of the message.
+    ///
+    /// The `INIT` macro sets this to (WGPUCompilationMessageType)0.
+    pub type_value: WGPUCompilationMessageType,
+    /// Line number where the message is attached, starting at 1.
+    ///
+    /// The `INIT` macro sets this to `0`.
+    pub line_num: u64,
+    /// Offset in UTF-8 code units (bytes) from the beginning of the line, starting at 1.
+    ///
+    /// The `INIT` macro sets this to `0`.
+    pub line_pos: u64,
+    /// Offset in UTF-8 code units (bytes) from the beginning of the shader code, starting at 0.
+    ///
+    /// The `INIT` macro sets this to `0`.
+    pub offset: u64,
+    /// Length in UTF-8 code units (bytes) of the span the message corresponds to.
+    ///
+    /// The `INIT` macro sets this to `0`.
+    pub length: u64,
+}
+
+/// Default values can be set using WGPU_CONSTANT_ENTRY_INIT as initializer.
+@repr(C)
+pub struct WGPUConstantEntry {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// This is a NonNullInputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub key: WGPUStringView,
+    /// Represents a WGSL numeric or boolean value using DoubleAsSupertype.
+    ///
+    /// If non-finite, produces a NonFiniteFloatValueError.
+    ///
+    /// The `INIT` macro sets this to `0.`.
+    pub value: f64,
+}
+
+/// Default values can be set using WGPU_EXTENT_3D_INIT as initializer.
+@repr(C)
+pub struct WGPUExtent3D {
+    /// The `INIT` macro sets this to `0`.
+    pub width: u32,
+    /// The `INIT` macro sets this to `1`.
+    pub height: u32,
+    /// The `INIT` macro sets this to `1`.
+    pub depth_or_array_layers: u32,
+}
+
+/// Chained in an WGPUBindGroupEntry to set it to an WGPUExternalTexture. This must have a corresponding WGPUExternalTextureBindingLayout in the WGPUBindGroupLayout.
+///
+/// Default values can be set using WGPU_EXTERNAL_TEXTURE_BINDING_ENTRY_INIT as initializer.
+@repr(C)
+pub struct WGPUExternalTextureBindingEntry {
+    /// Native `chain` field.
+    pub chain: WGPUChainedStruct,
+    /// The `INIT` macro sets this to `NULL`.
+    pub external_texture: WGPUExternalTexture,
+}
+
+/// Chained in WGPUBindGroupLayoutEntry to specify that the corresponding entries in an WGPUBindGroup will contain an WGPUExternalTexture.
+///
+/// Default values can be set using WGPU_EXTERNAL_TEXTURE_BINDING_LAYOUT_INIT as initializer.
+@repr(C)
+pub struct WGPUExternalTextureBindingLayout {
+    /// Native `chain` field.
+    pub chain: WGPUChainedStruct,
+}
+
+/// Opaque handle to an asynchronous operation. See Asynchronous-Operations for more information.
+///
+/// Default values can be set using WGPU_FUTURE_INIT as initializer.
+@repr(C)
+pub struct WGPUFuture {
+    /// Opaque id of the WGPUFuture
+    ///
+    /// The `INIT` macro sets this to `0`.
+    pub id: u64,
+}
+
+/// Default values can be set using WGPU_INSTANCE_LIMITS_INIT as initializer.
+@repr(C)
+pub struct WGPUInstanceLimits {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// The maximum number WGPUFutureWaitInfo supported in a call to ::wgpuInstanceWaitAny with `timeoutNS > 0`.
+    ///
+    /// The `INIT` macro sets this to `0`.
+    pub timed_wait_any_max_count: usize,
+}
+
+/// Default values can be set using WGPU_MULTISAMPLE_STATE_INIT as initializer.
+@repr(C)
+pub struct WGPUMultisampleState {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// The `INIT` macro sets this to `1`.
+    pub count: u32,
+    /// The `INIT` macro sets this to `0xFFFFFFFF`.
+    pub mask: u32,
+    /// The `INIT` macro sets this to `WGPU_FALSE`.
+    pub alpha_to_coverage_enabled: WGPUBool,
+}
+
+/// Default values can be set using WGPU_ORIGIN_3D_INIT as initializer.
+@repr(C)
+pub struct WGPUOrigin3D {
+    /// The `INIT` macro sets this to `0`.
+    pub x: u32,
+    /// The `INIT` macro sets this to `0`.
+    pub y: u32,
+    /// The `INIT` macro sets this to `0`.
+    pub z: u32,
+}
+
+/// Default values can be set using WGPU_PASS_TIMESTAMP_WRITES_INIT as initializer.
+@repr(C)
+pub struct WGPUPassTimestampWrites {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// Query set to write timestamps to.
+    ///
+    /// The `INIT` macro sets this to `NULL`.
+    pub query_set: WGPUQuerySet,
+    /// The `INIT` macro sets this to WGPU_QUERY_SET_INDEX_UNDEFINED.
+    pub beginning_of_pass_write_index: u32,
+    /// The `INIT` macro sets this to WGPU_QUERY_SET_INDEX_UNDEFINED.
+    pub end_of_pass_write_index: u32,
+}
+
+/// Default values can be set using WGPU_PIPELINE_LAYOUT_DESCRIPTOR_INIT as initializer.
+@repr(C)
+pub struct WGPUPipelineLayoutDescriptor {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// This is a NonNullInputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub label: WGPUStringView,
+    /// Array count for `bindGroupLayouts`. The `INIT` macro sets this to 0.
+    pub bind_group_layout_count: usize,
+    /// The `INIT` macro sets this to `NULL`.
+    pub bind_group_layouts: *const WGPUBindGroupLayout,
+    /// The `INIT` macro sets this to `0`.
+    pub immediate_size: u32,
+}
+
+/// Default values can be set using WGPU_PRIMITIVE_STATE_INIT as initializer.
+@repr(C)
+pub struct WGPUPrimitiveState {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// If set to WGPUPrimitiveTopology_Undefined,
+    /// [defaults](SentinelValues) to WGPUPrimitiveTopology_TriangleList.
+    ///
+    /// The `INIT` macro sets this to WGPUPrimitiveTopology_Undefined.
+    pub topology: WGPUPrimitiveTopology,
+    /// The `INIT` macro sets this to WGPUIndexFormat_Undefined.
+    pub strip_index_format: WGPUIndexFormat,
+    /// If set to WGPUFrontFace_Undefined,
+    /// [defaults](SentinelValues) to WGPUFrontFace_CCW.
+    ///
+    /// The `INIT` macro sets this to WGPUFrontFace_Undefined.
+    pub front_face: WGPUFrontFace,
+    /// If set to WGPUCullMode_Undefined,
+    /// [defaults](SentinelValues) to WGPUCullMode_None.
+    ///
+    /// The `INIT` macro sets this to WGPUCullMode_Undefined.
+    pub cull_mode: WGPUCullMode,
+    /// The `INIT` macro sets this to `WGPU_FALSE`.
+    pub unclipped_depth: WGPUBool,
+}
+
+/// Default values can be set using WGPU_QUERY_SET_DESCRIPTOR_INIT as initializer.
+@repr(C)
+pub struct WGPUQuerySetDescriptor {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// This is a NonNullInputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub label: WGPUStringView,
+    /// The `INIT` macro sets this to (WGPUQueryType)0.
+    pub type_value: WGPUQueryType,
+    /// The `INIT` macro sets this to `0`.
+    pub count: u32,
+}
+
+/// Default values can be set using WGPU_QUEUE_DESCRIPTOR_INIT as initializer.
+@repr(C)
+pub struct WGPUQueueDescriptor {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// This is a NonNullInputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub label: WGPUStringView,
+}
+
+/// Default values can be set using WGPU_RENDER_BUNDLE_DESCRIPTOR_INIT as initializer.
+@repr(C)
+pub struct WGPURenderBundleDescriptor {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// This is a NonNullInputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub label: WGPUStringView,
+}
+
+/// Default values can be set using WGPU_RENDER_BUNDLE_ENCODER_DESCRIPTOR_INIT as initializer.
+@repr(C)
+pub struct WGPURenderBundleEncoderDescriptor {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// This is a NonNullInputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub label: WGPUStringView,
+    /// Array count for `colorFormats`. The `INIT` macro sets this to 0.
+    pub color_format_count: usize,
+    /// The `INIT` macro sets this to `NULL`.
+    pub color_formats: *const WGPUTextureFormat,
+    /// The `INIT` macro sets this to WGPUTextureFormat_Undefined.
+    pub depth_stencil_format: WGPUTextureFormat,
+    /// The `INIT` macro sets this to `1`.
+    pub sample_count: u32,
+    /// The `INIT` macro sets this to `WGPU_FALSE`.
+    pub depth_read_only: WGPUBool,
+    /// The `INIT` macro sets this to `WGPU_FALSE`.
+    pub stencil_read_only: WGPUBool,
+}
+
+/// Default values can be set using WGPU_RENDER_PASS_DEPTH_STENCIL_ATTACHMENT_INIT as initializer.
+@repr(C)
+pub struct WGPURenderPassDepthStencilAttachment {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// The `INIT` macro sets this to `NULL`.
+    pub view: WGPUTextureView,
+    /// The `INIT` macro sets this to WGPULoadOp_Undefined.
+    pub depth_load_op: WGPULoadOp,
+    /// The `INIT` macro sets this to WGPUStoreOp_Undefined.
+    pub depth_store_op: WGPUStoreOp,
+    /// This is a NullableFloatingPointType.
+    ///
+    /// If `NaN`, indicates an `undefined` value (as defined by the JS spec).
+    /// Use WGPU_DEPTH_CLEAR_VALUE_UNDEFINED to indicate this semantically.
+    ///
+    /// If infinite, produces a NonFiniteFloatValueError.
+    ///
+    /// The `INIT` macro sets this to WGPU_DEPTH_CLEAR_VALUE_UNDEFINED.
+    pub depth_clear_value: f32,
+    /// The `INIT` macro sets this to `WGPU_FALSE`.
+    pub depth_read_only: WGPUBool,
+    /// The `INIT` macro sets this to WGPULoadOp_Undefined.
+    pub stencil_load_op: WGPULoadOp,
+    /// The `INIT` macro sets this to WGPUStoreOp_Undefined.
+    pub stencil_store_op: WGPUStoreOp,
+    /// The `INIT` macro sets this to `0`.
+    pub stencil_clear_value: u32,
+    /// The `INIT` macro sets this to `WGPU_FALSE`.
+    pub stencil_read_only: WGPUBool,
+}
+
+/// Default values can be set using WGPU_RENDER_PASS_MAX_DRAW_COUNT_INIT as initializer.
+@repr(C)
+pub struct WGPURenderPassMaxDrawCount {
+    /// Native `chain` field.
+    pub chain: WGPUChainedStruct,
+    /// The `INIT` macro sets this to `50000000`.
+    pub max_draw_count: u64,
+}
+
+/// Extension providing requestAdapter options for implementations with WebXR interop (i.e. Wasm).
+///
+/// Default values can be set using WGPU_REQUEST_ADAPTER_WEBXR_OPTIONS_INIT as initializer.
+@repr(C)
+pub struct WGPURequestAdapterWebXROptions {
+    /// Native `chain` field.
+    pub chain: WGPUChainedStruct,
+    /// Sets the `xrCompatible` option in the JS API.
+    ///
+    /// The `INIT` macro sets this to `WGPU_FALSE`.
+    pub xr_compatible: WGPUBool,
+}
+
+/// Default values can be set using WGPU_SAMPLER_BINDING_LAYOUT_INIT as initializer.
+@repr(C)
+pub struct WGPUSamplerBindingLayout {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// If set to WGPUSamplerBindingType_Undefined,
+    /// [defaults](SentinelValues) to WGPUSamplerBindingType_Filtering.
+    ///
+    /// The `INIT` macro sets this to WGPUSamplerBindingType_Undefined.
+    pub type_value: WGPUSamplerBindingType,
+}
+
+/// Default values can be set using WGPU_SAMPLER_DESCRIPTOR_INIT as initializer.
+@repr(C)
+pub struct WGPUSamplerDescriptor {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// This is a NonNullInputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub label: WGPUStringView,
+    /// If set to WGPUAddressMode_Undefined,
+    /// [defaults](SentinelValues) to WGPUAddressMode_ClampToEdge.
+    ///
+    /// The `INIT` macro sets this to WGPUAddressMode_Undefined.
+    pub address_mode_u: WGPUAddressMode,
+    /// If set to WGPUAddressMode_Undefined,
+    /// [defaults](SentinelValues) to WGPUAddressMode_ClampToEdge.
+    ///
+    /// The `INIT` macro sets this to WGPUAddressMode_Undefined.
+    pub address_mode_v: WGPUAddressMode,
+    /// If set to WGPUAddressMode_Undefined,
+    /// [defaults](SentinelValues) to WGPUAddressMode_ClampToEdge.
+    ///
+    /// The `INIT` macro sets this to WGPUAddressMode_Undefined.
+    pub address_mode_w: WGPUAddressMode,
+    /// If set to WGPUFilterMode_Undefined,
+    /// [defaults](SentinelValues) to WGPUFilterMode_Nearest.
+    ///
+    /// The `INIT` macro sets this to WGPUFilterMode_Undefined.
+    pub mag_filter: WGPUFilterMode,
+    /// If set to WGPUFilterMode_Undefined,
+    /// [defaults](SentinelValues) to WGPUFilterMode_Nearest.
+    ///
+    /// The `INIT` macro sets this to WGPUFilterMode_Undefined.
+    pub min_filter: WGPUFilterMode,
+    /// If set to WGPUFilterMode_Undefined,
+    /// [defaults](SentinelValues) to WGPUMipmapFilterMode_Nearest.
+    ///
+    /// The `INIT` macro sets this to WGPUMipmapFilterMode_Undefined.
+    pub mipmap_filter: WGPUMipmapFilterMode,
+    /// If non-finite, produces a NonFiniteFloatValueError.
+    ///
+    /// The `INIT` macro sets this to `0.f`.
+    pub lod_min_clamp: f32,
+    /// If non-finite, produces a NonFiniteFloatValueError.
+    ///
+    /// The `INIT` macro sets this to `32.f`.
+    pub lod_max_clamp: f32,
+    /// The `INIT` macro sets this to WGPUCompareFunction_Undefined.
+    pub compare: WGPUCompareFunction,
+    /// The `INIT` macro sets this to `1`.
+    pub max_anisotropy: u16,
+}
+
+/// Default values can be set using WGPU_SHADER_SOURCE_SPIRV_INIT as initializer.
+@repr(C)
+pub struct WGPUShaderSourceSPIRV {
+    /// Native `chain` field.
+    pub chain: WGPUChainedStruct,
+    /// The `INIT` macro sets this to `0`.
+    pub code_size: u32,
+    /// The `INIT` macro sets this to `NULL`.
+    pub code: *const u32,
+}
+
+/// Default values can be set using WGPU_SHADER_SOURCE_WGSL_INIT as initializer.
+@repr(C)
+pub struct WGPUShaderSourceWGSL {
+    /// Native `chain` field.
+    pub chain: WGPUChainedStruct,
+    /// This is a NonNullInputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub code: WGPUStringView,
+}
+
+/// Default values can be set using WGPU_STENCIL_FACE_STATE_INIT as initializer.
+@repr(C)
+pub struct WGPUStencilFaceState {
+    /// If set to WGPUCompareFunction_Undefined,
+    /// [defaults](SentinelValues) to WGPUCompareFunction_Always.
+    ///
+    /// The `INIT` macro sets this to WGPUCompareFunction_Undefined.
+    pub compare: WGPUCompareFunction,
+    /// If set to WGPUStencilOperation_Undefined,
+    /// [defaults](SentinelValues) to WGPUStencilOperation_Keep.
+    ///
+    /// The `INIT` macro sets this to WGPUStencilOperation_Undefined.
+    pub fail_op: WGPUStencilOperation,
+    /// If set to WGPUStencilOperation_Undefined,
+    /// [defaults](SentinelValues) to WGPUStencilOperation_Keep.
+    ///
+    /// The `INIT` macro sets this to WGPUStencilOperation_Undefined.
+    pub depth_fail_op: WGPUStencilOperation,
+    /// If set to WGPUStencilOperation_Undefined,
+    /// [defaults](SentinelValues) to WGPUStencilOperation_Keep.
+    ///
+    /// The `INIT` macro sets this to WGPUStencilOperation_Undefined.
+    pub pass_op: WGPUStencilOperation,
+}
+
+/// Default values can be set using WGPU_STORAGE_TEXTURE_BINDING_LAYOUT_INIT as initializer.
+@repr(C)
+pub struct WGPUStorageTextureBindingLayout {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// If set to WGPUStorageTextureAccess_Undefined,
+    /// [defaults](SentinelValues) to WGPUStorageTextureAccess_WriteOnly.
+    ///
+    /// The `INIT` macro sets this to WGPUStorageTextureAccess_Undefined.
+    pub access: WGPUStorageTextureAccess,
+    /// The `INIT` macro sets this to WGPUTextureFormat_Undefined.
+    pub format: WGPUTextureFormat,
+    /// If set to WGPUTextureViewDimension_Undefined,
+    /// [defaults](SentinelValues) to WGPUTextureViewDimension_2D.
+    ///
+    /// The `INIT` macro sets this to WGPUTextureViewDimension_Undefined.
+    pub view_dimension: WGPUTextureViewDimension,
+}
+
+/// Default values can be set using WGPU_SUPPORTED_FEATURES_INIT as initializer.
+@repr(C)
+pub struct WGPUSupportedFeatures {
+    /// Array count for `features`. The `INIT` macro sets this to 0.
+    pub feature_count: usize,
+    /// The `INIT` macro sets this to `NULL`.
+    pub features: *const WGPUFeatureName,
+}
+
+/// Default values can be set using WGPU_SUPPORTED_INSTANCE_FEATURES_INIT as initializer.
+@repr(C)
+pub struct WGPUSupportedInstanceFeatures {
+    /// Array count for `features`. The `INIT` macro sets this to 0.
+    pub feature_count: usize,
+    /// The `INIT` macro sets this to `NULL`.
+    pub features: *const WGPUInstanceFeatureName,
+}
+
+/// Default values can be set using WGPU_SUPPORTED_WGSL_LANGUAGE_FEATURES_INIT as initializer.
+@repr(C)
+pub struct WGPUSupportedWGSLLanguageFeatures {
+    /// Array count for `features`. The `INIT` macro sets this to 0.
+    pub feature_count: usize,
+    /// The `INIT` macro sets this to `NULL`.
+    pub features: *const WGPUWGSLLanguageFeatureName,
+}
+
+/// Filled by wgpuSurfaceGetCapabilities with what's supported for wgpuSurfaceConfigure for a pair of WGPUSurface and WGPUAdapter.
+///
+/// Default values can be set using WGPU_SURFACE_CAPABILITIES_INIT as initializer.
+@repr(C)
+pub struct WGPUSurfaceCapabilities {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// The bit set of supported WGPUTextureUsage bits.
+    /// Guaranteed to contain WGPUTextureUsage_RenderAttachment.
+    ///
+    /// The `INIT` macro sets this to WGPUTextureUsage_None.
+    pub usages: WGPUTextureUsage,
+    /// Array count for `formats`. The `INIT` macro sets this to 0.
+    pub format_count: usize,
+    /// A list of supported WGPUTextureFormat values, in order of preference.
+    ///
+    /// The `INIT` macro sets this to `NULL`.
+    pub formats: *const WGPUTextureFormat,
+    /// Array count for `presentModes`. The `INIT` macro sets this to 0.
+    pub present_mode_count: usize,
+    /// A list of supported WGPUPresentMode values.
+    /// Guaranteed to contain WGPUPresentMode_Fifo.
+    ///
+    /// The `INIT` macro sets this to `NULL`.
+    pub present_modes: *const WGPUPresentMode,
+    /// Array count for `alphaModes`. The `INIT` macro sets this to 0.
+    pub alpha_mode_count: usize,
+    /// A list of supported WGPUCompositeAlphaMode values.
+    /// WGPUCompositeAlphaMode_Auto will be an alias for the first element and will never be present in this array.
+    ///
+    /// The `INIT` macro sets this to `NULL`.
+    pub alpha_modes: *const WGPUCompositeAlphaMode,
+}
+
+/// Extension of WGPUSurfaceConfiguration for color spaces and HDR.
+///
+/// Default values can be set using WGPU_SURFACE_COLOR_MANAGEMENT_INIT as initializer.
+@repr(C)
+pub struct WGPUSurfaceColorManagement {
+    /// Native `chain` field.
+    pub chain: WGPUChainedStruct,
+    /// The `INIT` macro sets this to (WGPUPredefinedColorSpace)0.
+    pub color_space: WGPUPredefinedColorSpace,
+    /// The `INIT` macro sets this to (WGPUToneMappingMode)0.
+    pub tone_mapping_mode: WGPUToneMappingMode,
+}
+
+/// Options to wgpuSurfaceConfigure for defining how a WGPUSurface will be rendered to and presented to the user.
+/// See Surface-Configuration for more details.
+///
+/// Default values can be set using WGPU_SURFACE_CONFIGURATION_INIT as initializer.
+@repr(C)
+pub struct WGPUSurfaceConfiguration {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// The WGPUDevice to use to render to surface's textures.
+    ///
+    /// The `INIT` macro sets this to `NULL`.
+    pub device: WGPUDevice,
+    /// The WGPUTextureFormat of the surface's textures.
+    ///
+    /// The `INIT` macro sets this to WGPUTextureFormat_Undefined.
+    pub format: WGPUTextureFormat,
+    /// The WGPUTextureUsage of the surface's textures.
+    ///
+    /// The `INIT` macro sets this to WGPUTextureUsage_RenderAttachment.
+    pub usage: WGPUTextureUsage,
+    /// The width of the surface's textures.
+    ///
+    /// The `INIT` macro sets this to `0`.
+    pub width: u32,
+    /// The height of the surface's textures.
+    ///
+    /// The `INIT` macro sets this to `0`.
+    pub height: u32,
+    /// Array count for `viewFormats`. The `INIT` macro sets this to 0.
+    pub view_format_count: usize,
+    /// The additional WGPUTextureFormat for WGPUTextureView format reinterpretation of the surface's textures.
+    ///
+    /// The `INIT` macro sets this to `NULL`.
+    pub view_formats: *const WGPUTextureFormat,
+    /// How the surface's frames will be composited on the screen.
+    ///
+    /// If set to WGPUCompositeAlphaMode_Auto,
+    /// [defaults] to WGPUCompositeAlphaMode_Inherit in native (allowing the mode
+    /// to be configured externally), and to WGPUCompositeAlphaMode_Opaque in Wasm.
+    ///
+    /// The `INIT` macro sets this to WGPUCompositeAlphaMode_Auto.
+    pub alpha_mode: WGPUCompositeAlphaMode,
+    /// When and in which order the surface's frames will be shown on the screen.
+    ///
+    /// If set to WGPUPresentMode_Undefined,
+    /// [defaults](SentinelValues) to WGPUPresentMode_Fifo.
+    ///
+    /// The `INIT` macro sets this to WGPUPresentMode_Undefined.
+    pub present_mode: WGPUPresentMode,
+}
+
+/// Chained in WGPUSurfaceDescriptor to make an WGPUSurface wrapping an Android [`ANativeWindow`](https://developer.android.com/ndk/reference/group/a-native-window).
+///
+/// Default values can be set using WGPU_SURFACE_SOURCE_ANDROID_NATIVE_WINDOW_INIT as initializer.
+@repr(C)
+pub struct WGPUSurfaceSourceAndroidNativeWindow {
+    /// Native `chain` field.
+    pub chain: WGPUChainedStruct,
+    /// The pointer to the [`ANativeWindow`](https://developer.android.com/ndk/reference/group/a-native-window) that will be wrapped by the WGPUSurface.
+    ///
+    /// The `INIT` macro sets this to `NULL`.
+    pub window: *mut (),
+}
+
+/// Chained in WGPUSurfaceDescriptor to make an WGPUSurface wrapping a [`CAMetalLayer`](https://developer.apple.com/documentation/quartzcore/cametallayer?language=objc).
+///
+/// Default values can be set using WGPU_SURFACE_SOURCE_METAL_LAYER_INIT as initializer.
+@repr(C)
+pub struct WGPUSurfaceSourceMetalLayer {
+    /// Native `chain` field.
+    pub chain: WGPUChainedStruct,
+    /// The pointer to the [`CAMetalLayer`](https://developer.apple.com/documentation/quartzcore/cametallayer?language=objc) that will be wrapped by the WGPUSurface.
+    ///
+    /// The `INIT` macro sets this to `NULL`.
+    pub layer: *mut (),
+}
+
+/// Chained in WGPUSurfaceDescriptor to make an WGPUSurface wrapping a [Wayland](https://wayland.freedesktop.org/) [`wl_surface`](https://wayland.freedesktop.org/docs/html/apa.html#protocol-spec-wl_surface).
+///
+/// Default values can be set using WGPU_SURFACE_SOURCE_WAYLAND_SURFACE_INIT as initializer.
+@repr(C)
+pub struct WGPUSurfaceSourceWaylandSurface {
+    /// Native `chain` field.
+    pub chain: WGPUChainedStruct,
+    /// A [`wl_display`](https://wayland.freedesktop.org/docs/html/apa.html#protocol-spec-wl_display) for this Wayland instance.
+    ///
+    /// The `INIT` macro sets this to `NULL`.
+    pub display: *mut (),
+    /// A [`wl_surface`](https://wayland.freedesktop.org/docs/html/apa.html#protocol-spec-wl_surface) that will be wrapped by the WGPUSurface
+    ///
+    /// The `INIT` macro sets this to `NULL`.
+    pub surface: *mut (),
+}
+
+/// Chained in WGPUSurfaceDescriptor to make an WGPUSurface wrapping a Windows [`HWND`](https://learn.microsoft.com/en-us/windows/apps/develop/ui-input/retrieve-hwnd).
+///
+/// Default values can be set using WGPU_SURFACE_SOURCE_WINDOWS_HWND_INIT as initializer.
+@repr(C)
+pub struct WGPUSurfaceSourceWindowsHWND {
+    /// Native `chain` field.
+    pub chain: WGPUChainedStruct,
+    /// The [`HINSTANCE`](https://learn.microsoft.com/en-us/windows/win32/learnwin32/winmain--the-application-entry-point) for this application.
+    /// Most commonly `GetModuleHandle(nullptr)`.
+    ///
+    /// The `INIT` macro sets this to `NULL`.
+    pub hinstance: *mut (),
+    /// The [`HWND`](https://learn.microsoft.com/en-us/windows/apps/develop/ui-input/retrieve-hwnd) that will be wrapped by the WGPUSurface.
+    ///
+    /// The `INIT` macro sets this to `NULL`.
+    pub hwnd: *mut (),
+}
+
+/// Chained in WGPUSurfaceDescriptor to make an WGPUSurface wrapping an [XCB](https://xcb.freedesktop.org/) `xcb_window_t`.
+///
+/// Default values can be set using WGPU_SURFACE_SOURCE_XCB_WINDOW_INIT as initializer.
+@repr(C)
+pub struct WGPUSurfaceSourceXCBWindow {
+    /// Native `chain` field.
+    pub chain: WGPUChainedStruct,
+    /// The `xcb_connection_t` for the connection to the X server.
+    ///
+    /// The `INIT` macro sets this to `NULL`.
+    pub connection: *mut (),
+    /// The `xcb_window_t` for the window that will be wrapped by the WGPUSurface.
+    ///
+    /// The `INIT` macro sets this to `0`.
+    pub window: u32,
+}
+
+/// Chained in WGPUSurfaceDescriptor to make an WGPUSurface wrapping an [Xlib](https://www.x.org/releases/current/doc/libX11/libX11/libX11.html) `Window`.
+///
+/// Default values can be set using WGPU_SURFACE_SOURCE_XLIB_WINDOW_INIT as initializer.
+@repr(C)
+pub struct WGPUSurfaceSourceXlibWindow {
+    /// Native `chain` field.
+    pub chain: WGPUChainedStruct,
+    /// A pointer to the [`Display`](https://www.x.org/releases/current/doc/libX11/libX11/libX11.html#Opening_the_Display) connected to the X server.
+    ///
+    /// The `INIT` macro sets this to `NULL`.
+    pub display: *mut (),
+    /// The [`Window`](https://www.x.org/releases/current/doc/libX11/libX11/libX11.html#Creating_Windows) that will be wrapped by the WGPUSurface.
+    ///
+    /// The `INIT` macro sets this to `0`.
+    pub window: u64,
+}
+
+/// Queried each frame from a WGPUSurface to get a WGPUTexture to render to along with some metadata.
+/// See Surface-Presenting for more details.
+///
+/// Default values can be set using WGPU_SURFACE_TEXTURE_INIT as initializer.
+@repr(C)
+pub struct WGPUSurfaceTexture {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// The WGPUTexture representing the frame that will be shown on the surface.
+    /// It is ReturnedWithOwnership from wgpuSurfaceGetCurrentTexture.
+    ///
+    /// The `INIT` macro sets this to `NULL`.
+    pub texture: WGPUTexture,
+    /// Whether the call to wgpuSurfaceGetCurrentTexture succeeded and a hint as to why it might not have.
+    ///
+    /// The `INIT` macro sets this to (WGPUSurfaceGetCurrentTextureStatus)0.
+    pub status: WGPUSurfaceGetCurrentTextureStatus,
+}
+
+/// Default values can be set using WGPU_TEXEL_COPY_BUFFER_LAYOUT_INIT as initializer.
+@repr(C)
+pub struct WGPUTexelCopyBufferLayout {
+    /// The `INIT` macro sets this to `0`.
+    pub offset: u64,
+    /// The `INIT` macro sets this to WGPU_COPY_STRIDE_UNDEFINED.
+    pub bytes_per_row: u32,
+    /// The `INIT` macro sets this to WGPU_COPY_STRIDE_UNDEFINED.
+    pub rows_per_image: u32,
+}
+
+/// Default values can be set using WGPU_TEXTURE_BINDING_LAYOUT_INIT as initializer.
+@repr(C)
+pub struct WGPUTextureBindingLayout {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// If set to WGPUTextureSampleType_Undefined,
+    /// [defaults](SentinelValues) to WGPUTextureSampleType_Float.
+    ///
+    /// The `INIT` macro sets this to WGPUTextureSampleType_Undefined.
+    pub sample_type: WGPUTextureSampleType,
+    /// If set to WGPUTextureViewDimension_Undefined,
+    /// [defaults](SentinelValues) to WGPUTextureViewDimension_2D.
+    ///
+    /// The `INIT` macro sets this to WGPUTextureViewDimension_Undefined.
+    pub view_dimension: WGPUTextureViewDimension,
+    /// The `INIT` macro sets this to `WGPU_FALSE`.
+    pub multisampled: WGPUBool,
+}
+
+/// Note: While Compatibility Mode is optional to implement, this extension struct
+/// is required to be accepted (but per the WebGPU spec, its contents are ignored
+/// on devices that have the WGPUFeatureName_CoreFeaturesAndLimits feature).
+///
+/// Default values can be set using WGPU_TEXTURE_BINDING_VIEW_DIMENSION_INIT as initializer.
+@repr(C)
+pub struct WGPUTextureBindingViewDimension {
+    /// Native `chain` field.
+    pub chain: WGPUChainedStruct,
+    /// The `INIT` macro sets this to WGPUTextureViewDimension_Undefined.
+    pub texture_binding_view_dimension: WGPUTextureViewDimension,
+}
+
+/// When accessed by a shader, the red/green/blue/alpha channels are replaced
+/// by the value corresponding to the component specified in r, g, b, and a,
+/// respectively unlike the JS API which uses a string of length four, with
+/// each character mapping to the texture view's red/green/blue/alpha channels.
+///
+/// Default values can be set using WGPU_TEXTURE_COMPONENT_SWIZZLE_INIT as initializer.
+@repr(C)
+pub struct WGPUTextureComponentSwizzle {
+    /// The value that replaces the red channel in the shader.
+    ///
+    /// If set to WGPUComponentSwizzle_Undefined,
+    /// [defaults](SentinelValues) to WGPUComponentSwizzle_R.
+    ///
+    /// The `INIT` macro sets this to WGPUComponentSwizzle_Undefined.
+    pub r: WGPUComponentSwizzle,
+    /// The value that replaces the green channel in the shader.
+    ///
+    /// If set to WGPUComponentSwizzle_Undefined,
+    /// [defaults](SentinelValues) to WGPUComponentSwizzle_G.
+    ///
+    /// The `INIT` macro sets this to WGPUComponentSwizzle_Undefined.
+    pub g: WGPUComponentSwizzle,
+    /// The value that replaces the blue channel in the shader.
+    ///
+    /// If set to WGPUComponentSwizzle_Undefined,
+    /// [defaults](SentinelValues) to WGPUComponentSwizzle_B.
+    ///
+    /// The `INIT` macro sets this to WGPUComponentSwizzle_Undefined.
+    pub b: WGPUComponentSwizzle,
+    /// The value that replaces the alpha channel in the shader.
+    ///
+    /// If set to WGPUComponentSwizzle_Undefined,
+    /// [defaults](SentinelValues) to WGPUComponentSwizzle_A.
+    ///
+    /// The `INIT` macro sets this to WGPUComponentSwizzle_Undefined.
+    pub a: WGPUComponentSwizzle,
+}
+
+/// Default values can be set using WGPU_VERTEX_ATTRIBUTE_INIT as initializer.
+@repr(C)
+pub struct WGPUVertexAttribute {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// The `INIT` macro sets this to (WGPUVertexFormat)0.
+    pub format: WGPUVertexFormat,
+    /// The `INIT` macro sets this to `0`.
+    pub offset: u64,
+    /// The `INIT` macro sets this to `0`.
+    pub shader_location: u32,
+}
+
+/// Default values can be set using WGPU_BIND_GROUP_ENTRY_INIT as initializer.
+@repr(C)
+pub struct WGPUBindGroupEntry {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// Binding index in the bind group.
+    ///
+    /// The `INIT` macro sets this to `0`.
+    pub binding: u32,
+    /// Set this if the binding is a buffer object.
+    /// Otherwise must be null.
+    ///
+    /// The `INIT` macro sets this to `NULL`.
+    pub buffer: WGPUBuffer,
+    /// If the binding is a buffer, this is the byte offset of the binding range.
+    /// Otherwise ignored.
+    ///
+    /// The `INIT` macro sets this to `0`.
+    pub offset: u64,
+    /// If the binding is a buffer, this is the byte size of the binding range
+    /// (WGPU_WHOLE_SIZE means the binding ends at the end of the buffer).
+    /// Otherwise ignored.
+    ///
+    /// The `INIT` macro sets this to WGPU_WHOLE_SIZE.
+    pub size: u64,
+    /// Set this if the binding is a sampler object.
+    /// Otherwise must be null.
+    ///
+    /// The `INIT` macro sets this to `NULL`.
+    pub sampler: WGPUSampler,
+    /// Set this if the binding is a texture view object.
+    /// Otherwise must be null.
+    ///
+    /// The `INIT` macro sets this to `NULL`.
+    pub texture_view: WGPUTextureView,
+}
+
+/// Default values can be set using WGPU_BIND_GROUP_LAYOUT_ENTRY_INIT as initializer.
+@repr(C)
+pub struct WGPUBindGroupLayoutEntry {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// The `INIT` macro sets this to `0`.
+    pub binding: u32,
+    /// The `INIT` macro sets this to WGPUShaderStage_None.
+    pub visibility: WGPUShaderStage,
+    /// If non-zero, this entry defines a binding array with this size.
+    ///
+    /// The `INIT` macro sets this to `0`.
+    pub binding_array_size: u32,
+    /// The `INIT` macro sets this to zero (which sets the entry to `BindingNotUsed`).
+    pub buffer: WGPUBufferBindingLayout,
+    /// The `INIT` macro sets this to zero (which sets the entry to `BindingNotUsed`).
+    pub sampler: WGPUSamplerBindingLayout,
+    /// The `INIT` macro sets this to zero (which sets the entry to `BindingNotUsed`).
+    pub texture: WGPUTextureBindingLayout,
+    /// The `INIT` macro sets this to zero (which sets the entry to `BindingNotUsed`).
+    pub storage_texture: WGPUStorageTextureBindingLayout,
+}
+
+/// Default values can be set using WGPU_BLEND_STATE_INIT as initializer.
+@repr(C)
+pub struct WGPUBlendState {
+    /// The `INIT` macro sets this to WGPU_BLEND_COMPONENT_INIT.
+    pub color: WGPUBlendComponent,
+    /// The `INIT` macro sets this to WGPU_BLEND_COMPONENT_INIT.
+    pub alpha: WGPUBlendComponent,
+}
+
+/// This is an ImplementationAllocatedStructChain root.
+/// Arbitrary chains must be handled gracefully by the application!
+///
+/// Default values can be set using WGPU_COMPILATION_INFO_INIT as initializer.
+@repr(C)
+pub struct WGPUCompilationInfo {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// Array count for `messages`. The `INIT` macro sets this to 0.
+    pub message_count: usize,
+    /// The `INIT` macro sets this to `NULL`.
+    pub messages: *const WGPUCompilationMessage,
+}
+
+/// Default values can be set using WGPU_COMPUTE_PASS_DESCRIPTOR_INIT as initializer.
+@repr(C)
+pub struct WGPUComputePassDescriptor {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// This is a NonNullInputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub label: WGPUStringView,
+    /// The `INIT` macro sets this to `NULL`.
+    pub timestamp_writes: *const WGPUPassTimestampWrites,
+}
+
+/// Default values can be set using WGPU_COMPUTE_STATE_INIT as initializer.
+@repr(C)
+pub struct WGPUComputeState {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// The `INIT` macro sets this to `NULL`.
+    pub module: WGPUShaderModule,
+    /// This is a NullableInputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub entry_point: WGPUStringView,
+    /// Array count for `constants`. The `INIT` macro sets this to 0.
+    pub constant_count: usize,
+    /// The `INIT` macro sets this to `NULL`.
+    pub constants: *const WGPUConstantEntry,
+}
+
+/// Default values can be set using WGPU_DEPTH_STENCIL_STATE_INIT as initializer.
+@repr(C)
+pub struct WGPUDepthStencilState {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// The `INIT` macro sets this to WGPUTextureFormat_Undefined.
+    pub format: WGPUTextureFormat,
+    /// The `INIT` macro sets this to WGPUOptionalBool_Undefined.
+    pub depth_write_enabled: WGPUOptionalBool,
+    /// The `INIT` macro sets this to WGPUCompareFunction_Undefined.
+    pub depth_compare: WGPUCompareFunction,
+    /// The `INIT` macro sets this to WGPU_STENCIL_FACE_STATE_INIT.
+    pub stencil_front: WGPUStencilFaceState,
+    /// The `INIT` macro sets this to WGPU_STENCIL_FACE_STATE_INIT.
+    pub stencil_back: WGPUStencilFaceState,
+    /// The `INIT` macro sets this to `0xFFFFFFFF`.
+    pub stencil_read_mask: u32,
+    /// The `INIT` macro sets this to `0xFFFFFFFF`.
+    pub stencil_write_mask: u32,
+    /// The `INIT` macro sets this to `0`.
+    pub depth_bias: i32,
+    /// If non-finite, produces a NonFiniteFloatValueError.
+    ///
+    /// The `INIT` macro sets this to `0.f`.
+    pub depth_bias_slope_scale: f32,
+    /// If non-finite, produces a NonFiniteFloatValueError.
+    ///
+    /// The `INIT` macro sets this to `0.f`.
+    pub depth_bias_clamp: f32,
+}
+
+/// Struct holding a future to wait on, and a `completed` boolean flag.
+///
+/// Default values can be set using WGPU_FUTURE_WAIT_INFO_INIT as initializer.
+@repr(C)
+pub struct WGPUFutureWaitInfo {
+    /// The future to wait on.
+    ///
+    /// The `INIT` macro sets this to WGPU_FUTURE_INIT.
+    pub future: WGPUFuture,
+    /// Whether or not the future completed.
+    ///
+    /// The `INIT` macro sets this to `WGPU_FALSE`.
+    pub completed: WGPUBool,
+}
+
+/// Default values can be set using WGPU_INSTANCE_DESCRIPTOR_INIT as initializer.
+@repr(C)
+pub struct WGPUInstanceDescriptor {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// Array count for `requiredFeatures`. The `INIT` macro sets this to 0.
+    pub required_feature_count: usize,
+    /// The `INIT` macro sets this to `NULL`.
+    pub required_features: *const WGPUInstanceFeatureName,
+    /// The `INIT` macro sets this to `NULL`.
+    pub required_limits: *const WGPUInstanceLimits,
+}
+
+/// Default values can be set using WGPU_LIMITS_INIT as initializer.
+@repr(C)
+pub struct WGPULimits {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_texture_dimension1d: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_texture_dimension2d: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_texture_dimension3d: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_texture_array_layers: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_bind_groups: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_bind_groups_plus_vertex_buffers: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_bindings_per_bind_group: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_dynamic_uniform_buffers_per_pipeline_layout: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_dynamic_storage_buffers_per_pipeline_layout: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_sampled_textures_per_shader_stage: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_samplers_per_shader_stage: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_storage_buffers_per_shader_stage: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_storage_textures_per_shader_stage: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_uniform_buffers_per_shader_stage: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U64_UNDEFINED.
+    pub max_uniform_buffer_binding_size: u64,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U64_UNDEFINED.
+    pub max_storage_buffer_binding_size: u64,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub min_uniform_buffer_offset_alignment: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub min_storage_buffer_offset_alignment: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_vertex_buffers: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U64_UNDEFINED.
+    pub max_buffer_size: u64,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_vertex_attributes: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_vertex_buffer_array_stride: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_inter_stage_shader_variables: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_color_attachments: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_color_attachment_bytes_per_sample: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_compute_workgroup_storage_size: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_compute_invocations_per_workgroup: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_compute_workgroup_size_x: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_compute_workgroup_size_y: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_compute_workgroup_size_z: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_compute_workgroups_per_dimension: u32,
+    /// The `INIT` macro sets this to WGPU_LIMIT_U32_UNDEFINED.
+    pub max_immediate_size: u32,
+}
+
+/// Default values can be set using WGPU_RENDER_PASS_COLOR_ATTACHMENT_INIT as initializer.
+@repr(C)
+pub struct WGPURenderPassColorAttachment {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// If `NULL`, indicates a hole in the parent
+    /// WGPURenderPassDescriptor::colorAttachments array.
+    ///
+    /// The `INIT` macro sets this to `NULL`.
+    pub view: WGPUTextureView,
+    /// The `INIT` macro sets this to WGPU_DEPTH_SLICE_UNDEFINED.
+    pub depth_slice: u32,
+    /// The `INIT` macro sets this to `NULL`.
+    pub resolve_target: WGPUTextureView,
+    /// The `INIT` macro sets this to WGPULoadOp_Undefined.
+    pub load_op: WGPULoadOp,
+    /// The `INIT` macro sets this to WGPUStoreOp_Undefined.
+    pub store_op: WGPUStoreOp,
+    /// The `INIT` macro sets this to WGPU_COLOR_INIT.
+    pub clear_value: WGPUColor,
+}
+
+/// Default values can be set using WGPU_REQUEST_ADAPTER_OPTIONS_INIT as initializer.
+@repr(C)
+pub struct WGPURequestAdapterOptions {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// "Feature level" for the adapter request. If an adapter is returned, it must support the features and limits in the requested feature level.
+    ///
+    /// If set to WGPUFeatureLevel_Undefined,
+    /// [defaults](SentinelValues) to WGPUFeatureLevel_Core.
+    /// Additionally, implementations may ignore WGPUFeatureLevel_Compatibility
+    /// and provide WGPUFeatureLevel_Core instead.
+    ///
+    /// The `INIT` macro sets this to WGPUFeatureLevel_Undefined.
+    pub feature_level: WGPUFeatureLevel,
+    /// The `INIT` macro sets this to WGPUPowerPreference_Undefined.
+    pub power_preference: WGPUPowerPreference,
+    /// If true, requires the adapter to be a "fallback" adapter as defined by the JS spec.
+    /// If this is not possible, the request returns null.
+    ///
+    /// The `INIT` macro sets this to `WGPU_FALSE`.
+    pub force_fallback_adapter: WGPUBool,
+    /// If set, requires the adapter to have a particular backend type.
+    /// If this is not possible, the request returns null.
+    ///
+    /// The `INIT` macro sets this to WGPUBackendType_Undefined.
+    pub backend_type: WGPUBackendType,
+    /// If set, requires the adapter to be able to output to a particular surface.
+    /// If this is not possible, the request returns null.
+    ///
+    /// The `INIT` macro sets this to `NULL`.
+    pub compatible_surface: WGPUSurface,
+}
+
+/// Default values can be set using WGPU_SHADER_MODULE_DESCRIPTOR_INIT as initializer.
+@repr(C)
+pub struct WGPUShaderModuleDescriptor {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// This is a NonNullInputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub label: WGPUStringView,
+}
+
+/// The root descriptor for the creation of an WGPUSurface with wgpuInstanceCreateSurface.
+/// It isn't sufficient by itself and must have one of the `WGPUSurfaceSource*` in its chain.
+/// See Surface-Creation for more details.
+///
+/// Default values can be set using WGPU_SURFACE_DESCRIPTOR_INIT as initializer.
+@repr(C)
+pub struct WGPUSurfaceDescriptor {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// Label used to refer to the object.
+    ///
+    /// This is a NonNullInputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub label: WGPUStringView,
+}
+
+/// Default values can be set using WGPU_TEXEL_COPY_BUFFER_INFO_INIT as initializer.
+@repr(C)
+pub struct WGPUTexelCopyBufferInfo {
+    /// The `INIT` macro sets this to WGPU_TEXEL_COPY_BUFFER_LAYOUT_INIT.
+    pub layout: WGPUTexelCopyBufferLayout,
+    /// The `INIT` macro sets this to `NULL`.
+    pub buffer: WGPUBuffer,
+}
+
+/// Default values can be set using WGPU_TEXEL_COPY_TEXTURE_INFO_INIT as initializer.
+@repr(C)
+pub struct WGPUTexelCopyTextureInfo {
+    /// The `INIT` macro sets this to `NULL`.
+    pub texture: WGPUTexture,
+    /// The `INIT` macro sets this to `0`.
+    pub mip_level: u32,
+    /// The `INIT` macro sets this to WGPU_ORIGIN_3D_INIT.
+    pub origin: WGPUOrigin3D,
+    /// If set to WGPUTextureAspect_Undefined,
+    /// [defaults](SentinelValues) to WGPUTextureAspect_All.
+    ///
+    /// The `INIT` macro sets this to WGPUTextureAspect_Undefined.
+    pub aspect: WGPUTextureAspect,
+}
+
+/// Default values can be set using WGPU_TEXTURE_COMPONENT_SWIZZLE_DESCRIPTOR_INIT as initializer.
+@repr(C)
+pub struct WGPUTextureComponentSwizzleDescriptor {
+    /// Native `chain` field.
+    pub chain: WGPUChainedStruct,
+    /// The `INIT` macro sets this to WGPU_TEXTURE_COMPONENT_SWIZZLE_INIT.
+    pub swizzle: WGPUTextureComponentSwizzle,
+}
+
+/// Default values can be set using WGPU_TEXTURE_DESCRIPTOR_INIT as initializer.
+@repr(C)
+pub struct WGPUTextureDescriptor {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// This is a NonNullInputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub label: WGPUStringView,
+    /// The `INIT` macro sets this to WGPUTextureUsage_None.
+    pub usage: WGPUTextureUsage,
+    /// If set to WGPUTextureDimension_Undefined,
+    /// [defaults](SentinelValues) to WGPUTextureDimension_2D.
+    ///
+    /// The `INIT` macro sets this to WGPUTextureDimension_Undefined.
+    pub dimension: WGPUTextureDimension,
+    /// The `INIT` macro sets this to WGPU_EXTENT_3D_INIT.
+    pub size: WGPUExtent3D,
+    /// The `INIT` macro sets this to WGPUTextureFormat_Undefined.
+    pub format: WGPUTextureFormat,
+    /// The `INIT` macro sets this to `1`.
+    pub mip_level_count: u32,
+    /// The `INIT` macro sets this to `1`.
+    pub sample_count: u32,
+    /// Array count for `viewFormats`. The `INIT` macro sets this to 0.
+    pub view_format_count: usize,
+    /// The `INIT` macro sets this to `NULL`.
+    pub view_formats: *const WGPUTextureFormat,
+}
+
+/// If `attributes` is empty *and* `stepMode` is WGPUVertexStepMode_Undefined,
+/// indicates a "hole" in the parent WGPUVertexState `buffers` array,
+/// with behavior equivalent to `null` in the JS API.
+///
+/// If `attributes` is empty but `stepMode` is *not* WGPUVertexStepMode_Undefined,
+/// indicates a vertex buffer with no attributes, with behavior equivalent to
+/// `{ attributes: [] }` in the JS API. (TODO: If the JS API changes not to
+/// distinguish these cases, then this distinction doesn't matter and we can
+/// remove this documentation.)
+///
+/// If `stepMode` is WGPUVertexStepMode_Undefined but `attributes` is *not* empty,
+/// `stepMode` [defaults](SentinelValues) to WGPUVertexStepMode_Vertex.
+///
+/// Default values can be set using WGPU_VERTEX_BUFFER_LAYOUT_INIT as initializer.
+@repr(C)
+pub struct WGPUVertexBufferLayout {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// The `INIT` macro sets this to WGPUVertexStepMode_Undefined.
+    pub step_mode: WGPUVertexStepMode,
+    /// The `INIT` macro sets this to `0`.
+    pub array_stride: u64,
+    /// Array count for `attributes`. The `INIT` macro sets this to 0.
+    pub attribute_count: usize,
+    /// The `INIT` macro sets this to `NULL`.
+    pub attributes: *const WGPUVertexAttribute,
+}
+
+/// Default values can be set using WGPU_BIND_GROUP_DESCRIPTOR_INIT as initializer.
+@repr(C)
+pub struct WGPUBindGroupDescriptor {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// This is a NonNullInputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub label: WGPUStringView,
+    /// The `INIT` macro sets this to `NULL`.
+    pub layout: WGPUBindGroupLayout,
+    /// Array count for `entries`. The `INIT` macro sets this to 0.
+    pub entry_count: usize,
+    /// The `INIT` macro sets this to `NULL`.
+    pub entries: *const WGPUBindGroupEntry,
+}
+
+/// Default values can be set using WGPU_BIND_GROUP_LAYOUT_DESCRIPTOR_INIT as initializer.
+@repr(C)
+pub struct WGPUBindGroupLayoutDescriptor {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// This is a NonNullInputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub label: WGPUStringView,
+    /// Array count for `entries`. The `INIT` macro sets this to 0.
+    pub entry_count: usize,
+    /// The `INIT` macro sets this to `NULL`.
+    pub entries: *const WGPUBindGroupLayoutEntry,
+}
+
+/// Default values can be set using WGPU_COLOR_TARGET_STATE_INIT as initializer.
+@repr(C)
+pub struct WGPUColorTargetState {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// The texture format of the target. If WGPUTextureFormat_Undefined,
+    /// indicates a "hole" in the parent WGPUFragmentState `targets` array:
+    /// the pipeline does not output a value at this `location`.
+    ///
+    /// The `INIT` macro sets this to WGPUTextureFormat_Undefined.
+    pub format: WGPUTextureFormat,
+    /// The `INIT` macro sets this to `NULL`.
+    pub blend: *const WGPUBlendState,
+    /// The `INIT` macro sets this to WGPUColorWriteMask_All.
+    pub write_mask: WGPUColorWriteMask,
+}
+
+/// Default values can be set using WGPU_COMPUTE_PIPELINE_DESCRIPTOR_INIT as initializer.
+@repr(C)
+pub struct WGPUComputePipelineDescriptor {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// This is a NonNullInputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub label: WGPUStringView,
+    /// The `INIT` macro sets this to `NULL`.
+    pub layout: WGPUPipelineLayout,
+    /// The `INIT` macro sets this to WGPU_COMPUTE_STATE_INIT.
+    pub compute: WGPUComputeState,
+}
+
+/// Default values can be set using WGPU_DEVICE_DESCRIPTOR_INIT as initializer.
+@repr(C)
+pub struct WGPUDeviceDescriptor {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// This is a NonNullInputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub label: WGPUStringView,
+    /// Array count for `requiredFeatures`. The `INIT` macro sets this to 0.
+    pub required_feature_count: usize,
+    /// The `INIT` macro sets this to `NULL`.
+    pub required_features: *const WGPUFeatureName,
+    /// The `INIT` macro sets this to `NULL`.
+    pub required_limits: *const WGPULimits,
+    /// The `INIT` macro sets this to WGPU_QUEUE_DESCRIPTOR_INIT.
+    pub default_queue: WGPUQueueDescriptor,
+    /// The `INIT` macro sets this to WGPU_DEVICE_LOST_CALLBACK_INFO_INIT.
+    pub device_lost_callback_info: WGPUDeviceLostCallbackInfo,
+    /// Called when there is an uncaptured error on this device, from any thread.
+    /// See ErrorScopes.
+    ///
+    /// **Important:** This callback does not have a configurable WGPUCallbackMode; it may be called at any time (like WGPUCallbackMode_AllowSpontaneous). As such, calls into the `webgpu.h` API from this callback are unsafe. See CallbackReentrancy.
+    ///
+    /// The `INIT` macro sets this to WGPU_UNCAPTURED_ERROR_CALLBACK_INFO_INIT.
+    pub uncaptured_error_callback_info: WGPUUncapturedErrorCallbackInfo,
+}
+
+/// Default values can be set using WGPU_RENDER_PASS_DESCRIPTOR_INIT as initializer.
+@repr(C)
+pub struct WGPURenderPassDescriptor {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// This is a NonNullInputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub label: WGPUStringView,
+    /// Array count for `colorAttachments`. The `INIT` macro sets this to 0.
+    pub color_attachment_count: usize,
+    /// The `INIT` macro sets this to `NULL`.
+    pub color_attachments: *const WGPURenderPassColorAttachment,
+    /// The `INIT` macro sets this to `NULL`.
+    pub depth_stencil_attachment: *const WGPURenderPassDepthStencilAttachment,
+    /// The `INIT` macro sets this to `NULL`.
+    pub occlusion_query_set: WGPUQuerySet,
+    /// The `INIT` macro sets this to `NULL`.
+    pub timestamp_writes: *const WGPUPassTimestampWrites,
+}
+
+/// Default values can be set using WGPU_TEXTURE_VIEW_DESCRIPTOR_INIT as initializer.
+@repr(C)
+pub struct WGPUTextureViewDescriptor {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// This is a NonNullInputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub label: WGPUStringView,
+    /// The `INIT` macro sets this to WGPUTextureFormat_Undefined.
+    pub format: WGPUTextureFormat,
+    /// The `INIT` macro sets this to WGPUTextureViewDimension_Undefined.
+    pub dimension: WGPUTextureViewDimension,
+    /// The `INIT` macro sets this to `0`.
+    pub base_mip_level: u32,
+    /// The `INIT` macro sets this to WGPU_MIP_LEVEL_COUNT_UNDEFINED.
+    pub mip_level_count: u32,
+    /// The `INIT` macro sets this to `0`.
+    pub base_array_layer: u32,
+    /// The `INIT` macro sets this to WGPU_ARRAY_LAYER_COUNT_UNDEFINED.
+    pub array_layer_count: u32,
+    /// If set to WGPUTextureAspect_Undefined,
+    /// [defaults](SentinelValues) to WGPUTextureAspect_All.
+    ///
+    /// The `INIT` macro sets this to WGPUTextureAspect_Undefined.
+    pub aspect: WGPUTextureAspect,
+    /// The `INIT` macro sets this to WGPUTextureUsage_None.
+    pub usage: WGPUTextureUsage,
+}
+
+/// Default values can be set using WGPU_VERTEX_STATE_INIT as initializer.
+@repr(C)
+pub struct WGPUVertexState {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// The `INIT` macro sets this to `NULL`.
+    pub module: WGPUShaderModule,
+    /// This is a NullableInputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub entry_point: WGPUStringView,
+    /// Array count for `constants`. The `INIT` macro sets this to 0.
+    pub constant_count: usize,
+    /// The `INIT` macro sets this to `NULL`.
+    pub constants: *const WGPUConstantEntry,
+    /// Array count for `buffers`. The `INIT` macro sets this to 0.
+    pub buffer_count: usize,
+    /// The `INIT` macro sets this to `NULL`.
+    pub buffers: *const WGPUVertexBufferLayout,
+}
+
+/// Default values can be set using WGPU_FRAGMENT_STATE_INIT as initializer.
+@repr(C)
+pub struct WGPUFragmentState {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// The `INIT` macro sets this to `NULL`.
+    pub module: WGPUShaderModule,
+    /// This is a NullableInputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub entry_point: WGPUStringView,
+    /// Array count for `constants`. The `INIT` macro sets this to 0.
+    pub constant_count: usize,
+    /// The `INIT` macro sets this to `NULL`.
+    pub constants: *const WGPUConstantEntry,
+    /// Array count for `targets`. The `INIT` macro sets this to 0.
+    pub target_count: usize,
+    /// The `INIT` macro sets this to `NULL`.
+    pub targets: *const WGPUColorTargetState,
+}
+
+/// Default values can be set using WGPU_RENDER_PIPELINE_DESCRIPTOR_INIT as initializer.
+@repr(C)
+pub struct WGPURenderPipelineDescriptor {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *mut WGPUChainedStruct,
+    /// This is a NonNullInputString.
+    ///
+    /// The `INIT` macro sets this to WGPU_STRING_VIEW_INIT.
+    pub label: WGPUStringView,
+    /// The `INIT` macro sets this to `NULL`.
+    pub layout: WGPUPipelineLayout,
+    /// The `INIT` macro sets this to WGPU_VERTEX_STATE_INIT.
+    pub vertex: WGPUVertexState,
+    /// The `INIT` macro sets this to WGPU_PRIMITIVE_STATE_INIT.
+    pub primitive: WGPUPrimitiveState,
+    /// The `INIT` macro sets this to `NULL`.
+    pub depth_stencil: *const WGPUDepthStencilState,
+    /// The `INIT` macro sets this to WGPU_MULTISAMPLE_STATE_INIT.
+    pub multisample: WGPUMultisampleState,
+    /// The `INIT` macro sets this to `NULL`.
+    pub fragment: *const WGPUFragmentState,
+}
+
+/// Xlib display connection data for WGPUNativeDisplayHandle.
+@repr(C)
+pub struct WGPUXlibDisplayHandle {
+    /// Pointer to the X11 Display (i.e. Display*). Must not be NULL.
+    pub display: *mut (),
+    /// X11 screen number.
+    pub screen: i32,
+}
+
+/// XCB display connection data for WGPUNativeDisplayHandle.
+@repr(C)
+pub struct WGPUXcbDisplayHandle {
+    /// Pointer to the XCB connection (i.e. xcb_connection_t*). Must not be NULL.
+    pub connection: *mut (),
+    /// X11 screen number.
+    pub screen: i32,
+}
+
+/// Wayland display connection data for WGPUNativeDisplayHandle.
+@repr(C)
+pub struct WGPUWaylandDisplayHandle {
+    /// Pointer to the Wayland display (i.e. wl_display*). Must not be NULL.
+    pub display: *mut (),
+}
+
+/// Platform display connection, passed as a field of WGPUInstanceExtras.
+///
+/// This is a tagged union. Set type to indicate which variant is active, then
+/// populate the corresponding field in data. Zero-initialization yields
+/// WGPUNativeDisplayHandleType_None, meaning no display handle is provided.
+///
+/// Currently required by the GLES backend when presenting on Wayland. Other
+/// backends ignore this field. If the instance is created with a display handle,
+/// all surfaces created from it must use the same display connection.
+@repr(C)
+pub struct WGPUNativeDisplayHandle {
+    /// Native `type` field.
+    pub type_value: WGPUNativeDisplayHandleType,
+    /// Native `xlib` field.
+    pub xlib: WGPUXlibDisplayHandle,
+    /// Native `xcb` field.
+    pub xcb: WGPUXcbDisplayHandle,
+    /// Native `wayland` field.
+    pub wayland: WGPUWaylandDisplayHandle,
+}
+
+/// C-compatible storage for WebGPU's `WGPUInstanceExtras` structure.
+@repr(C)
+pub struct WGPUInstanceExtras {
+    /// Native `chain` field.
+    pub chain: WGPUChainedStruct,
+    /// Which backends to enable.
+    /// Zero (WGPUInstanceBackend_All) enables all backends.
+    pub backends: WGPUInstanceBackend,
+    /// Flags controlling debug/validation behavior.
+    /// See WGPUInstanceFlag for available flags.
+    pub flags: WGPUInstanceFlag,
+    /// Which DX12 shader compiler to use.
+    /// See WGPUDx12Compiler. Ignored on non-DX12 backends.
+    pub dx12_shader_compiler: WGPUDx12Compiler,
+    /// Which OpenGL ES 3 minor version to request.
+    /// See WGPUGles3MinorVersion. Ignored on non-GL backends.
+    pub gles3_minor_version: WGPUGles3MinorVersion,
+    /// Controls OpenGL fence synchronization behavior.
+    /// See WGPUGLFenceBehaviour. Ignored on non-GL backends.
+    pub gl_fence_behaviour: WGPUGLFenceBehaviour,
+    /// File system path to dxcompiler.dll for dynamic DXC loading.
+    /// Only used when dx12ShaderCompiler is WGPUDx12Compiler_Dxc.
+    /// An empty/undefined string view means the DLL will be searched for
+    /// on the system PATH.
+    pub dxc_path: WGPUStringView,
+    /// Maximum HLSL shader model version that DXC should target.
+    /// See WGPUDxcMaxShaderModel. Only used with the DXC compiler.
+    pub dxc_max_shader_model: WGPUDxcMaxShaderModel,
+    /// Which DX12 presentation system (swapchain kind) to use.
+    /// See WGPUDx12SwapchainKind. Ignored on non-DX12 backends.
+    pub dx12_presentation_system: WGPUDx12SwapchainKind,
+    /// Native `budgetForDeviceCreation` field.
+    pub budget_for_device_creation: *const u8,
+    /// Native `budgetForDeviceLoss` field.
+    pub budget_for_device_loss: *const u8,
+    /// Platform display connection to associate with this instance.
+    /// Zero-initialized yields WGPUNativeDisplayHandleType_None (no handle).
+    pub display_handle: WGPUNativeDisplayHandle,
+}
+
+/// C-compatible storage for WebGPU's `WGPUDeviceExtras` structure.
+@repr(C)
+pub struct WGPUDeviceExtras {
+    /// Native `chain` field.
+    pub chain: WGPUChainedStruct,
+    /// File system path for API trace output.
+    ///
+    /// When set to a non-empty path, wgpu will record all API calls to
+    /// the given directory, which can later be replayed for debugging.
+    /// An empty/undefined string view disables tracing.
+    pub trace_path: WGPUStringView,
+}
+
+/// C-compatible storage for WebGPU's `WGPUNativeLimits` structure.
+@repr(C)
+pub struct WGPUNativeLimits {
+    /// This struct chain is used as mutable in some places and immutable in others.
+    pub chain: WGPUChainedStruct,
+    /// Maximum number of live non-sampler bindings.
+    ///
+    /// Default is 1,000,000. Only meaningful on D3D12.
+    ///
+    /// @b Warning: On integrated GPUs, large values can cause significant
+    /// system RAM consumption.
+    pub max_non_sampler_bindings: u32,
+    /// Maximum number of individual resources within binding arrays that can be accessed
+    /// in a single shader stage. Applies to all types of bindings except samplers.
+    pub max_binding_array_elements_per_shader_stage: u32,
+    /// Maximum number of individual samplers within binding arrays that
+    /// can be accessed in a single shader stage.
+    pub max_binding_array_sampler_elements_per_shader_stage: u32,
+    /// The maximum number of views that can be used in multiview rendering.
+    pub max_multiview_view_count: u32,
+}
+
+/// C-compatible storage for WebGPU's `WGPUShaderDefine` structure.
+@repr(C)
+pub struct WGPUShaderDefine {
+    /// Native `name` field.
+    pub name: WGPUStringView,
+    /// The value of the preprocessor macro (e.g. "1").
+    pub value: WGPUStringView,
+}
+
+/// C-compatible storage for WebGPU's `WGPUShaderSourceGLSL` structure.
+@repr(C)
+pub struct WGPUShaderSourceGLSL {
+    /// Native `chain` field.
+    pub chain: WGPUChainedStruct,
+    /// The shader stage this GLSL source targets.
+    pub stage: WGPUShaderStage,
+    /// GLSL source code.
+    pub code: WGPUStringView,
+    /// Number of entries in defines.
+    pub define_count: u32,
+    /// Native `defines` field.
+    pub defines: *const WGPUShaderDefine,
+}
+
+/// C-compatible storage for WebGPU's `WGPUShaderModuleDescriptorSpirV` structure.
+@repr(C)
+pub struct WGPUShaderModuleDescriptorSpirV {
+    /// Native `label` field.
+    pub label: WGPUStringView,
+    /// Number of 32-bit words in source.
+    pub source_size: u32,
+    /// Native `source` field.
+    pub source: *const u32,
+}
+
+/// C-compatible storage for WebGPU's `WGPURegistryReport` structure.
+@repr(C)
+pub struct WGPURegistryReport {
+    /// Native `numAllocated` field.
+    pub num_allocated: usize,
+    /// Native `numKeptFromUser` field.
+    pub num_kept_from_user: usize,
+    /// Native `numReleasedFromUser` field.
+    pub num_released_from_user: usize,
+    /// Native `elementSize` field.
+    pub element_size: usize,
+}
+
+/// C-compatible storage for WebGPU's `WGPUHubReport` structure.
+@repr(C)
+pub struct WGPUHubReport {
+    /// Native `adapters` field.
+    pub adapters: WGPURegistryReport,
+    /// Native `devices` field.
+    pub devices: WGPURegistryReport,
+    /// Native `queues` field.
+    pub queues: WGPURegistryReport,
+    /// Native `pipelineLayouts` field.
+    pub pipeline_layouts: WGPURegistryReport,
+    /// Native `shaderModules` field.
+    pub shader_modules: WGPURegistryReport,
+    /// Native `bindGroupLayouts` field.
+    pub bind_group_layouts: WGPURegistryReport,
+    /// Native `bindGroups` field.
+    pub bind_groups: WGPURegistryReport,
+    /// Native `commandBuffers` field.
+    pub command_buffers: WGPURegistryReport,
+    /// Native `renderBundles` field.
+    pub render_bundles: WGPURegistryReport,
+    /// Native `renderPipelines` field.
+    pub render_pipelines: WGPURegistryReport,
+    /// Native `computePipelines` field.
+    pub compute_pipelines: WGPURegistryReport,
+    /// Native `pipelineCaches` field.
+    pub pipeline_caches: WGPURegistryReport,
+    /// Native `querySets` field.
+    pub query_sets: WGPURegistryReport,
+    /// Native `buffers` field.
+    pub buffers: WGPURegistryReport,
+    /// Native `textures` field.
+    pub textures: WGPURegistryReport,
+    /// Native `textureViews` field.
+    pub texture_views: WGPURegistryReport,
+    /// Native `samplers` field.
+    pub samplers: WGPURegistryReport,
+}
+
+/// C-compatible storage for WebGPU's `WGPUGlobalReport` structure.
+@repr(C)
+pub struct WGPUGlobalReport {
+    /// Native `surfaces` field.
+    pub surfaces: WGPURegistryReport,
+    /// Statistics for all other resource types, grouped by backend hub.
+    pub hub: WGPUHubReport,
+}
+
+/// C-compatible storage for WebGPU's `WGPUInstanceEnumerateAdapterOptions` structure.
+@repr(C)
+pub struct WGPUInstanceEnumerateAdapterOptions {
+    /// Native `nextInChain` field.
+    pub next_in_chain: *const WGPUChainedStruct,
+    /// Native `backends` field.
+    pub backends: WGPUInstanceBackend,
+}
+
+/// C-compatible storage for WebGPU's `WGPUBindGroupEntryExtras` structure.
+@repr(C)
+pub struct WGPUBindGroupEntryExtras {
+    /// Native `chain` field.
+    pub chain: WGPUChainedStruct,
+    /// Native `buffers` field.
+    pub buffers: *const WGPUBuffer,
+    /// Native `bufferCount` field.
+    pub buffer_count: usize,
+    /// Native `samplers` field.
+    pub samplers: *const WGPUSampler,
+    /// Native `samplerCount` field.
+    pub sampler_count: usize,
+    /// Native `textureViews` field.
+    pub texture_views: *const WGPUTextureView,
+    /// Native `textureViewCount` field.
+    pub texture_view_count: usize,
+}
+
+/// C-compatible storage for WebGPU's `WGPUBindGroupLayoutEntryExtras` structure.
+@repr(C)
+pub struct WGPUBindGroupLayoutEntryExtras {
+    /// Native `chain` field.
+    pub chain: WGPUChainedStruct,
+    /// Number of resources in this binding array slot. Corresponds to the
+    /// array size in the shader (e.g. binding_array<T, N>).
+    pub count: u32,
+}
+
+/// C-compatible storage for WebGPU's `WGPUQuerySetDescriptorExtras` structure.
+@repr(C)
+pub struct WGPUQuerySetDescriptorExtras {
+    /// Native `chain` field.
+    pub chain: WGPUChainedStruct,
+    /// Native `pipelineStatistics` field.
+    pub pipeline_statistics: *const WGPUPipelineStatisticName,
+    /// Native `pipelineStatisticCount` field.
+    pub pipeline_statistic_count: usize,
+}
+
+/// C-compatible storage for WebGPU's `WGPUSurfaceConfigurationExtras` structure.
+@repr(C)
+pub struct WGPUSurfaceConfigurationExtras {
+    /// Native `chain` field.
+    pub chain: WGPUChainedStruct,
+    /// Desired maximum number of frames in flight (i.e. the number of monitor
+    /// refreshes between wgpuSurfaceGetCurrentTexture and presentation).
+    ///
+    /// - 1: Minimize latency (CPU and GPU cannot run in parallel).
+    /// - 2: Balance between latency and throughput (the default).
+    /// - 3+: Maximize throughput.
+    pub desired_maximum_frame_latency: u32,
+}
+
+/// Chained in WGPUSurfaceDescriptor to make a WGPUSurface wrapping a WinUI [`SwapChainPanel`](https://learn.microsoft.com/en-us/windows/windows-app-sdk/api/winrt/microsoft.ui.xaml.controls.swapchainpanel).
+@repr(C)
+pub struct WGPUSurfaceSourceSwapChainPanel {
+    /// Native `chain` field.
+    pub chain: WGPUChainedStruct,
+    /// A pointer to the [`ISwapChainPanelNative`](https://learn.microsoft.com/en-us/windows/windows-app-sdk/api/win32/microsoft.ui.xaml.media.dxinterop/nn-microsoft-ui-xaml-media-dxinterop-iswapchainpanelnative)
+    /// interface of the SwapChainPanel that will be wrapped by the WGPUSurface.
+    pub panel_native: *mut (),
+}
+
+/// C-compatible storage for WebGPU's `WGPUPrimitiveStateExtras` structure.
+@repr(C)
+pub struct WGPUPrimitiveStateExtras {
+    /// Native `chain` field.
+    pub chain: WGPUChainedStruct,
+    /// Controls the way each polygon is rasterized.
+    /// See WGPUPolygonMode. Defaults to WGPUPolygonMode_Fill.
+    pub polygon_mode: WGPUPolygonMode,
+    /// If set to true, the primitives are rendered with conservative
+    /// overestimation. Only valid when polygonMode is
+    /// WGPUPolygonMode_Fill.
+    /// Requires WGPUNativeFeature_ConservativeRasterization.
+    pub conservative: WGPUBool,
+}
+
+/// C-compatible storage for WebGPU's `WGPUImageSubresourceRange` structure.
+@repr(C)
+pub struct WGPUImageSubresourceRange {
+    /// Native `aspect` field.
+    pub aspect: WGPUTextureAspect,
+    /// Native `baseMipLevel` field.
+    pub base_mip_level: u32,
+    /// Native `mipLevelCount` field.
+    pub mip_level_count: u32,
+    /// Native `baseArrayLayer` field.
+    pub base_array_layer: u32,
+    /// Native `arrayLayerCount` field.
+    pub array_layer_count: u32,
+}
+
+/// C-compatible storage for WebGPU's `WGPUSamplerDescriptorExtras` structure.
+@repr(C)
+pub struct WGPUSamplerDescriptorExtras {
+    /// Native `chain` field.
+    pub chain: WGPUChainedStruct,
+    /// Native `samplerBorderColor` field.
+    pub sampler_border_color: WGPUSamplerBorderColor,
+}
+

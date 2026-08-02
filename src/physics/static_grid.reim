@@ -1,0 +1,899 @@
+from std::alloc import AllocError, Allocator, ArenaAllocator, general_allocator;
+from std::binary import to_f32_bits;
+from std::collections import Vec;
+from std::math import ceil, floor;
+
+from self::aabb import Aabb;
+from super::app import Resource;
+
+pub const ALL_LAYERS: u64 = 0xffff_ffff_ffff_ffff;
+
+/// Stable static-collider identifier protected against slot reuse.
+@derive(Copy, Clone, Debug, Eq, Hash)
+pub struct ShapeHandle {
+    index: u32,
+    generation: u32,
+}
+
+impl ShapeHandle {
+    pub fn index(&self) -> u32 { self.index }
+    pub fn generation(&self) -> u32 { self.generation }
+}
+
+/// One immutable query value stored by the static collision world.
+@derive(Copy, Clone, Debug)
+pub struct StaticCollider {
+    pub bounds: Aabb,
+    pub layer: u64,
+    pub enabled: bool,
+}
+
+impl StaticCollider {
+    pub fn new(bounds: Aabb, layer: u64) -> StaticCollider {
+        StaticCollider { bounds: bounds, layer: layer, enabled: true }
+    }
+}
+
+@derive(Copy, Clone, Debug, Eq)
+pub enum CollisionError {
+    InvalidConfiguration,
+    Released,
+    ShapeCapacityExceeded,
+    GridEntryCapacityExceeded,
+    QueryCapacityExceeded,
+    IndexDirty,
+}
+
+@derive(Copy)
+struct GridCell {
+    start: usize,
+    count: usize,
+}
+
+struct GridStorage {
+    shapes: Vec<StaticCollider>,
+    generations: Vec<u32>,
+    active: Vec<bool>,
+    free_indices: Vec<u32>,
+    cells: Vec<GridCell>,
+    counts: Vec<usize>,
+    cursors: Vec<usize>,
+    entries: Vec<ShapeHandle>,
+}
+
+impl GridStorage {
+    pub fn release(&mut self) {
+        self.shapes.release();
+        self.generations.release();
+        self.active.release();
+        self.free_indices.release();
+        self.cells.release();
+        self.counts.release();
+        self.cursors.release();
+        self.entries.release();
+    }
+}
+
+fn allocate_grid_storage(
+    allocator: &Allocator,
+    shape_capacity: usize,
+    cell_count: usize,
+    entry_capacity: usize,
+) -> Result<GridStorage, AllocError> {
+    let shapes_result: Result<Vec<StaticCollider>, AllocError> =
+        Vec::with_capacity(allocator, shape_capacity);
+    let shapes = shapes_result?;
+    let generations_result: Result<Vec<u32>, AllocError> =
+        Vec::with_capacity(allocator, shape_capacity);
+    let generations = generations_result?;
+    let active_result: Result<Vec<bool>, AllocError> =
+        Vec::with_capacity(allocator, shape_capacity);
+    let active = active_result?;
+    let free_result: Result<Vec<u32>, AllocError> =
+        Vec::with_capacity(allocator, shape_capacity);
+    let free_indices = free_result?;
+    let cells_result: Result<Vec<GridCell>, AllocError> =
+        Vec::with_capacity(allocator, cell_count);
+    let mut cells = cells_result?;
+    let counts_result: Result<Vec<usize>, AllocError> =
+        Vec::with_capacity(allocator, cell_count);
+    let mut counts = counts_result?;
+    let cursors_result: Result<Vec<usize>, AllocError> =
+        Vec::with_capacity(allocator, cell_count);
+    let mut cursors = cursors_result?;
+    let entries_result: Result<Vec<ShapeHandle>, AllocError> =
+        Vec::with_capacity(allocator, entry_capacity);
+    let entries = entries_result?;
+    let mut index: usize = 0;
+    while index < cell_count {
+        let _ = cells.push_within_capacity(GridCell { start: 0, count: 0 });
+        let _ = counts.push_within_capacity(0 as usize);
+        let _ = cursors.push_within_capacity(0 as usize);
+        index += 1;
+    }
+    Ok(GridStorage {
+        shapes: shapes,
+        generations: generations,
+        active: active,
+        free_indices: free_indices,
+        cells: cells,
+        counts: counts,
+        cursors: cursors,
+        entries: entries,
+    })
+}
+
+@derive(Copy)
+struct CellRange {
+    min_x: usize,
+    min_y: usize,
+    max_x: usize,
+    max_y: usize,
+}
+
+@derive(Copy)
+struct GridSpec {
+    world_bounds: Aabb,
+    cell_size: f32,
+    columns: usize,
+    rows: usize,
+}
+
+/// Bounded uniform grid for mostly-static world collision.
+///
+/// A rebuild performs two linear passes and never allocates after creation.
+/// Each cell references a contiguous segment in one flat handle array instead
+/// of owning a list or hash table.
+@derive(Resource)
+pub struct StaticCollisionWorld {
+    arena: ArenaAllocator,
+    world_bounds: Aabb,
+    cell_size: f32,
+    columns: usize,
+    rows: usize,
+    maximum_shapes: usize,
+    storage: GridStorage,
+    dirty: bool,
+    revision: u64,
+    live_shapes: usize,
+    released: bool,
+}
+
+impl StaticCollisionWorld {
+    /// Creates a prepared world and fixes all collision memory budgets.
+    pub fn with_capacity(
+        allocator: &Allocator,
+        world_bounds: Aabb,
+        cell_size: f32,
+        maximum_shapes: usize,
+        maximum_cell_entries: usize,
+    ) -> Result<StaticCollisionWorld, CollisionError> {
+        if !world_bounds.is_valid()
+            || !finite(cell_size)
+            || cell_size <= 0.0
+            || maximum_shapes > 0xffff_ffff
+            || maximum_cell_entries == 0
+        {
+            return Err(CollisionError::InvalidConfiguration);
+        }
+        let columns = ceil(world_bounds.width() / cell_size) as usize;
+        let rows = ceil(world_bounds.height() / cell_size) as usize;
+        if columns == 0 || rows == 0 || columns > usize_max() / rows {
+            return Err(CollisionError::InvalidConfiguration);
+        }
+        let cell_count = columns * rows;
+        let mut arena = match ArenaAllocator::init(allocator) {
+            Ok(value) => value,
+            Err(_) => {
+                return Err(CollisionError::ShapeCapacityExceeded);
+            },
+        };
+        let storage_allocator = arena.allocator_value();
+        let storage = match allocate_grid_storage(
+            &storage_allocator,
+            maximum_shapes,
+            cell_count,
+            maximum_cell_entries,
+        ) {
+            Ok(value) => value,
+            Err(_) => {
+                arena.release();
+                return Err(CollisionError::ShapeCapacityExceeded);
+            },
+        };
+        Ok(StaticCollisionWorld {
+            arena: arena,
+            world_bounds: world_bounds,
+            cell_size: cell_size,
+            columns: columns,
+            rows: rows,
+            maximum_shapes: maximum_shapes,
+            storage: storage,
+            dirty: false,
+            revision: 0,
+            live_shapes: 0,
+            released: false,
+        })
+    }
+
+    pub fn add(&mut self, collider: StaticCollider) -> Result<ShapeHandle, CollisionError> {
+        if self.released {
+            return Err(CollisionError::Released);
+        }
+        if !collider.bounds.is_valid() {
+            return Err(CollisionError::InvalidConfiguration);
+        }
+        let handle = match self.storage.free_indices.pop() {
+            Some(index) => {
+                let slot = index as usize;
+                let generation = match self.storage.generations.get(slot) {
+                    Some(value) => value,
+                    None => {
+                        return Err(CollisionError::ShapeCapacityExceeded);
+                    },
+                };
+                let _ = self.storage.shapes.set(slot, collider);
+                let _ = self.storage.active.set(slot, true);
+                ShapeHandle { index: index, generation: generation }
+            },
+            None => {
+                let slot = self.storage.shapes.len();
+                if slot >= self.maximum_shapes {
+                    return Err(CollisionError::ShapeCapacityExceeded);
+                }
+                if !self.storage.shapes.push_within_capacity(collider)
+                    || !self.storage.generations.push_within_capacity(1)
+                    || !self.storage.active.push_within_capacity(true)
+                {
+                    panic("prepared collision shape capacity became inconsistent")
+                }
+                ShapeHandle { index: slot as u32, generation: 1 }
+            },
+        };
+        self.live_shapes += 1;
+        self.dirty = true;
+        Ok(handle)
+    }
+
+    pub fn remove(&mut self, handle: ShapeHandle) -> bool {
+        if self.released {
+            return false;
+        }
+        if !self.contains(handle) {
+            return false;
+        }
+        let slot = handle.index as usize;
+        if !self.storage.free_indices.push_within_capacity(handle.index) {
+            panic("prepared collision free list became inconsistent")
+        }
+        let mut generation = handle.generation.wrapping_add(1);
+        if generation == 0 { generation = 1; }
+        let _ = self.storage.generations.set(slot, generation);
+        let _ = self.storage.active.set(slot, false);
+        self.live_shapes -= 1;
+        self.dirty = true;
+        true
+    }
+
+    pub fn contains(&self, handle: ShapeHandle) -> bool {
+        if self.released {
+            return false;
+        }
+        let slot = handle.index as usize;
+        match self.storage.generations.get(slot) {
+            Some(generation) => match self.storage.active.get(slot) {
+                Some(active) => active && generation == handle.generation,
+                None => false,
+            },
+            None => false,
+        }
+    }
+
+    pub fn get(&self, handle: ShapeHandle) -> Option<StaticCollider> {
+        if self.contains(handle) {
+            self.storage.shapes.get(handle.index as usize)
+        } else {
+            None
+        }
+    }
+
+    pub fn set(&mut self, handle: ShapeHandle, collider: StaticCollider) -> bool {
+        if !collider.bounds.is_valid() || !self.contains(handle) {
+            return false;
+        }
+        let changed = self.storage.shapes.set(handle.index as usize, collider);
+        if changed { self.dirty = true; }
+        changed
+    }
+
+    /// Rebuilds contiguous cell ranges transactionally with prepared memory.
+    pub fn rebuild(&mut self) -> Result<(), CollisionError> {
+        if self.released {
+            return Err(CollisionError::Released);
+        }
+        if !self.dirty {
+            return Ok(());
+        }
+        let cell_count = self.columns * self.rows;
+        let grid = GridSpec {
+            world_bounds: self.world_bounds,
+            cell_size: self.cell_size,
+            columns: self.columns,
+            rows: self.rows,
+        };
+        let mut cell: usize = 0;
+        while cell < cell_count {
+            let _ = self.storage.counts.set(cell, 0 as usize);
+            cell += 1;
+        }
+        let mut total_entries: usize = 0;
+        let mut slot: usize = 0;
+        while slot < self.storage.shapes.len() {
+            if active_at(&self.storage, slot) {
+                let collider = shape_at(&self.storage, slot);
+                if collider.enabled {
+                    match grid_cell_range(grid, collider.bounds) {
+                        Some(range) => {
+                            let added = count_range_cells(range);
+                            if added > self.storage.entries.capacity() - total_entries {
+                                return Err(CollisionError::GridEntryCapacityExceeded);
+                            }
+                            total_entries += added;
+                            increment_range(&mut self.storage.counts, self.columns, range);
+                        },
+                        None => {},
+                    }
+                }
+            }
+            slot += 1;
+        }
+        let mut start: usize = 0;
+        cell = 0;
+        while cell < cell_count {
+            let count = match self.storage.counts.get(cell) {
+                Some(value) => value,
+                None => panic("collision cell counts became inconsistent"),
+            };
+            let _ = self.storage.cells.set(cell, GridCell { start: start, count: count });
+            let _ = self.storage.cursors.set(cell, start);
+            start += count;
+            cell += 1;
+        }
+        self.storage.entries.clear();
+        let empty = ShapeHandle { index: 0, generation: 0 };
+        while self.storage.entries.len() < total_entries {
+            if !self.storage.entries.push_within_capacity(empty) {
+                panic("prepared collision entry capacity became inconsistent")
+            }
+        }
+        slot = 0;
+        while slot < self.storage.shapes.len() {
+            if active_at(&self.storage, slot) {
+                let collider = shape_at(&self.storage, slot);
+                if collider.enabled {
+                    match grid_cell_range(grid, collider.bounds) {
+                        Some(range) => {
+                            let generation = match self.storage.generations.get(slot) {
+                                Some(value) => value,
+                                None => panic("collision generations became inconsistent"),
+                            };
+                            let handle = ShapeHandle {
+                                index: slot as u32,
+                                generation: generation,
+                            };
+                            write_range(
+                                &mut self.storage.entries,
+                                &mut self.storage.cursors,
+                                self.columns,
+                                range,
+                                handle,
+                            );
+                        },
+                        None => {},
+                    }
+                }
+            }
+            slot += 1;
+        }
+        self.dirty = false;
+        self.revision = self.revision.wrapping_add(1);
+        Ok(())
+    }
+
+    /// Finds exact layer-matching overlaps into caller-owned prepared scratch.
+    pub fn query(
+        &self,
+        bounds: Aabb,
+        layer_mask: u64,
+        output: &mut CollisionQuery,
+    ) -> Result<usize, CollisionError> {
+        if self.released || output.released {
+            return Err(CollisionError::Released);
+        }
+        if !bounds.is_valid() {
+            return Err(CollisionError::InvalidConfiguration);
+        }
+        if self.dirty {
+            return Err(CollisionError::IndexDirty);
+        }
+        if output.storage.seen_generations.len() < self.storage.shapes.len() {
+            return Err(CollisionError::QueryCapacityExceeded);
+        }
+        output.storage.results.clear();
+        output.generation = output.generation.wrapping_add(1);
+        if output.generation == 0 {
+            let mut seen_index: usize = 0;
+            while seen_index < output.storage.seen_generations.len() {
+                let _ = output.storage.seen_generations.set(seen_index, 0);
+                seen_index += 1;
+            }
+            output.generation = 1;
+        }
+        let grid = GridSpec {
+            world_bounds: self.world_bounds,
+            cell_size: self.cell_size,
+            columns: self.columns,
+            rows: self.rows,
+        };
+        let range = match grid_cell_range(grid, bounds) {
+            Some(value) => value,
+            None => {
+                return Ok(0);
+            },
+        };
+        let mut y = range.min_y;
+        while y <= range.max_y {
+            let mut x = range.min_x;
+            while x <= range.max_x {
+                let cell_index = y * self.columns + x;
+                let grid_cell = match self.storage.cells.get(cell_index) {
+                    Some(value) => value,
+                    None => panic("collision cells became inconsistent"),
+                };
+                let mut offset: usize = 0;
+                while offset < grid_cell.count {
+                    let handle = match self.storage.entries.get(grid_cell.start + offset) {
+                        Some(value) => value,
+                        None => panic("collision cell entries became inconsistent"),
+                    };
+                    let shape_index = handle.index as usize;
+                    let already_seen = match output.storage.seen_generations.get(shape_index) {
+                        Some(value) => value == output.generation,
+                        None => false,
+                    };
+                    if !already_seen {
+                        if !output.storage.seen_generations.set(
+                            shape_index,
+                            output.generation,
+                        ) {
+                            output.storage.results.clear();
+                            return Err(CollisionError::QueryCapacityExceeded);
+                        }
+                        // A clean index cannot contain stale or disabled shapes:
+                        // every mutation marks the world dirty and queries then fail.
+                        let collider = shape_at(&self.storage, shape_index);
+                        if collider.layer & layer_mask != 0
+                            && bounds.overlaps(collider.bounds)
+                            && !output.storage.results.push_within_capacity(handle)
+                        {
+                            output.storage.results.clear();
+                            return Err(CollisionError::QueryCapacityExceeded);
+                        }
+                    }
+                    offset += 1;
+                }
+                x += 1;
+            }
+            y += 1;
+        }
+        Ok(output.len())
+    }
+
+    pub fn len(&self) -> usize { self.live_shapes }
+    pub fn revision(&self) -> u64 { self.revision }
+    pub fn is_dirty(&self) -> bool { self.dirty }
+
+    pub fn allocated_bytes(&self) -> usize {
+        self.storage.shapes.allocated_bytes()
+            + self.storage.generations.allocated_bytes()
+            + self.storage.active.allocated_bytes()
+            + self.storage.free_indices.allocated_bytes()
+            + self.storage.cells.allocated_bytes()
+            + self.storage.counts.allocated_bytes()
+            + self.storage.cursors.allocated_bytes()
+            + self.storage.entries.allocated_bytes()
+    }
+
+    pub fn release(&mut self) {
+        if self.released {
+            return;
+        }
+        self.storage.release();
+        self.columns = 0;
+        self.rows = 0;
+        self.maximum_shapes = 0;
+        self.live_shapes = 0;
+        self.dirty = false;
+        self.arena.release();
+        self.released = true;
+    }
+}
+
+struct QueryStorage {
+    results: Vec<ShapeHandle>,
+    seen_generations: Vec<u32>,
+}
+
+impl QueryStorage {
+    pub fn release(&mut self) {
+        self.results.release();
+        self.seen_generations.release();
+    }
+}
+
+fn allocate_query_storage(
+    allocator: &Allocator,
+    shape_capacity: usize,
+    result_capacity: usize,
+) -> Result<QueryStorage, AllocError> {
+    let results_result: Result<Vec<ShapeHandle>, AllocError> =
+        Vec::with_capacity(allocator, result_capacity);
+    let results = results_result?;
+    let seen_result: Result<Vec<u32>, AllocError> =
+        Vec::with_capacity(allocator, shape_capacity);
+    let mut seen_generations = seen_result?;
+    while seen_generations.len() < shape_capacity {
+        let _ = seen_generations.push_within_capacity(0);
+    }
+    Ok(QueryStorage { results: results, seen_generations: seen_generations })
+}
+
+/// Reusable deduplication and result memory for collision queries.
+pub struct CollisionQuery {
+    arena: ArenaAllocator,
+    storage: QueryStorage,
+    generation: u32,
+    released: bool,
+}
+
+impl CollisionQuery {
+    pub fn with_capacity(
+        allocator: &Allocator,
+        shape_capacity: usize,
+        result_capacity: usize,
+    ) -> Result<CollisionQuery, AllocError> {
+        let mut arena = ArenaAllocator::init(allocator)?;
+        let storage_allocator = arena.allocator_value();
+        let storage = match allocate_query_storage(
+            &storage_allocator,
+            shape_capacity,
+            result_capacity,
+        ) {
+            Ok(value) => value,
+            Err(error) => {
+                arena.release();
+                return Err(error);
+            },
+        };
+        Ok(CollisionQuery {
+            arena: arena,
+            storage: storage,
+            generation: 0,
+            released: false,
+        })
+    }
+
+    pub fn len(&self) -> usize { self.storage.results.len() }
+    pub fn results(&self) -> &[ShapeHandle] { self.storage.results.as_slice() }
+
+    pub fn allocated_bytes(&self) -> usize {
+        self.storage.results.allocated_bytes()
+            + self.storage.seen_generations.allocated_bytes()
+    }
+
+    pub fn release(&mut self) {
+        if self.released {
+            return;
+        }
+        self.storage.release();
+        self.generation = 0;
+        self.arena.release();
+        self.released = true;
+    }
+}
+
+fn active_at(storage: &GridStorage, slot: usize) -> bool {
+    match storage.active.get(slot) {
+        Some(value) => value,
+        None => false,
+    }
+}
+
+fn grid_cell_range(grid: GridSpec, bounds: Aabb) -> Option<CellRange> {
+    if !grid.world_bounds.overlaps(bounds) {
+        return None;
+    }
+    let min_x = if bounds.min_x > grid.world_bounds.min_x {
+        bounds.min_x
+    } else {
+        grid.world_bounds.min_x
+    };
+    let min_y = if bounds.min_y > grid.world_bounds.min_y {
+        bounds.min_y
+    } else {
+        grid.world_bounds.min_y
+    };
+    let max_x = if bounds.max_x < grid.world_bounds.max_x {
+        bounds.max_x
+    } else {
+        grid.world_bounds.max_x
+    };
+    let max_y = if bounds.max_y < grid.world_bounds.max_y {
+        bounds.max_y
+    } else {
+        grid.world_bounds.max_y
+    };
+    let start_x = floor((min_x - grid.world_bounds.min_x) / grid.cell_size)
+        as usize;
+    let start_y = floor((min_y - grid.world_bounds.min_y) / grid.cell_size)
+        as usize;
+    let end_x_exclusive = ceil(
+        (max_x - grid.world_bounds.min_x) / grid.cell_size,
+    ) as usize;
+    let end_y_exclusive = ceil(
+        (max_y - grid.world_bounds.min_y) / grid.cell_size,
+    ) as usize;
+    let end_x = if end_x_exclusive > grid.columns {
+        grid.columns - 1
+    } else {
+        end_x_exclusive - 1
+    };
+    let end_y = if end_y_exclusive > grid.rows {
+        grid.rows - 1
+    } else {
+        end_y_exclusive - 1
+    };
+    Some(CellRange {
+        min_x: start_x,
+        min_y: start_y,
+        max_x: end_x,
+        max_y: end_y,
+    })
+}
+
+fn shape_at(storage: &GridStorage, slot: usize) -> StaticCollider {
+    match storage.shapes.get(slot) {
+        Some(value) => value,
+        None => panic("collision shape storage became inconsistent"),
+    }
+}
+
+fn count_range_cells(range: CellRange) -> usize {
+    (range.max_x - range.min_x + 1) * (range.max_y - range.min_y + 1)
+}
+
+fn increment_range(counts: &mut Vec<usize>, columns: usize, range: CellRange) {
+    let mut y = range.min_y;
+    while y <= range.max_y {
+        let mut x = range.min_x;
+        while x <= range.max_x {
+            let cell = y * columns + x;
+            let count = match counts.get(cell) {
+                Some(value) => value,
+                None => panic("collision cell counts became inconsistent"),
+            };
+            let _ = counts.set(cell, count + 1);
+            x += 1;
+        }
+        y += 1;
+    }
+}
+
+fn write_range(
+    entries: &mut Vec<ShapeHandle>,
+    cursors: &mut Vec<usize>,
+    columns: usize,
+    range: CellRange,
+    handle: ShapeHandle,
+) {
+    let mut y = range.min_y;
+    while y <= range.max_y {
+        let mut x = range.min_x;
+        while x <= range.max_x {
+            let cell = y * columns + x;
+            let cursor = match cursors.get(cell) {
+                Some(value) => value,
+                None => panic("collision cell cursors became inconsistent"),
+            };
+            if !entries.set(cursor, handle) {
+                panic("collision entry write became inconsistent")
+            }
+            let _ = cursors.set(cell, cursor + 1);
+            x += 1;
+        }
+        y += 1;
+    }
+}
+
+fn usize_max() -> usize {
+    let maximum: u64 = 18_446_744_073_709_551_615;
+    maximum as usize
+}
+
+fn finite(value: f32) -> bool {
+    to_f32_bits(value) & 0x7f80_0000 != 0x7f80_0000
+}
+
+@test
+fn static_grid_should_deduplicate_and_filter_exact_overlaps() {
+    let allocator = general_allocator();
+    let world_bounds = match Aabb::new(0.0, 0.0, 256.0, 256.0) {
+        Some(value) => value,
+        None => panic("valid world bounds were rejected"),
+    };
+    let mut world = match StaticCollisionWorld::with_capacity(
+        &allocator,
+        world_bounds,
+        32.0,
+        8,
+        64,
+    ) {
+        Ok(value) => value,
+        Err(_) => panic("collision world allocation failed"),
+    };
+    defer world.release();
+    let mut query = match CollisionQuery::with_capacity(&allocator, 8, 8) {
+        Ok(value) => value,
+        Err(_) => panic("collision query allocation failed"),
+    };
+    defer query.release();
+    let large_bounds = match Aabb::new(16.0, 16.0, 64.0, 64.0) {
+        Some(value) => value,
+        None => panic("valid collider bounds were rejected"),
+    };
+    let handle = match world.add(StaticCollider::new(large_bounds, 0x01)) {
+        Ok(value) => value,
+        Err(_) => panic("collision shape insert failed"),
+    };
+    match world.rebuild() {
+        Ok(_) => {},
+        Err(_) => panic("collision grid rebuild failed"),
+    }
+    let search = match Aabb::new(20.0, 20.0, 40.0, 40.0) {
+        Some(value) => value,
+        None => panic("valid query bounds were rejected"),
+    };
+    let count = match world.query(search, 0x01, &mut query) {
+        Ok(value) => value,
+        Err(_) => panic("collision query failed"),
+    };
+    assert(count == 1);
+    {
+        let results = query.results();
+        assert(results[0] == handle);
+    }
+    let filtered = match world.query(search, 0x02, &mut query) {
+        Ok(value) => value,
+        Err(_) => panic("filtered collision query failed"),
+    };
+    assert(filtered == 0);
+    let mut undersized = match CollisionQuery::with_capacity(&allocator, 0, 1) {
+        Ok(value) => value,
+        Err(_) => panic("undersized collision query allocation failed"),
+    };
+    defer undersized.release();
+    assert(match world.query(search, ALL_LAYERS, &mut undersized) {
+        Err(CollisionError::QueryCapacityExceeded) => true,
+        _ => false,
+    });
+}
+
+@test
+fn static_grid_should_reject_stale_handles_after_reuse() {
+    let allocator = general_allocator();
+    let world_bounds = match Aabb::new(0.0, 0.0, 64.0, 64.0) {
+        Some(value) => value,
+        None => panic("valid world bounds were rejected"),
+    };
+    let mut world = match StaticCollisionWorld::with_capacity(
+        &allocator,
+        world_bounds,
+        32.0,
+        1,
+        4,
+    ) {
+        Ok(value) => value,
+        Err(_) => panic("collision world allocation failed"),
+    };
+    defer world.release();
+    let first = match world.add(StaticCollider::new(world_bounds, ALL_LAYERS)) {
+        Ok(value) => value,
+        Err(_) => panic("first collision shape insert failed"),
+    };
+    assert(world.remove(first));
+    let second = match world.add(StaticCollider::new(world_bounds, ALL_LAYERS)) {
+        Ok(value) => value,
+        Err(_) => panic("second collision shape insert failed"),
+    };
+    assert(first.index() == second.index());
+    assert(first.generation() != second.generation());
+    assert(!world.contains(first));
+    assert(world.contains(second));
+}
+
+@test
+fn static_grid_should_report_prepared_capacity_errors() {
+    let allocator = general_allocator();
+    let world_bounds = match Aabb::new(0.0, 0.0, 64.0, 64.0) {
+        Some(value) => value,
+        None => panic("valid world bounds were rejected"),
+    };
+    let mut world = match StaticCollisionWorld::with_capacity(
+        &allocator,
+        world_bounds,
+        16.0,
+        2,
+        1,
+    ) {
+        Ok(value) => value,
+        Err(_) => panic("collision world allocation failed"),
+    };
+    defer world.release();
+    let collider_bounds = match Aabb::new(8.0, 8.0, 24.0, 24.0) {
+        Some(value) => value,
+        None => panic("valid collider bounds were rejected"),
+    };
+    match world.add(StaticCollider::new(collider_bounds, ALL_LAYERS)) {
+        Ok(_) => {},
+        Err(_) => panic("collision shape insert failed"),
+    }
+    assert(match world.rebuild() {
+        Err(CollisionError::GridEntryCapacityExceeded) => true,
+        _ => false,
+    });
+    assert(world.is_dirty());
+
+    let mut small_query = match CollisionQuery::with_capacity(&allocator, 0, 1) {
+        Ok(value) => value,
+        Err(_) => panic("collision query allocation failed"),
+    };
+    defer small_query.release();
+    assert(match world.query(collider_bounds, ALL_LAYERS, &mut small_query) {
+        Err(CollisionError::IndexDirty) => true,
+        _ => false,
+    });
+}
+
+@test
+fn released_collision_storage_should_be_empty_and_inert() {
+    let allocator = general_allocator();
+    let world_bounds = match Aabb::new(0.0, 0.0, 64.0, 64.0) {
+        Some(value) => value,
+        None => panic("valid world bounds were rejected"),
+    };
+    let mut world = match StaticCollisionWorld::with_capacity(
+        &allocator,
+        world_bounds,
+        16.0,
+        4,
+        16,
+    ) {
+        Ok(value) => value,
+        Err(_) => panic("collision world allocation failed"),
+    };
+    let mut query = match CollisionQuery::with_capacity(&allocator, 4, 4) {
+        Ok(value) => value,
+        Err(_) => panic("collision query allocation failed"),
+    };
+    world.release();
+    query.release();
+    world.release();
+    query.release();
+    assert(world.len() == 0);
+    assert(world.allocated_bytes() == 0);
+    assert(query.allocated_bytes() == 0);
+    assert(match world.query(world_bounds, ALL_LAYERS, &mut query) {
+        Err(CollisionError::Released) => true,
+        _ => false,
+    });
+}

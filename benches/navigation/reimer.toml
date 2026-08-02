@@ -1,0 +1,10 @@
+[package]
+name = "arepita-navigation-bench"
+version = "0.1.0"
+edition = "2026"
+
+[dependencies]
+arepita_engine = { package = "arepita-engine", path = "../..", version = "^0.1" }
+
+[profile.release]
+optimization = 3

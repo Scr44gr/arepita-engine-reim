@@ -1,0 +1,139 @@
+from std::alloc import AllocError, Allocator, general_allocator;
+from std::collections import Vec;
+
+@derive(Copy, Clone, Debug, Eq)
+pub enum EventError {
+    CapacityExceeded,
+}
+
+/// Fixed-capacity double-buffered typed events.
+///
+/// Emitters write the pending buffer. `publish` makes the complete batch
+/// visible and starts a fresh pending batch without allocating or copying.
+pub struct Events<T> {
+    first: Vec<T>,
+    second: Vec<T>,
+    write_to_first: bool,
+}
+
+impl<T: Copy + Send + Sync> Events<T> {
+    pub fn with_capacity(
+        allocator: &Allocator,
+        capacity: usize,
+    ) -> Result<Events<T>, AllocError> {
+        let first_result: Result<Vec<T>, AllocError> =
+            Vec::with_capacity(allocator, capacity);
+        let mut first = first_result?;
+        let second_result: Result<Vec<T>, AllocError> =
+            Vec::with_capacity(allocator, capacity);
+        let second = match second_result {
+            Ok(value) => value,
+            Err(error) => {
+                first.release();
+                return Err(error);
+            },
+        };
+        Ok(Events { first: first, second: second, write_to_first: true })
+    }
+
+    /// Appends to the pending batch without growing its prepared storage.
+    pub fn emit(&mut self, event: T) -> Result<(), EventError> {
+        let appended = if self.write_to_first {
+            self.first.push_within_capacity(event)
+        } else {
+            self.second.push_within_capacity(event)
+        };
+        if appended { Ok(()) } else { Err(EventError::CapacityExceeded) }
+    }
+
+    /// Publishes pending events and retires the previously visible batch.
+    pub fn publish(&mut self) {
+        if self.write_to_first {
+            self.second.clear();
+            self.write_to_first = false;
+        } else {
+            self.first.clear();
+            self.write_to_first = true;
+        }
+    }
+
+    /// Returns the immutable batch published at the latest barrier.
+    pub fn published(&self) -> &[T] {
+        if self.write_to_first {
+            self.second.as_slice()
+        } else {
+            self.first.as_slice()
+        }
+    }
+
+    pub fn published_len(&self) -> usize {
+        if self.write_to_first { self.second.len() } else { self.first.len() }
+    }
+
+    pub fn pending_len(&self) -> usize {
+        if self.write_to_first { self.first.len() } else { self.second.len() }
+    }
+
+    pub fn clear(&mut self) {
+        self.first.clear();
+        self.second.clear();
+    }
+
+    pub fn allocated_bytes(&self) -> usize {
+        self.first.allocated_bytes() + self.second.allocated_bytes()
+    }
+
+    pub fn release(&mut self) {
+        self.first.release();
+        self.second.release();
+    }
+}
+
+@derive(Copy, Clone, Debug, Eq)
+struct TestEvent {
+    value: i32,
+}
+
+@test
+fn events_should_publish_complete_batches_without_growth() {
+    let allocator = general_allocator();
+    let created: Result<Events<TestEvent>, AllocError> =
+        Events::with_capacity(&allocator, 2);
+    let mut events = match created {
+        Ok(value) => value,
+        Err(_) => panic("event buffers allocation failed"),
+    };
+    defer events.release();
+    let reserved = events.allocated_bytes();
+    let first = TestEvent { value: 20 };
+    match events.emit(first) {
+        Ok(_) => {},
+        Err(_) => panic("first event emit failed"),
+    }
+    let second = TestEvent { value: 22 };
+    match events.emit(second) {
+        Ok(_) => {},
+        Err(_) => panic("second event emit failed"),
+    }
+    let overflow = TestEvent { value: 1 };
+    assert(match events.emit(overflow) {
+        Err(EventError::CapacityExceeded) => true,
+        _ => false,
+    });
+    assert(events.published_len() == 0);
+    events.publish();
+    assert(events.published_len() == 2);
+    {
+        let published = events.published();
+        assert(published[0].value == 20);
+        assert(published[1].value == 22);
+    }
+    let next = TestEvent { value: 42 };
+    match events.emit(next) {
+        Ok(_) => {},
+        Err(_) => panic("next-frame event emit failed"),
+    }
+    events.publish();
+    assert(events.published_len() == 1);
+    assert(events.allocated_bytes() == reserved);
+}

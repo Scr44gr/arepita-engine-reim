@@ -1,0 +1,30 @@
+/// Entity-component storage and scheduling primitives.
+pub import self::ecs as ecs;
+/// Owned clips and fixed-capacity main-thread audio mixing.
+pub import self::audio as audio;
+/// Application loop primitives and typed resources.
+pub import self::asset as asset;
+pub import self::app as app;
+/// Window, event, and native platform ownership.
+pub import self::platform as platform;
+/// Prepared 2D geometry and static-world broad-phase collision.
+pub import self::physics as physics;
+/// Weighted tile navigation with prepared allocation-free pathfinding scratch.
+pub import self::navigation as navigation;
+/// Bounded versioned saves with allocation-free payload codecs.
+pub import self::persistence as persistence;
+/// Backend-neutral rendering resources and the wgpu context.
+pub import self::render as render;
+/// Allocation-free physical-pixel UI primitives over the shared sprite batch.
+pub import self::ui as ui;
+
+/// Derive marker for packed ECS components.
+pub from self::ecs import Component;
+/// Packed sparse-set component storage.
+pub from self::ecs import ComponentStore;
+/// Generational entity identifier.
+pub from self::ecs import Entity;
+/// Entity lifecycle registry.
+pub from self::ecs import Entities;
+/// Derive marker for application resources.
+pub from self::app import Resource;

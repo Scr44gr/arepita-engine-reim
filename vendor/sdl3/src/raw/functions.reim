@@ -1,0 +1,2884 @@
+// Generated from SDL 3.4.12 (f87239e71e42da91ca317a12eefb82cfbf3393eb). Do not edit by hand.
+// Run `vendor/sdl3/tools/generate.ps1` to update this file.
+
+import std::c;
+
+import self::types as types;
+
+@link("SDL3")
+extern "C" {
+    pub fn SDL_AcquireCameraFrame(argument_0: *mut types::SDL_Camera, argument_1: *mut u64) -> *mut types::SDL_Surface;
+    pub fn SDL_AcquireGPUCommandBuffer(argument_0: *mut types::SDL_GPUDevice) -> *mut types::SDL_GPUCommandBuffer;
+    pub fn SDL_AcquireGPUSwapchainTexture(
+        argument_0: *mut types::SDL_GPUCommandBuffer,
+        argument_1: *mut types::SDL_Window,
+        argument_2: *mut *mut types::SDL_GPUTexture,
+        argument_3: *mut u32,
+        argument_4: *mut u32,
+    ) -> bool;
+    pub fn SDL_AddAtomicInt(argument_0: *mut types::SDL_AtomicInt, argument_1: c::Int) -> c::Int;
+    pub fn SDL_AddEventWatch(argument_0: types::SDL_EventFilter, argument_1: *mut ()) -> bool;
+    pub fn SDL_AddGamepadMapping(argument_0: *const c::Char) -> c::Int;
+    pub fn SDL_AddGamepadMappingsFromFile(argument_0: *const c::Char) -> c::Int;
+    pub fn SDL_AddGamepadMappingsFromIO(argument_0: *mut types::SDL_IOStream, argument_1: bool) -> c::Int;
+    pub fn SDL_AddHintCallback(
+        argument_0: *const c::Char,
+        argument_1: types::SDL_HintCallback,
+        argument_2: *mut (),
+    ) -> bool;
+    pub fn SDL_AddSurfaceAlternateImage(argument_0: *mut types::SDL_Surface, argument_1: *mut types::SDL_Surface) -> bool;
+    pub fn SDL_AddTimer(
+        argument_0: u32,
+        argument_1: types::SDL_TimerCallback,
+        argument_2: *mut (),
+    ) -> types::SDL_TimerID;
+    pub fn SDL_AddTimerNS(
+        argument_0: u64,
+        argument_1: types::SDL_NSTimerCallback,
+        argument_2: *mut (),
+    ) -> types::SDL_TimerID;
+    pub fn SDL_AddVulkanRenderSemaphores(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: u32,
+        argument_2: i64,
+        argument_3: i64,
+    ) -> bool;
+    pub fn SDL_AttachVirtualJoystick(argument_0: *const types::SDL_VirtualJoystickDesc) -> types::SDL_JoystickID;
+    pub fn SDL_AudioDevicePaused(argument_0: types::SDL_AudioDeviceID) -> bool;
+    pub fn SDL_BeginGPUComputePass(
+        argument_0: *mut types::SDL_GPUCommandBuffer,
+        argument_1: *const types::SDL_GPUStorageTextureReadWriteBinding,
+        argument_2: u32,
+        argument_3: *const types::SDL_GPUStorageBufferReadWriteBinding,
+        argument_4: u32,
+    ) -> *mut types::SDL_GPUComputePass;
+    pub fn SDL_BeginGPUCopyPass(argument_0: *mut types::SDL_GPUCommandBuffer) -> *mut types::SDL_GPUCopyPass;
+    pub fn SDL_BeginGPURenderPass(
+        argument_0: *mut types::SDL_GPUCommandBuffer,
+        argument_1: *const types::SDL_GPUColorTargetInfo,
+        argument_2: u32,
+        argument_3: *const types::SDL_GPUDepthStencilTargetInfo,
+    ) -> *mut types::SDL_GPURenderPass;
+    pub fn SDL_BindAudioStream(argument_0: types::SDL_AudioDeviceID, argument_1: *mut types::SDL_AudioStream) -> bool;
+    pub fn SDL_BindAudioStreams(
+        argument_0: types::SDL_AudioDeviceID,
+        argument_1: *const *mut types::SDL_AudioStream,
+        argument_2: c::Int,
+    ) -> bool;
+    pub fn SDL_BindGPUComputePipeline(argument_0: *mut types::SDL_GPUComputePass, argument_1: *mut types::SDL_GPUComputePipeline);
+    pub fn SDL_BindGPUComputeSamplers(
+        argument_0: *mut types::SDL_GPUComputePass,
+        argument_1: u32,
+        argument_2: *const types::SDL_GPUTextureSamplerBinding,
+        argument_3: u32,
+    );
+    pub fn SDL_BindGPUComputeStorageBuffers(
+        argument_0: *mut types::SDL_GPUComputePass,
+        argument_1: u32,
+        argument_2: *const *mut types::SDL_GPUBuffer,
+        argument_3: u32,
+    );
+    pub fn SDL_BindGPUComputeStorageTextures(
+        argument_0: *mut types::SDL_GPUComputePass,
+        argument_1: u32,
+        argument_2: *const *mut types::SDL_GPUTexture,
+        argument_3: u32,
+    );
+    pub fn SDL_BindGPUFragmentSamplers(
+        argument_0: *mut types::SDL_GPURenderPass,
+        argument_1: u32,
+        argument_2: *const types::SDL_GPUTextureSamplerBinding,
+        argument_3: u32,
+    );
+    pub fn SDL_BindGPUFragmentStorageBuffers(
+        argument_0: *mut types::SDL_GPURenderPass,
+        argument_1: u32,
+        argument_2: *const *mut types::SDL_GPUBuffer,
+        argument_3: u32,
+    );
+    pub fn SDL_BindGPUFragmentStorageTextures(
+        argument_0: *mut types::SDL_GPURenderPass,
+        argument_1: u32,
+        argument_2: *const *mut types::SDL_GPUTexture,
+        argument_3: u32,
+    );
+    pub fn SDL_BindGPUGraphicsPipeline(argument_0: *mut types::SDL_GPURenderPass, argument_1: *mut types::SDL_GPUGraphicsPipeline);
+    pub fn SDL_BindGPUIndexBuffer(
+        argument_0: *mut types::SDL_GPURenderPass,
+        argument_1: *const types::SDL_GPUBufferBinding,
+        argument_2: types::SDL_GPUIndexElementSize,
+    );
+    pub fn SDL_BindGPUVertexBuffers(
+        argument_0: *mut types::SDL_GPURenderPass,
+        argument_1: u32,
+        argument_2: *const types::SDL_GPUBufferBinding,
+        argument_3: u32,
+    );
+    pub fn SDL_BindGPUVertexSamplers(
+        argument_0: *mut types::SDL_GPURenderPass,
+        argument_1: u32,
+        argument_2: *const types::SDL_GPUTextureSamplerBinding,
+        argument_3: u32,
+    );
+    pub fn SDL_BindGPUVertexStorageBuffers(
+        argument_0: *mut types::SDL_GPURenderPass,
+        argument_1: u32,
+        argument_2: *const *mut types::SDL_GPUBuffer,
+        argument_3: u32,
+    );
+    pub fn SDL_BindGPUVertexStorageTextures(
+        argument_0: *mut types::SDL_GPURenderPass,
+        argument_1: u32,
+        argument_2: *const *mut types::SDL_GPUTexture,
+        argument_3: u32,
+    );
+    pub fn SDL_BlitGPUTexture(argument_0: *mut types::SDL_GPUCommandBuffer, argument_1: *const types::SDL_GPUBlitInfo);
+    pub fn SDL_BlitSurface(
+        argument_0: *mut types::SDL_Surface,
+        argument_1: *const types::SDL_Rect,
+        argument_2: *mut types::SDL_Surface,
+        argument_3: *const types::SDL_Rect,
+    ) -> bool;
+    pub fn SDL_BlitSurface9Grid(
+        argument_0: *mut types::SDL_Surface,
+        argument_1: *const types::SDL_Rect,
+        argument_2: c::Int,
+        argument_3: c::Int,
+        argument_4: c::Int,
+        argument_5: c::Int,
+        argument_6: f32,
+        argument_7: types::SDL_ScaleMode,
+        argument_8: *mut types::SDL_Surface,
+        argument_9: *const types::SDL_Rect,
+    ) -> bool;
+    pub fn SDL_BlitSurfaceScaled(
+        argument_0: *mut types::SDL_Surface,
+        argument_1: *const types::SDL_Rect,
+        argument_2: *mut types::SDL_Surface,
+        argument_3: *const types::SDL_Rect,
+        argument_4: types::SDL_ScaleMode,
+    ) -> bool;
+    pub fn SDL_BlitSurfaceTiled(
+        argument_0: *mut types::SDL_Surface,
+        argument_1: *const types::SDL_Rect,
+        argument_2: *mut types::SDL_Surface,
+        argument_3: *const types::SDL_Rect,
+    ) -> bool;
+    pub fn SDL_BlitSurfaceTiledWithScale(
+        argument_0: *mut types::SDL_Surface,
+        argument_1: *const types::SDL_Rect,
+        argument_2: f32,
+        argument_3: types::SDL_ScaleMode,
+        argument_4: *mut types::SDL_Surface,
+        argument_5: *const types::SDL_Rect,
+    ) -> bool;
+    pub fn SDL_BlitSurfaceUnchecked(
+        argument_0: *mut types::SDL_Surface,
+        argument_1: *const types::SDL_Rect,
+        argument_2: *mut types::SDL_Surface,
+        argument_3: *const types::SDL_Rect,
+    ) -> bool;
+    pub fn SDL_BlitSurfaceUncheckedScaled(
+        argument_0: *mut types::SDL_Surface,
+        argument_1: *const types::SDL_Rect,
+        argument_2: *mut types::SDL_Surface,
+        argument_3: *const types::SDL_Rect,
+        argument_4: types::SDL_ScaleMode,
+    ) -> bool;
+    pub fn SDL_BroadcastCondition(argument_0: *mut types::SDL_Condition);
+    pub fn SDL_CaptureMouse(argument_0: bool) -> bool;
+    pub fn SDL_ClaimWindowForGPUDevice(argument_0: *mut types::SDL_GPUDevice, argument_1: *mut types::SDL_Window) -> bool;
+    pub fn SDL_CleanupTLS();
+    pub fn SDL_ClearAudioStream(argument_0: *mut types::SDL_AudioStream) -> bool;
+    pub fn SDL_ClearClipboardData() -> bool;
+    pub fn SDL_ClearComposition(argument_0: *mut types::SDL_Window) -> bool;
+    pub fn SDL_ClearError() -> bool;
+    pub fn SDL_ClearProperty(argument_0: types::SDL_PropertiesID, argument_1: *const c::Char) -> bool;
+    pub fn SDL_ClearSurface(
+        argument_0: *mut types::SDL_Surface,
+        argument_1: f32,
+        argument_2: f32,
+        argument_3: f32,
+        argument_4: f32,
+    ) -> bool;
+    pub fn SDL_CloseAudioDevice(argument_0: types::SDL_AudioDeviceID);
+    pub fn SDL_CloseCamera(argument_0: *mut types::SDL_Camera);
+    pub fn SDL_CloseGamepad(argument_0: *mut types::SDL_Gamepad);
+    pub fn SDL_CloseHaptic(argument_0: *mut types::SDL_Haptic);
+    pub fn SDL_CloseIO(argument_0: *mut types::SDL_IOStream) -> bool;
+    pub fn SDL_CloseJoystick(argument_0: *mut types::SDL_Joystick);
+    pub fn SDL_CloseSensor(argument_0: *mut types::SDL_Sensor);
+    pub fn SDL_CloseStorage(argument_0: *mut types::SDL_Storage) -> bool;
+    pub fn SDL_CompareAndSwapAtomicInt(
+        argument_0: *mut types::SDL_AtomicInt,
+        argument_1: c::Int,
+        argument_2: c::Int,
+    ) -> bool;
+    pub fn SDL_CompareAndSwapAtomicPointer(
+        argument_0: *mut *mut (),
+        argument_1: *mut (),
+        argument_2: *mut (),
+    ) -> bool;
+    pub fn SDL_CompareAndSwapAtomicU32(
+        argument_0: *mut types::SDL_AtomicU32,
+        argument_1: u32,
+        argument_2: u32,
+    ) -> bool;
+    pub fn SDL_ComposeCustomBlendMode(
+        argument_0: types::SDL_BlendFactor,
+        argument_1: types::SDL_BlendFactor,
+        argument_2: types::SDL_BlendOperation,
+        argument_3: types::SDL_BlendFactor,
+        argument_4: types::SDL_BlendFactor,
+        argument_5: types::SDL_BlendOperation,
+    ) -> types::SDL_BlendMode;
+    pub fn SDL_ConvertAudioSamples(
+        argument_0: *const types::SDL_AudioSpec,
+        argument_1: *const u8,
+        argument_2: c::Int,
+        argument_3: *const types::SDL_AudioSpec,
+        argument_4: *mut *mut u8,
+        argument_5: *mut c::Int,
+    ) -> bool;
+    pub fn SDL_ConvertEventToRenderCoordinates(argument_0: *mut types::SDL_Renderer, argument_1: *mut types::SDL_Event) -> bool;
+    pub fn SDL_ConvertPixels(
+        argument_0: c::Int,
+        argument_1: c::Int,
+        argument_2: types::SDL_PixelFormat,
+        argument_3: *const (),
+        argument_4: c::Int,
+        argument_5: types::SDL_PixelFormat,
+        argument_6: *mut (),
+        argument_7: c::Int,
+    ) -> bool;
+    pub fn SDL_ConvertPixelsAndColorspace(
+        argument_0: c::Int,
+        argument_1: c::Int,
+        argument_2: types::SDL_PixelFormat,
+        argument_3: types::SDL_Colorspace,
+        argument_4: types::SDL_PropertiesID,
+        argument_5: *const (),
+        argument_6: c::Int,
+        argument_7: types::SDL_PixelFormat,
+        argument_8: types::SDL_Colorspace,
+        argument_9: types::SDL_PropertiesID,
+        argument_10: *mut (),
+        argument_11: c::Int,
+    ) -> bool;
+    pub fn SDL_ConvertSurface(argument_0: *mut types::SDL_Surface, argument_1: types::SDL_PixelFormat) -> *mut types::SDL_Surface;
+    pub fn SDL_ConvertSurfaceAndColorspace(
+        argument_0: *mut types::SDL_Surface,
+        argument_1: types::SDL_PixelFormat,
+        argument_2: *mut types::SDL_Palette,
+        argument_3: types::SDL_Colorspace,
+        argument_4: types::SDL_PropertiesID,
+    ) -> *mut types::SDL_Surface;
+    pub fn SDL_CopyFile(argument_0: *const c::Char, argument_1: *const c::Char) -> bool;
+    pub fn SDL_CopyGPUBufferToBuffer(
+        argument_0: *mut types::SDL_GPUCopyPass,
+        argument_1: *const types::SDL_GPUBufferLocation,
+        argument_2: *const types::SDL_GPUBufferLocation,
+        argument_3: u32,
+        argument_4: bool,
+    );
+    pub fn SDL_CopyGPUTextureToTexture(
+        argument_0: *mut types::SDL_GPUCopyPass,
+        argument_1: *const types::SDL_GPUTextureLocation,
+        argument_2: *const types::SDL_GPUTextureLocation,
+        argument_3: u32,
+        argument_4: u32,
+        argument_5: u32,
+        argument_6: bool,
+    );
+    pub fn SDL_CopyProperties(argument_0: types::SDL_PropertiesID, argument_1: types::SDL_PropertiesID) -> bool;
+    pub fn SDL_CopyStorageFile(
+        argument_0: *mut types::SDL_Storage,
+        argument_1: *const c::Char,
+        argument_2: *const c::Char,
+    ) -> bool;
+    pub fn SDL_CreateAudioStream(argument_0: *const types::SDL_AudioSpec, argument_1: *const types::SDL_AudioSpec) -> *mut types::SDL_AudioStream;
+    pub fn SDL_CreateColorCursor(
+        argument_0: *mut types::SDL_Surface,
+        argument_1: c::Int,
+        argument_2: c::Int,
+    ) -> *mut types::SDL_Cursor;
+    pub fn SDL_CreateCondition() -> *mut types::SDL_Condition;
+    pub fn SDL_CreateCursor(
+        argument_0: *const u8,
+        argument_1: *const u8,
+        argument_2: c::Int,
+        argument_3: c::Int,
+        argument_4: c::Int,
+        argument_5: c::Int,
+    ) -> *mut types::SDL_Cursor;
+    pub fn SDL_CreateDirectory(argument_0: *const c::Char) -> bool;
+    pub fn SDL_CreateEnvironment(argument_0: bool) -> *mut types::SDL_Environment;
+    pub fn SDL_CreateGPUBuffer(argument_0: *mut types::SDL_GPUDevice, argument_1: *const types::SDL_GPUBufferCreateInfo) -> *mut types::SDL_GPUBuffer;
+    pub fn SDL_CreateGPUComputePipeline(argument_0: *mut types::SDL_GPUDevice, argument_1: *const types::SDL_GPUComputePipelineCreateInfo) -> *mut types::SDL_GPUComputePipeline;
+    pub fn SDL_CreateGPUDevice(
+        argument_0: types::SDL_GPUShaderFormat,
+        argument_1: bool,
+        argument_2: *const c::Char,
+    ) -> *mut types::SDL_GPUDevice;
+    pub fn SDL_CreateGPUDeviceWithProperties(argument_0: types::SDL_PropertiesID) -> *mut types::SDL_GPUDevice;
+    pub fn SDL_CreateGPUGraphicsPipeline(argument_0: *mut types::SDL_GPUDevice, argument_1: *const types::SDL_GPUGraphicsPipelineCreateInfo) -> *mut types::SDL_GPUGraphicsPipeline;
+    pub fn SDL_CreateGPUSampler(argument_0: *mut types::SDL_GPUDevice, argument_1: *const types::SDL_GPUSamplerCreateInfo) -> *mut types::SDL_GPUSampler;
+    pub fn SDL_CreateGPUShader(argument_0: *mut types::SDL_GPUDevice, argument_1: *const types::SDL_GPUShaderCreateInfo) -> *mut types::SDL_GPUShader;
+    pub fn SDL_CreateGPUTexture(argument_0: *mut types::SDL_GPUDevice, argument_1: *const types::SDL_GPUTextureCreateInfo) -> *mut types::SDL_GPUTexture;
+    pub fn SDL_CreateGPUTransferBuffer(argument_0: *mut types::SDL_GPUDevice, argument_1: *const types::SDL_GPUTransferBufferCreateInfo) -> *mut types::SDL_GPUTransferBuffer;
+    pub fn SDL_CreateHapticEffect(argument_0: *mut types::SDL_Haptic, argument_1: *const types::SDL_HapticEffect) -> types::SDL_HapticEffectID;
+    pub fn SDL_CreateMutex() -> *mut types::SDL_Mutex;
+    pub fn SDL_CreatePalette(argument_0: c::Int) -> *mut types::SDL_Palette;
+    pub fn SDL_CreatePopupWindow(
+        argument_0: *mut types::SDL_Window,
+        argument_1: c::Int,
+        argument_2: c::Int,
+        argument_3: c::Int,
+        argument_4: c::Int,
+        argument_5: types::SDL_WindowFlags,
+    ) -> *mut types::SDL_Window;
+    pub fn SDL_CreateProcess(argument_0: *const *const c::Char, argument_1: bool) -> *mut types::SDL_Process;
+    pub fn SDL_CreateProcessWithProperties(argument_0: types::SDL_PropertiesID) -> *mut types::SDL_Process;
+    pub fn SDL_CreateProperties() -> types::SDL_PropertiesID;
+    pub fn SDL_CreateRWLock() -> *mut types::SDL_RWLock;
+    pub fn SDL_CreateRenderer(argument_0: *mut types::SDL_Window, argument_1: *const c::Char) -> *mut types::SDL_Renderer;
+    pub fn SDL_CreateRendererWithProperties(argument_0: types::SDL_PropertiesID) -> *mut types::SDL_Renderer;
+    pub fn SDL_CreateSemaphore(argument_0: u32) -> *mut types::SDL_Semaphore;
+    pub fn SDL_CreateSoftwareRenderer(argument_0: *mut types::SDL_Surface) -> *mut types::SDL_Renderer;
+    pub fn SDL_CreateStorageDirectory(argument_0: *mut types::SDL_Storage, argument_1: *const c::Char) -> bool;
+    pub fn SDL_CreateSurface(
+        argument_0: c::Int,
+        argument_1: c::Int,
+        argument_2: types::SDL_PixelFormat,
+    ) -> *mut types::SDL_Surface;
+    pub fn SDL_CreateSurfaceFrom(
+        argument_0: c::Int,
+        argument_1: c::Int,
+        argument_2: types::SDL_PixelFormat,
+        argument_3: *mut (),
+        argument_4: c::Int,
+    ) -> *mut types::SDL_Surface;
+    pub fn SDL_CreateSurfacePalette(argument_0: *mut types::SDL_Surface) -> *mut types::SDL_Palette;
+    pub fn SDL_CreateSystemCursor(argument_0: types::SDL_SystemCursor) -> *mut types::SDL_Cursor;
+    pub fn SDL_CreateTexture(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: types::SDL_PixelFormat,
+        argument_2: types::SDL_TextureAccess,
+        argument_3: c::Int,
+        argument_4: c::Int,
+    ) -> *mut types::SDL_Texture;
+    pub fn SDL_CreateTextureFromSurface(argument_0: *mut types::SDL_Renderer, argument_1: *mut types::SDL_Surface) -> *mut types::SDL_Texture;
+    pub fn SDL_CreateTextureWithProperties(argument_0: *mut types::SDL_Renderer, argument_1: types::SDL_PropertiesID) -> *mut types::SDL_Texture;
+    pub fn SDL_CreateThreadRuntime(
+        argument_0: types::SDL_ThreadFunction,
+        argument_1: *const c::Char,
+        argument_2: *mut (),
+        argument_3: types::SDL_FunctionPointer,
+        argument_4: types::SDL_FunctionPointer,
+    ) -> *mut types::SDL_Thread;
+    pub fn SDL_CreateThreadWithPropertiesRuntime(
+        argument_0: types::SDL_PropertiesID,
+        argument_1: types::SDL_FunctionPointer,
+        argument_2: types::SDL_FunctionPointer,
+    ) -> *mut types::SDL_Thread;
+    pub fn SDL_CreateWindow(
+        argument_0: *const c::Char,
+        argument_1: c::Int,
+        argument_2: c::Int,
+        argument_3: types::SDL_WindowFlags,
+    ) -> *mut types::SDL_Window;
+    pub fn SDL_CreateWindowAndRenderer(
+        argument_0: *const c::Char,
+        argument_1: c::Int,
+        argument_2: c::Int,
+        argument_3: types::SDL_WindowFlags,
+        argument_4: *mut *mut types::SDL_Window,
+        argument_5: *mut *mut types::SDL_Renderer,
+    ) -> bool;
+    pub fn SDL_CreateWindowWithProperties(argument_0: types::SDL_PropertiesID) -> *mut types::SDL_Window;
+    pub fn SDL_CursorVisible() -> bool;
+    pub fn SDL_DateTimeToTime(argument_0: *const types::SDL_DateTime, argument_1: *mut types::SDL_Time) -> bool;
+    pub fn SDL_Delay(argument_0: u32);
+    pub fn SDL_DelayNS(argument_0: u64);
+    pub fn SDL_DestroyAudioStream(argument_0: *mut types::SDL_AudioStream);
+    pub fn SDL_DestroyCondition(argument_0: *mut types::SDL_Condition);
+    pub fn SDL_DestroyCursor(argument_0: *mut types::SDL_Cursor);
+    pub fn SDL_DestroyEnvironment(argument_0: *mut types::SDL_Environment);
+    pub fn SDL_DestroyGPUDevice(argument_0: *mut types::SDL_GPUDevice);
+    pub fn SDL_DestroyHapticEffect(argument_0: *mut types::SDL_Haptic, argument_1: types::SDL_HapticEffectID);
+    pub fn SDL_DestroyMutex(argument_0: *mut types::SDL_Mutex);
+    pub fn SDL_DestroyPalette(argument_0: *mut types::SDL_Palette);
+    pub fn SDL_DestroyProcess(argument_0: *mut types::SDL_Process);
+    pub fn SDL_DestroyProperties(argument_0: types::SDL_PropertiesID);
+    pub fn SDL_DestroyRWLock(argument_0: *mut types::SDL_RWLock);
+    pub fn SDL_DestroyRenderer(argument_0: *mut types::SDL_Renderer);
+    pub fn SDL_DestroySemaphore(argument_0: *mut types::SDL_Semaphore);
+    pub fn SDL_DestroySurface(argument_0: *mut types::SDL_Surface);
+    pub fn SDL_DestroyTexture(argument_0: *mut types::SDL_Texture);
+    pub fn SDL_DestroyWindow(argument_0: *mut types::SDL_Window);
+    pub fn SDL_DestroyWindowSurface(argument_0: *mut types::SDL_Window) -> bool;
+    pub fn SDL_DetachThread(argument_0: *mut types::SDL_Thread);
+    pub fn SDL_DetachVirtualJoystick(argument_0: types::SDL_JoystickID) -> bool;
+    pub fn SDL_DisableScreenSaver() -> bool;
+    pub fn SDL_DispatchGPUCompute(
+        argument_0: *mut types::SDL_GPUComputePass,
+        argument_1: u32,
+        argument_2: u32,
+        argument_3: u32,
+    );
+    pub fn SDL_DispatchGPUComputeIndirect(
+        argument_0: *mut types::SDL_GPUComputePass,
+        argument_1: *mut types::SDL_GPUBuffer,
+        argument_2: u32,
+    );
+    pub fn SDL_DownloadFromGPUBuffer(
+        argument_0: *mut types::SDL_GPUCopyPass,
+        argument_1: *const types::SDL_GPUBufferRegion,
+        argument_2: *const types::SDL_GPUTransferBufferLocation,
+    );
+    pub fn SDL_DownloadFromGPUTexture(
+        argument_0: *mut types::SDL_GPUCopyPass,
+        argument_1: *const types::SDL_GPUTextureRegion,
+        argument_2: *const types::SDL_GPUTextureTransferInfo,
+    );
+    pub fn SDL_DrawGPUIndexedPrimitives(
+        argument_0: *mut types::SDL_GPURenderPass,
+        argument_1: u32,
+        argument_2: u32,
+        argument_3: u32,
+        argument_4: i32,
+        argument_5: u32,
+    );
+    pub fn SDL_DrawGPUIndexedPrimitivesIndirect(
+        argument_0: *mut types::SDL_GPURenderPass,
+        argument_1: *mut types::SDL_GPUBuffer,
+        argument_2: u32,
+        argument_3: u32,
+    );
+    pub fn SDL_DrawGPUPrimitives(
+        argument_0: *mut types::SDL_GPURenderPass,
+        argument_1: u32,
+        argument_2: u32,
+        argument_3: u32,
+        argument_4: u32,
+    );
+    pub fn SDL_DrawGPUPrimitivesIndirect(
+        argument_0: *mut types::SDL_GPURenderPass,
+        argument_1: *mut types::SDL_GPUBuffer,
+        argument_2: u32,
+        argument_3: u32,
+    );
+    pub fn SDL_DuplicateSurface(argument_0: *mut types::SDL_Surface) -> *mut types::SDL_Surface;
+    pub fn SDL_EGL_GetCurrentConfig() -> types::SDL_EGLConfig;
+    pub fn SDL_EGL_GetCurrentDisplay() -> types::SDL_EGLDisplay;
+    pub fn SDL_EGL_GetProcAddress(argument_0: *const c::Char) -> types::SDL_FunctionPointer;
+    pub fn SDL_EGL_GetWindowSurface(argument_0: *mut types::SDL_Window) -> types::SDL_EGLSurface;
+    pub fn SDL_EGL_SetAttributeCallbacks(
+        argument_0: types::SDL_EGLAttribArrayCallback,
+        argument_1: types::SDL_EGLIntArrayCallback,
+        argument_2: types::SDL_EGLIntArrayCallback,
+        argument_3: *mut (),
+    );
+    pub fn SDL_EnableScreenSaver() -> bool;
+    pub fn SDL_EndGPUComputePass(argument_0: *mut types::SDL_GPUComputePass);
+    pub fn SDL_EndGPUCopyPass(argument_0: *mut types::SDL_GPUCopyPass);
+    pub fn SDL_EndGPURenderPass(argument_0: *mut types::SDL_GPURenderPass);
+    pub fn SDL_EnterAppMainCallbacks(
+        argument_0: c::Int,
+        argument_1: *mut *mut c::Char,
+        argument_2: types::SDL_AppInit_func,
+        argument_3: types::SDL_AppIterate_func,
+        argument_4: types::SDL_AppEvent_func,
+        argument_5: types::SDL_AppQuit_func,
+    ) -> c::Int;
+    pub fn SDL_EnumerateDirectory(
+        argument_0: *const c::Char,
+        argument_1: types::SDL_EnumerateDirectoryCallback,
+        argument_2: *mut (),
+    ) -> bool;
+    pub fn SDL_EnumerateProperties(
+        argument_0: types::SDL_PropertiesID,
+        argument_1: types::SDL_EnumeratePropertiesCallback,
+        argument_2: *mut (),
+    ) -> bool;
+    pub fn SDL_EnumerateStorageDirectory(
+        argument_0: *mut types::SDL_Storage,
+        argument_1: *const c::Char,
+        argument_2: types::SDL_EnumerateDirectoryCallback,
+        argument_3: *mut (),
+    ) -> bool;
+    pub fn SDL_EventEnabled(argument_0: u32) -> bool;
+    pub fn SDL_FillSurfaceRect(
+        argument_0: *mut types::SDL_Surface,
+        argument_1: *const types::SDL_Rect,
+        argument_2: u32,
+    ) -> bool;
+    pub fn SDL_FillSurfaceRects(
+        argument_0: *mut types::SDL_Surface,
+        argument_1: *const types::SDL_Rect,
+        argument_2: c::Int,
+        argument_3: u32,
+    ) -> bool;
+    pub fn SDL_FilterEvents(argument_0: types::SDL_EventFilter, argument_1: *mut ());
+    pub fn SDL_FlashWindow(argument_0: *mut types::SDL_Window, argument_1: types::SDL_FlashOperation) -> bool;
+    pub fn SDL_FlipSurface(argument_0: *mut types::SDL_Surface, argument_1: types::SDL_FlipMode) -> bool;
+    pub fn SDL_FlushAudioStream(argument_0: *mut types::SDL_AudioStream) -> bool;
+    pub fn SDL_FlushEvent(argument_0: u32);
+    pub fn SDL_FlushEvents(argument_0: u32, argument_1: u32);
+    pub fn SDL_FlushIO(argument_0: *mut types::SDL_IOStream) -> bool;
+    pub fn SDL_FlushRenderer(argument_0: *mut types::SDL_Renderer) -> bool;
+    pub fn SDL_GDKResumeGPU(argument_0: *mut types::SDL_GPUDevice);
+    pub fn SDL_GDKSuspendComplete();
+    pub fn SDL_GDKSuspendGPU(argument_0: *mut types::SDL_GPUDevice);
+    pub fn SDL_GL_CreateContext(argument_0: *mut types::SDL_Window) -> types::SDL_GLContext;
+    pub fn SDL_GL_DestroyContext(argument_0: types::SDL_GLContext) -> bool;
+    pub fn SDL_GL_ExtensionSupported(argument_0: *const c::Char) -> bool;
+    pub fn SDL_GL_GetAttribute(argument_0: types::SDL_GLAttr, argument_1: *mut c::Int) -> bool;
+    pub fn SDL_GL_GetCurrentContext() -> types::SDL_GLContext;
+    pub fn SDL_GL_GetCurrentWindow() -> *mut types::SDL_Window;
+    pub fn SDL_GL_GetProcAddress(argument_0: *const c::Char) -> types::SDL_FunctionPointer;
+    pub fn SDL_GL_GetSwapInterval(argument_0: *mut c::Int) -> bool;
+    pub fn SDL_GL_LoadLibrary(argument_0: *const c::Char) -> bool;
+    pub fn SDL_GL_MakeCurrent(argument_0: *mut types::SDL_Window, argument_1: types::SDL_GLContext) -> bool;
+    pub fn SDL_GL_ResetAttributes();
+    pub fn SDL_GL_SetAttribute(argument_0: types::SDL_GLAttr, argument_1: c::Int) -> bool;
+    pub fn SDL_GL_SetSwapInterval(argument_0: c::Int) -> bool;
+    pub fn SDL_GL_SwapWindow(argument_0: *mut types::SDL_Window) -> bool;
+    pub fn SDL_GL_UnloadLibrary();
+    pub fn SDL_GPUSupportsProperties(argument_0: types::SDL_PropertiesID) -> bool;
+    pub fn SDL_GPUSupportsShaderFormats(argument_0: types::SDL_GPUShaderFormat, argument_1: *const c::Char) -> bool;
+    pub fn SDL_GPUTextureFormatTexelBlockSize(argument_0: types::SDL_GPUTextureFormat) -> u32;
+    pub fn SDL_GPUTextureSupportsFormat(
+        argument_0: *mut types::SDL_GPUDevice,
+        argument_1: types::SDL_GPUTextureFormat,
+        argument_2: types::SDL_GPUTextureType,
+        argument_3: types::SDL_GPUTextureUsageFlags,
+    ) -> bool;
+    pub fn SDL_GPUTextureSupportsSampleCount(
+        argument_0: *mut types::SDL_GPUDevice,
+        argument_1: types::SDL_GPUTextureFormat,
+        argument_2: types::SDL_GPUSampleCount,
+    ) -> bool;
+    pub fn SDL_GUIDToString(
+        argument_0: types::SDL_GUID,
+        argument_1: *mut c::Char,
+        argument_2: c::Int,
+    );
+    pub fn SDL_GamepadConnected(argument_0: *mut types::SDL_Gamepad) -> bool;
+    pub fn SDL_GamepadEventsEnabled() -> bool;
+    pub fn SDL_GamepadHasAxis(argument_0: *mut types::SDL_Gamepad, argument_1: types::SDL_GamepadAxis) -> bool;
+    pub fn SDL_GamepadHasButton(argument_0: *mut types::SDL_Gamepad, argument_1: types::SDL_GamepadButton) -> bool;
+    pub fn SDL_GamepadHasSensor(argument_0: *mut types::SDL_Gamepad, argument_1: types::SDL_SensorType) -> bool;
+    pub fn SDL_GamepadSensorEnabled(argument_0: *mut types::SDL_Gamepad, argument_1: types::SDL_SensorType) -> bool;
+    pub fn SDL_GenerateMipmapsForGPUTexture(argument_0: *mut types::SDL_GPUCommandBuffer, argument_1: *mut types::SDL_GPUTexture);
+    pub fn SDL_GetAndroidActivity() -> *mut ();
+    pub fn SDL_GetAndroidCachePath() -> *const c::Char;
+    pub fn SDL_GetAndroidExternalStoragePath() -> *const c::Char;
+    pub fn SDL_GetAndroidExternalStorageState() -> u32;
+    pub fn SDL_GetAndroidInternalStoragePath() -> *const c::Char;
+    pub fn SDL_GetAndroidJNIEnv() -> *mut ();
+    pub fn SDL_GetAndroidSDKVersion() -> c::Int;
+    pub fn SDL_GetAppMetadataProperty(argument_0: *const c::Char) -> *const c::Char;
+    pub fn SDL_GetAssertionHandler(argument_0: *mut *mut ()) -> types::SDL_AssertionHandler;
+    pub fn SDL_GetAssertionReport() -> *const types::SDL_AssertData;
+    pub fn SDL_GetAtomicInt(argument_0: *mut types::SDL_AtomicInt) -> c::Int;
+    pub fn SDL_GetAtomicPointer(argument_0: *mut *mut ()) -> *mut ();
+    pub fn SDL_GetAtomicU32(argument_0: *mut types::SDL_AtomicU32) -> u32;
+    pub fn SDL_GetAudioDeviceChannelMap(argument_0: types::SDL_AudioDeviceID, argument_1: *mut c::Int) -> *mut c::Int;
+    pub fn SDL_GetAudioDeviceFormat(
+        argument_0: types::SDL_AudioDeviceID,
+        argument_1: *mut types::SDL_AudioSpec,
+        argument_2: *mut c::Int,
+    ) -> bool;
+    pub fn SDL_GetAudioDeviceGain(argument_0: types::SDL_AudioDeviceID) -> f32;
+    pub fn SDL_GetAudioDeviceName(argument_0: types::SDL_AudioDeviceID) -> *const c::Char;
+    pub fn SDL_GetAudioDriver(argument_0: c::Int) -> *const c::Char;
+    pub fn SDL_GetAudioFormatName(argument_0: types::SDL_AudioFormat) -> *const c::Char;
+    pub fn SDL_GetAudioPlaybackDevices(argument_0: *mut c::Int) -> *mut types::SDL_AudioDeviceID;
+    pub fn SDL_GetAudioRecordingDevices(argument_0: *mut c::Int) -> *mut types::SDL_AudioDeviceID;
+    pub fn SDL_GetAudioStreamAvailable(argument_0: *mut types::SDL_AudioStream) -> c::Int;
+    pub fn SDL_GetAudioStreamData(
+        argument_0: *mut types::SDL_AudioStream,
+        argument_1: *mut (),
+        argument_2: c::Int,
+    ) -> c::Int;
+    pub fn SDL_GetAudioStreamDevice(argument_0: *mut types::SDL_AudioStream) -> types::SDL_AudioDeviceID;
+    pub fn SDL_GetAudioStreamFormat(
+        argument_0: *mut types::SDL_AudioStream,
+        argument_1: *mut types::SDL_AudioSpec,
+        argument_2: *mut types::SDL_AudioSpec,
+    ) -> bool;
+    pub fn SDL_GetAudioStreamFrequencyRatio(argument_0: *mut types::SDL_AudioStream) -> f32;
+    pub fn SDL_GetAudioStreamGain(argument_0: *mut types::SDL_AudioStream) -> f32;
+    pub fn SDL_GetAudioStreamInputChannelMap(argument_0: *mut types::SDL_AudioStream, argument_1: *mut c::Int) -> *mut c::Int;
+    pub fn SDL_GetAudioStreamOutputChannelMap(argument_0: *mut types::SDL_AudioStream, argument_1: *mut c::Int) -> *mut c::Int;
+    pub fn SDL_GetAudioStreamProperties(argument_0: *mut types::SDL_AudioStream) -> types::SDL_PropertiesID;
+    pub fn SDL_GetAudioStreamQueued(argument_0: *mut types::SDL_AudioStream) -> c::Int;
+    pub fn SDL_GetBasePath() -> *const c::Char;
+    pub fn SDL_GetBooleanProperty(
+        argument_0: types::SDL_PropertiesID,
+        argument_1: *const c::Char,
+        argument_2: bool,
+    ) -> bool;
+    pub fn SDL_GetCPUCacheLineSize() -> c::Int;
+    pub fn SDL_GetCameraDriver(argument_0: c::Int) -> *const c::Char;
+    pub fn SDL_GetCameraFormat(argument_0: *mut types::SDL_Camera, argument_1: *mut types::SDL_CameraSpec) -> bool;
+    pub fn SDL_GetCameraID(argument_0: *mut types::SDL_Camera) -> types::SDL_CameraID;
+    pub fn SDL_GetCameraName(argument_0: types::SDL_CameraID) -> *const c::Char;
+    pub fn SDL_GetCameraPermissionState(argument_0: *mut types::SDL_Camera) -> types::SDL_CameraPermissionState;
+    pub fn SDL_GetCameraPosition(argument_0: types::SDL_CameraID) -> types::SDL_CameraPosition;
+    pub fn SDL_GetCameraProperties(argument_0: *mut types::SDL_Camera) -> types::SDL_PropertiesID;
+    pub fn SDL_GetCameraSupportedFormats(argument_0: types::SDL_CameraID, argument_1: *mut c::Int) -> *mut *mut types::SDL_CameraSpec;
+    pub fn SDL_GetCameras(argument_0: *mut c::Int) -> *mut types::SDL_CameraID;
+    pub fn SDL_GetClipboardData(argument_0: *const c::Char, argument_1: *mut usize) -> *mut ();
+    pub fn SDL_GetClipboardMimeTypes(argument_0: *mut usize) -> *mut *mut c::Char;
+    pub fn SDL_GetClipboardText() -> *mut c::Char;
+    pub fn SDL_GetClosestFullscreenDisplayMode(
+        argument_0: types::SDL_DisplayID,
+        argument_1: c::Int,
+        argument_2: c::Int,
+        argument_3: f32,
+        argument_4: bool,
+        argument_5: *mut types::SDL_DisplayMode,
+    ) -> bool;
+    pub fn SDL_GetCurrentAudioDriver() -> *const c::Char;
+    pub fn SDL_GetCurrentCameraDriver() -> *const c::Char;
+    pub fn SDL_GetCurrentDisplayMode(argument_0: types::SDL_DisplayID) -> *const types::SDL_DisplayMode;
+    pub fn SDL_GetCurrentDisplayOrientation(argument_0: types::SDL_DisplayID) -> types::SDL_DisplayOrientation;
+    pub fn SDL_GetCurrentRenderOutputSize(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: *mut c::Int,
+        argument_2: *mut c::Int,
+    ) -> bool;
+    pub fn SDL_GetCurrentThreadID() -> types::SDL_ThreadID;
+    pub fn SDL_GetCurrentTime(argument_0: *mut types::SDL_Time) -> bool;
+    pub fn SDL_GetCurrentVideoDriver() -> *const c::Char;
+    pub fn SDL_GetCursor() -> *mut types::SDL_Cursor;
+    pub fn SDL_GetDXGIOutputInfo(
+        argument_0: types::SDL_DisplayID,
+        argument_1: *mut c::Int,
+        argument_2: *mut c::Int,
+    ) -> bool;
+    pub fn SDL_GetDateTimeLocalePreferences(argument_0: *mut types::SDL_DateFormat, argument_1: *mut types::SDL_TimeFormat) -> bool;
+    pub fn SDL_GetDayOfWeek(
+        argument_0: c::Int,
+        argument_1: c::Int,
+        argument_2: c::Int,
+    ) -> c::Int;
+    pub fn SDL_GetDayOfYear(
+        argument_0: c::Int,
+        argument_1: c::Int,
+        argument_2: c::Int,
+    ) -> c::Int;
+    pub fn SDL_GetDaysInMonth(argument_0: c::Int, argument_1: c::Int) -> c::Int;
+    pub fn SDL_GetDefaultAssertionHandler() -> types::SDL_AssertionHandler;
+    pub fn SDL_GetDefaultCursor() -> *mut types::SDL_Cursor;
+    pub fn SDL_GetDesktopDisplayMode(argument_0: types::SDL_DisplayID) -> *const types::SDL_DisplayMode;
+    pub fn SDL_GetDirect3D9AdapterIndex(argument_0: types::SDL_DisplayID) -> c::Int;
+    pub fn SDL_GetDisplayBounds(argument_0: types::SDL_DisplayID, argument_1: *mut types::SDL_Rect) -> bool;
+    pub fn SDL_GetDisplayContentScale(argument_0: types::SDL_DisplayID) -> f32;
+    pub fn SDL_GetDisplayForPoint(argument_0: *const types::SDL_Point) -> types::SDL_DisplayID;
+    pub fn SDL_GetDisplayForRect(argument_0: *const types::SDL_Rect) -> types::SDL_DisplayID;
+    pub fn SDL_GetDisplayForWindow(argument_0: *mut types::SDL_Window) -> types::SDL_DisplayID;
+    pub fn SDL_GetDisplayName(argument_0: types::SDL_DisplayID) -> *const c::Char;
+    pub fn SDL_GetDisplayProperties(argument_0: types::SDL_DisplayID) -> types::SDL_PropertiesID;
+    pub fn SDL_GetDisplayUsableBounds(argument_0: types::SDL_DisplayID, argument_1: *mut types::SDL_Rect) -> bool;
+    pub fn SDL_GetDisplays(argument_0: *mut c::Int) -> *mut types::SDL_DisplayID;
+    pub fn SDL_GetEnvironment() -> *mut types::SDL_Environment;
+    pub fn SDL_GetEnvironmentVariable(argument_0: *mut types::SDL_Environment, argument_1: *const c::Char) -> *const c::Char;
+    pub fn SDL_GetEnvironmentVariables(argument_0: *mut types::SDL_Environment) -> *mut *mut c::Char;
+    pub fn SDL_GetError() -> *const c::Char;
+    pub fn SDL_GetEventFilter(argument_0: *mut types::SDL_EventFilter, argument_1: *mut *mut ()) -> bool;
+    pub fn SDL_GetFloatProperty(
+        argument_0: types::SDL_PropertiesID,
+        argument_1: *const c::Char,
+        argument_2: f32,
+    ) -> f32;
+    pub fn SDL_GetFullscreenDisplayModes(argument_0: types::SDL_DisplayID, argument_1: *mut c::Int) -> *mut *mut types::SDL_DisplayMode;
+    pub fn SDL_GetGDKDefaultUser(argument_0: *mut types::XUserHandle) -> bool;
+    pub fn SDL_GetGDKTaskQueue(argument_0: *mut types::XTaskQueueHandle) -> bool;
+    pub fn SDL_GetGPUDeviceDriver(argument_0: *mut types::SDL_GPUDevice) -> *const c::Char;
+    pub fn SDL_GetGPUDriver(argument_0: c::Int) -> *const c::Char;
+    pub fn SDL_GetGPUShaderFormats(argument_0: *mut types::SDL_GPUDevice) -> types::SDL_GPUShaderFormat;
+    pub fn SDL_GetGPUSwapchainTextureFormat(argument_0: *mut types::SDL_GPUDevice, argument_1: *mut types::SDL_Window) -> types::SDL_GPUTextureFormat;
+    pub fn SDL_GetGamepadAppleSFSymbolsNameForAxis(argument_0: *mut types::SDL_Gamepad, argument_1: types::SDL_GamepadAxis) -> *const c::Char;
+    pub fn SDL_GetGamepadAppleSFSymbolsNameForButton(argument_0: *mut types::SDL_Gamepad, argument_1: types::SDL_GamepadButton) -> *const c::Char;
+    pub fn SDL_GetGamepadAxis(argument_0: *mut types::SDL_Gamepad, argument_1: types::SDL_GamepadAxis) -> i16;
+    pub fn SDL_GetGamepadAxisFromString(argument_0: *const c::Char) -> types::SDL_GamepadAxis;
+    pub fn SDL_GetGamepadBindings(argument_0: *mut types::SDL_Gamepad, argument_1: *mut c::Int) -> *mut *mut types::SDL_GamepadBinding;
+    pub fn SDL_GetGamepadButton(argument_0: *mut types::SDL_Gamepad, argument_1: types::SDL_GamepadButton) -> bool;
+    pub fn SDL_GetGamepadButtonFromString(argument_0: *const c::Char) -> types::SDL_GamepadButton;
+    pub fn SDL_GetGamepadButtonLabel(argument_0: *mut types::SDL_Gamepad, argument_1: types::SDL_GamepadButton) -> types::SDL_GamepadButtonLabel;
+    pub fn SDL_GetGamepadButtonLabelForType(argument_0: types::SDL_GamepadType, argument_1: types::SDL_GamepadButton) -> types::SDL_GamepadButtonLabel;
+    pub fn SDL_GetGamepadConnectionState(argument_0: *mut types::SDL_Gamepad) -> types::SDL_JoystickConnectionState;
+    pub fn SDL_GetGamepadFirmwareVersion(argument_0: *mut types::SDL_Gamepad) -> u16;
+    pub fn SDL_GetGamepadFromID(argument_0: types::SDL_JoystickID) -> *mut types::SDL_Gamepad;
+    pub fn SDL_GetGamepadFromPlayerIndex(argument_0: c::Int) -> *mut types::SDL_Gamepad;
+    pub fn SDL_GetGamepadGUIDForID(argument_0: types::SDL_JoystickID) -> types::SDL_GUID;
+    pub fn SDL_GetGamepadID(argument_0: *mut types::SDL_Gamepad) -> types::SDL_JoystickID;
+    pub fn SDL_GetGamepadJoystick(argument_0: *mut types::SDL_Gamepad) -> *mut types::SDL_Joystick;
+    pub fn SDL_GetGamepadMapping(argument_0: *mut types::SDL_Gamepad) -> *mut c::Char;
+    pub fn SDL_GetGamepadMappingForGUID(argument_0: types::SDL_GUID) -> *mut c::Char;
+    pub fn SDL_GetGamepadMappingForID(argument_0: types::SDL_JoystickID) -> *mut c::Char;
+    pub fn SDL_GetGamepadMappings(argument_0: *mut c::Int) -> *mut *mut c::Char;
+    pub fn SDL_GetGamepadName(argument_0: *mut types::SDL_Gamepad) -> *const c::Char;
+    pub fn SDL_GetGamepadNameForID(argument_0: types::SDL_JoystickID) -> *const c::Char;
+    pub fn SDL_GetGamepadPath(argument_0: *mut types::SDL_Gamepad) -> *const c::Char;
+    pub fn SDL_GetGamepadPathForID(argument_0: types::SDL_JoystickID) -> *const c::Char;
+    pub fn SDL_GetGamepadPlayerIndex(argument_0: *mut types::SDL_Gamepad) -> c::Int;
+    pub fn SDL_GetGamepadPlayerIndexForID(argument_0: types::SDL_JoystickID) -> c::Int;
+    pub fn SDL_GetGamepadPowerInfo(argument_0: *mut types::SDL_Gamepad, argument_1: *mut c::Int) -> types::SDL_PowerState;
+    pub fn SDL_GetGamepadProduct(argument_0: *mut types::SDL_Gamepad) -> u16;
+    pub fn SDL_GetGamepadProductForID(argument_0: types::SDL_JoystickID) -> u16;
+    pub fn SDL_GetGamepadProductVersion(argument_0: *mut types::SDL_Gamepad) -> u16;
+    pub fn SDL_GetGamepadProductVersionForID(argument_0: types::SDL_JoystickID) -> u16;
+    pub fn SDL_GetGamepadProperties(argument_0: *mut types::SDL_Gamepad) -> types::SDL_PropertiesID;
+    pub fn SDL_GetGamepadSensorData(
+        argument_0: *mut types::SDL_Gamepad,
+        argument_1: types::SDL_SensorType,
+        argument_2: *mut f32,
+        argument_3: c::Int,
+    ) -> bool;
+    pub fn SDL_GetGamepadSensorDataRate(argument_0: *mut types::SDL_Gamepad, argument_1: types::SDL_SensorType) -> f32;
+    pub fn SDL_GetGamepadSerial(argument_0: *mut types::SDL_Gamepad) -> *const c::Char;
+    pub fn SDL_GetGamepadSteamHandle(argument_0: *mut types::SDL_Gamepad) -> u64;
+    pub fn SDL_GetGamepadStringForAxis(argument_0: types::SDL_GamepadAxis) -> *const c::Char;
+    pub fn SDL_GetGamepadStringForButton(argument_0: types::SDL_GamepadButton) -> *const c::Char;
+    pub fn SDL_GetGamepadStringForType(argument_0: types::SDL_GamepadType) -> *const c::Char;
+    pub fn SDL_GetGamepadTouchpadFinger(
+        argument_0: *mut types::SDL_Gamepad,
+        argument_1: c::Int,
+        argument_2: c::Int,
+        argument_3: *mut bool,
+        argument_4: *mut f32,
+        argument_5: *mut f32,
+        argument_6: *mut f32,
+    ) -> bool;
+    pub fn SDL_GetGamepadType(argument_0: *mut types::SDL_Gamepad) -> types::SDL_GamepadType;
+    pub fn SDL_GetGamepadTypeForID(argument_0: types::SDL_JoystickID) -> types::SDL_GamepadType;
+    pub fn SDL_GetGamepadTypeFromString(argument_0: *const c::Char) -> types::SDL_GamepadType;
+    pub fn SDL_GetGamepadVendor(argument_0: *mut types::SDL_Gamepad) -> u16;
+    pub fn SDL_GetGamepadVendorForID(argument_0: types::SDL_JoystickID) -> u16;
+    pub fn SDL_GetGamepads(argument_0: *mut c::Int) -> *mut types::SDL_JoystickID;
+    pub fn SDL_GetGlobalMouseState(argument_0: *mut f32, argument_1: *mut f32) -> types::SDL_MouseButtonFlags;
+    pub fn SDL_GetGlobalProperties() -> types::SDL_PropertiesID;
+    pub fn SDL_GetGrabbedWindow() -> *mut types::SDL_Window;
+    pub fn SDL_GetHapticEffectStatus(argument_0: *mut types::SDL_Haptic, argument_1: types::SDL_HapticEffectID) -> bool;
+    pub fn SDL_GetHapticFeatures(argument_0: *mut types::SDL_Haptic) -> u32;
+    pub fn SDL_GetHapticFromID(argument_0: types::SDL_HapticID) -> *mut types::SDL_Haptic;
+    pub fn SDL_GetHapticID(argument_0: *mut types::SDL_Haptic) -> types::SDL_HapticID;
+    pub fn SDL_GetHapticName(argument_0: *mut types::SDL_Haptic) -> *const c::Char;
+    pub fn SDL_GetHapticNameForID(argument_0: types::SDL_HapticID) -> *const c::Char;
+    pub fn SDL_GetHaptics(argument_0: *mut c::Int) -> *mut types::SDL_HapticID;
+    pub fn SDL_GetHint(argument_0: *const c::Char) -> *const c::Char;
+    pub fn SDL_GetHintBoolean(argument_0: *const c::Char, argument_1: bool) -> bool;
+    pub fn SDL_GetIOProperties(argument_0: *mut types::SDL_IOStream) -> types::SDL_PropertiesID;
+    pub fn SDL_GetIOSize(argument_0: *mut types::SDL_IOStream) -> i64;
+    pub fn SDL_GetIOStatus(argument_0: *mut types::SDL_IOStream) -> types::SDL_IOStatus;
+    pub fn SDL_GetJoystickAxis(argument_0: *mut types::SDL_Joystick, argument_1: c::Int) -> i16;
+    pub fn SDL_GetJoystickAxisInitialState(
+        argument_0: *mut types::SDL_Joystick,
+        argument_1: c::Int,
+        argument_2: *mut i16,
+    ) -> bool;
+    pub fn SDL_GetJoystickBall(
+        argument_0: *mut types::SDL_Joystick,
+        argument_1: c::Int,
+        argument_2: *mut c::Int,
+        argument_3: *mut c::Int,
+    ) -> bool;
+    pub fn SDL_GetJoystickButton(argument_0: *mut types::SDL_Joystick, argument_1: c::Int) -> bool;
+    pub fn SDL_GetJoystickConnectionState(argument_0: *mut types::SDL_Joystick) -> types::SDL_JoystickConnectionState;
+    pub fn SDL_GetJoystickFirmwareVersion(argument_0: *mut types::SDL_Joystick) -> u16;
+    pub fn SDL_GetJoystickFromID(argument_0: types::SDL_JoystickID) -> *mut types::SDL_Joystick;
+    pub fn SDL_GetJoystickFromPlayerIndex(argument_0: c::Int) -> *mut types::SDL_Joystick;
+    pub fn SDL_GetJoystickGUID(argument_0: *mut types::SDL_Joystick) -> types::SDL_GUID;
+    pub fn SDL_GetJoystickGUIDForID(argument_0: types::SDL_JoystickID) -> types::SDL_GUID;
+    pub fn SDL_GetJoystickGUIDInfo(
+        argument_0: types::SDL_GUID,
+        argument_1: *mut u16,
+        argument_2: *mut u16,
+        argument_3: *mut u16,
+        argument_4: *mut u16,
+    );
+    pub fn SDL_GetJoystickHat(argument_0: *mut types::SDL_Joystick, argument_1: c::Int) -> u8;
+    pub fn SDL_GetJoystickID(argument_0: *mut types::SDL_Joystick) -> types::SDL_JoystickID;
+    pub fn SDL_GetJoystickName(argument_0: *mut types::SDL_Joystick) -> *const c::Char;
+    pub fn SDL_GetJoystickNameForID(argument_0: types::SDL_JoystickID) -> *const c::Char;
+    pub fn SDL_GetJoystickPath(argument_0: *mut types::SDL_Joystick) -> *const c::Char;
+    pub fn SDL_GetJoystickPathForID(argument_0: types::SDL_JoystickID) -> *const c::Char;
+    pub fn SDL_GetJoystickPlayerIndex(argument_0: *mut types::SDL_Joystick) -> c::Int;
+    pub fn SDL_GetJoystickPlayerIndexForID(argument_0: types::SDL_JoystickID) -> c::Int;
+    pub fn SDL_GetJoystickPowerInfo(argument_0: *mut types::SDL_Joystick, argument_1: *mut c::Int) -> types::SDL_PowerState;
+    pub fn SDL_GetJoystickProduct(argument_0: *mut types::SDL_Joystick) -> u16;
+    pub fn SDL_GetJoystickProductForID(argument_0: types::SDL_JoystickID) -> u16;
+    pub fn SDL_GetJoystickProductVersion(argument_0: *mut types::SDL_Joystick) -> u16;
+    pub fn SDL_GetJoystickProductVersionForID(argument_0: types::SDL_JoystickID) -> u16;
+    pub fn SDL_GetJoystickProperties(argument_0: *mut types::SDL_Joystick) -> types::SDL_PropertiesID;
+    pub fn SDL_GetJoystickSerial(argument_0: *mut types::SDL_Joystick) -> *const c::Char;
+    pub fn SDL_GetJoystickType(argument_0: *mut types::SDL_Joystick) -> types::SDL_JoystickType;
+    pub fn SDL_GetJoystickTypeForID(argument_0: types::SDL_JoystickID) -> types::SDL_JoystickType;
+    pub fn SDL_GetJoystickVendor(argument_0: *mut types::SDL_Joystick) -> u16;
+    pub fn SDL_GetJoystickVendorForID(argument_0: types::SDL_JoystickID) -> u16;
+    pub fn SDL_GetJoysticks(argument_0: *mut c::Int) -> *mut types::SDL_JoystickID;
+    pub fn SDL_GetKeyFromName(argument_0: *const c::Char) -> types::SDL_Keycode;
+    pub fn SDL_GetKeyFromScancode(
+        argument_0: types::SDL_Scancode,
+        argument_1: types::SDL_Keymod,
+        argument_2: bool,
+    ) -> types::SDL_Keycode;
+    pub fn SDL_GetKeyName(argument_0: types::SDL_Keycode) -> *const c::Char;
+    pub fn SDL_GetKeyboardFocus() -> *mut types::SDL_Window;
+    pub fn SDL_GetKeyboardNameForID(argument_0: types::SDL_KeyboardID) -> *const c::Char;
+    pub fn SDL_GetKeyboardState(argument_0: *mut c::Int) -> *const bool;
+    pub fn SDL_GetKeyboards(argument_0: *mut c::Int) -> *mut types::SDL_KeyboardID;
+    pub fn SDL_GetLogOutputFunction(argument_0: *mut types::SDL_LogOutputFunction, argument_1: *mut *mut ());
+    pub fn SDL_GetLogPriority(argument_0: c::Int) -> types::SDL_LogPriority;
+    pub fn SDL_GetMasksForPixelFormat(
+        argument_0: types::SDL_PixelFormat,
+        argument_1: *mut c::Int,
+        argument_2: *mut u32,
+        argument_3: *mut u32,
+        argument_4: *mut u32,
+        argument_5: *mut u32,
+    ) -> bool;
+    pub fn SDL_GetMaxHapticEffects(argument_0: *mut types::SDL_Haptic) -> c::Int;
+    pub fn SDL_GetMaxHapticEffectsPlaying(argument_0: *mut types::SDL_Haptic) -> c::Int;
+    pub fn SDL_GetMemoryFunctions(
+        argument_0: *mut types::SDL_malloc_func,
+        argument_1: *mut types::SDL_calloc_func,
+        argument_2: *mut types::SDL_realloc_func,
+        argument_3: *mut types::SDL_free_func,
+    );
+    pub fn SDL_GetMice(argument_0: *mut c::Int) -> *mut types::SDL_MouseID;
+    pub fn SDL_GetModState() -> types::SDL_Keymod;
+    pub fn SDL_GetMouseFocus() -> *mut types::SDL_Window;
+    pub fn SDL_GetMouseNameForID(argument_0: types::SDL_MouseID) -> *const c::Char;
+    pub fn SDL_GetMouseState(argument_0: *mut f32, argument_1: *mut f32) -> types::SDL_MouseButtonFlags;
+    pub fn SDL_GetNaturalDisplayOrientation(argument_0: types::SDL_DisplayID) -> types::SDL_DisplayOrientation;
+    pub fn SDL_GetNumAllocations() -> c::Int;
+    pub fn SDL_GetNumAudioDrivers() -> c::Int;
+    pub fn SDL_GetNumCameraDrivers() -> c::Int;
+    pub fn SDL_GetNumGPUDrivers() -> c::Int;
+    pub fn SDL_GetNumGamepadTouchpadFingers(argument_0: *mut types::SDL_Gamepad, argument_1: c::Int) -> c::Int;
+    pub fn SDL_GetNumGamepadTouchpads(argument_0: *mut types::SDL_Gamepad) -> c::Int;
+    pub fn SDL_GetNumHapticAxes(argument_0: *mut types::SDL_Haptic) -> c::Int;
+    pub fn SDL_GetNumJoystickAxes(argument_0: *mut types::SDL_Joystick) -> c::Int;
+    pub fn SDL_GetNumJoystickBalls(argument_0: *mut types::SDL_Joystick) -> c::Int;
+    pub fn SDL_GetNumJoystickButtons(argument_0: *mut types::SDL_Joystick) -> c::Int;
+    pub fn SDL_GetNumJoystickHats(argument_0: *mut types::SDL_Joystick) -> c::Int;
+    pub fn SDL_GetNumLogicalCPUCores() -> c::Int;
+    pub fn SDL_GetNumRenderDrivers() -> c::Int;
+    pub fn SDL_GetNumVideoDrivers() -> c::Int;
+    pub fn SDL_GetNumberProperty(
+        argument_0: types::SDL_PropertiesID,
+        argument_1: *const c::Char,
+        argument_2: i64,
+    ) -> i64;
+    pub fn SDL_GetOriginalMemoryFunctions(
+        argument_0: *mut types::SDL_malloc_func,
+        argument_1: *mut types::SDL_calloc_func,
+        argument_2: *mut types::SDL_realloc_func,
+        argument_3: *mut types::SDL_free_func,
+    );
+    pub fn SDL_GetPathInfo(argument_0: *const c::Char, argument_1: *mut types::SDL_PathInfo) -> bool;
+    pub fn SDL_GetPerformanceCounter() -> u64;
+    pub fn SDL_GetPerformanceFrequency() -> u64;
+    pub fn SDL_GetPixelFormatDetails(argument_0: types::SDL_PixelFormat) -> *const types::SDL_PixelFormatDetails;
+    pub fn SDL_GetPixelFormatForMasks(
+        argument_0: c::Int,
+        argument_1: u32,
+        argument_2: u32,
+        argument_3: u32,
+        argument_4: u32,
+    ) -> types::SDL_PixelFormat;
+    pub fn SDL_GetPixelFormatName(argument_0: types::SDL_PixelFormat) -> *const c::Char;
+    pub fn SDL_GetPlatform() -> *const c::Char;
+    pub fn SDL_GetPointerProperty(
+        argument_0: types::SDL_PropertiesID,
+        argument_1: *const c::Char,
+        argument_2: *mut (),
+    ) -> *mut ();
+    pub fn SDL_GetPowerInfo(argument_0: *mut c::Int, argument_1: *mut c::Int) -> types::SDL_PowerState;
+    pub fn SDL_GetPrefPath(argument_0: *const c::Char, argument_1: *const c::Char) -> *mut c::Char;
+    pub fn SDL_GetPreferredLocales(argument_0: *mut c::Int) -> *mut *mut types::SDL_Locale;
+    pub fn SDL_GetPrimaryDisplay() -> types::SDL_DisplayID;
+    pub fn SDL_GetPrimarySelectionText() -> *mut c::Char;
+    pub fn SDL_GetProcessInput(argument_0: *mut types::SDL_Process) -> *mut types::SDL_IOStream;
+    pub fn SDL_GetProcessOutput(argument_0: *mut types::SDL_Process) -> *mut types::SDL_IOStream;
+    pub fn SDL_GetProcessProperties(argument_0: *mut types::SDL_Process) -> types::SDL_PropertiesID;
+    pub fn SDL_GetPropertyType(argument_0: types::SDL_PropertiesID, argument_1: *const c::Char) -> types::SDL_PropertyType;
+    pub fn SDL_GetRGB(
+        argument_0: u32,
+        argument_1: *const types::SDL_PixelFormatDetails,
+        argument_2: *const types::SDL_Palette,
+        argument_3: *mut u8,
+        argument_4: *mut u8,
+        argument_5: *mut u8,
+    );
+    pub fn SDL_GetRGBA(
+        argument_0: u32,
+        argument_1: *const types::SDL_PixelFormatDetails,
+        argument_2: *const types::SDL_Palette,
+        argument_3: *mut u8,
+        argument_4: *mut u8,
+        argument_5: *mut u8,
+        argument_6: *mut u8,
+    );
+    pub fn SDL_GetRealGamepadType(argument_0: *mut types::SDL_Gamepad) -> types::SDL_GamepadType;
+    pub fn SDL_GetRealGamepadTypeForID(argument_0: types::SDL_JoystickID) -> types::SDL_GamepadType;
+    pub fn SDL_GetRectAndLineIntersection(
+        argument_0: *const types::SDL_Rect,
+        argument_1: *mut c::Int,
+        argument_2: *mut c::Int,
+        argument_3: *mut c::Int,
+        argument_4: *mut c::Int,
+    ) -> bool;
+    pub fn SDL_GetRectAndLineIntersectionFloat(
+        argument_0: *const types::SDL_FRect,
+        argument_1: *mut f32,
+        argument_2: *mut f32,
+        argument_3: *mut f32,
+        argument_4: *mut f32,
+    ) -> bool;
+    pub fn SDL_GetRectEnclosingPoints(
+        argument_0: *const types::SDL_Point,
+        argument_1: c::Int,
+        argument_2: *const types::SDL_Rect,
+        argument_3: *mut types::SDL_Rect,
+    ) -> bool;
+    pub fn SDL_GetRectEnclosingPointsFloat(
+        argument_0: *const types::SDL_FPoint,
+        argument_1: c::Int,
+        argument_2: *const types::SDL_FRect,
+        argument_3: *mut types::SDL_FRect,
+    ) -> bool;
+    pub fn SDL_GetRectIntersection(
+        argument_0: *const types::SDL_Rect,
+        argument_1: *const types::SDL_Rect,
+        argument_2: *mut types::SDL_Rect,
+    ) -> bool;
+    pub fn SDL_GetRectIntersectionFloat(
+        argument_0: *const types::SDL_FRect,
+        argument_1: *const types::SDL_FRect,
+        argument_2: *mut types::SDL_FRect,
+    ) -> bool;
+    pub fn SDL_GetRectUnion(
+        argument_0: *const types::SDL_Rect,
+        argument_1: *const types::SDL_Rect,
+        argument_2: *mut types::SDL_Rect,
+    ) -> bool;
+    pub fn SDL_GetRectUnionFloat(
+        argument_0: *const types::SDL_FRect,
+        argument_1: *const types::SDL_FRect,
+        argument_2: *mut types::SDL_FRect,
+    ) -> bool;
+    pub fn SDL_GetRelativeMouseState(argument_0: *mut f32, argument_1: *mut f32) -> types::SDL_MouseButtonFlags;
+    pub fn SDL_GetRenderClipRect(argument_0: *mut types::SDL_Renderer, argument_1: *mut types::SDL_Rect) -> bool;
+    pub fn SDL_GetRenderColorScale(argument_0: *mut types::SDL_Renderer, argument_1: *mut f32) -> bool;
+    pub fn SDL_GetRenderDrawBlendMode(argument_0: *mut types::SDL_Renderer, argument_1: *mut types::SDL_BlendMode) -> bool;
+    pub fn SDL_GetRenderDrawColor(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: *mut u8,
+        argument_2: *mut u8,
+        argument_3: *mut u8,
+        argument_4: *mut u8,
+    ) -> bool;
+    pub fn SDL_GetRenderDrawColorFloat(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: *mut f32,
+        argument_2: *mut f32,
+        argument_3: *mut f32,
+        argument_4: *mut f32,
+    ) -> bool;
+    pub fn SDL_GetRenderDriver(argument_0: c::Int) -> *const c::Char;
+    pub fn SDL_GetRenderLogicalPresentation(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: *mut c::Int,
+        argument_2: *mut c::Int,
+        argument_3: *mut types::SDL_RendererLogicalPresentation,
+    ) -> bool;
+    pub fn SDL_GetRenderLogicalPresentationRect(argument_0: *mut types::SDL_Renderer, argument_1: *mut types::SDL_FRect) -> bool;
+    pub fn SDL_GetRenderMetalCommandEncoder(argument_0: *mut types::SDL_Renderer) -> *mut ();
+    pub fn SDL_GetRenderMetalLayer(argument_0: *mut types::SDL_Renderer) -> *mut ();
+    pub fn SDL_GetRenderOutputSize(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: *mut c::Int,
+        argument_2: *mut c::Int,
+    ) -> bool;
+    pub fn SDL_GetRenderSafeArea(argument_0: *mut types::SDL_Renderer, argument_1: *mut types::SDL_Rect) -> bool;
+    pub fn SDL_GetRenderScale(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: *mut f32,
+        argument_2: *mut f32,
+    ) -> bool;
+    pub fn SDL_GetRenderTarget(argument_0: *mut types::SDL_Renderer) -> *mut types::SDL_Texture;
+    pub fn SDL_GetRenderVSync(argument_0: *mut types::SDL_Renderer, argument_1: *mut c::Int) -> bool;
+    pub fn SDL_GetRenderViewport(argument_0: *mut types::SDL_Renderer, argument_1: *mut types::SDL_Rect) -> bool;
+    pub fn SDL_GetRenderWindow(argument_0: *mut types::SDL_Renderer) -> *mut types::SDL_Window;
+    pub fn SDL_GetRenderer(argument_0: *mut types::SDL_Window) -> *mut types::SDL_Renderer;
+    pub fn SDL_GetRendererFromTexture(argument_0: *mut types::SDL_Texture) -> *mut types::SDL_Renderer;
+    pub fn SDL_GetRendererName(argument_0: *mut types::SDL_Renderer) -> *const c::Char;
+    pub fn SDL_GetRendererProperties(argument_0: *mut types::SDL_Renderer) -> types::SDL_PropertiesID;
+    pub fn SDL_GetRevision() -> *const c::Char;
+    pub fn SDL_GetSIMDAlignment() -> usize;
+    pub fn SDL_GetScancodeFromKey(argument_0: types::SDL_Keycode, argument_1: *mut types::SDL_Keymod) -> types::SDL_Scancode;
+    pub fn SDL_GetScancodeFromName(argument_0: *const c::Char) -> types::SDL_Scancode;
+    pub fn SDL_GetScancodeName(argument_0: types::SDL_Scancode) -> *const c::Char;
+    pub fn SDL_GetSemaphoreValue(argument_0: *mut types::SDL_Semaphore) -> u32;
+    pub fn SDL_GetSensorData(
+        argument_0: *mut types::SDL_Sensor,
+        argument_1: *mut f32,
+        argument_2: c::Int,
+    ) -> bool;
+    pub fn SDL_GetSensorFromID(argument_0: types::SDL_SensorID) -> *mut types::SDL_Sensor;
+    pub fn SDL_GetSensorID(argument_0: *mut types::SDL_Sensor) -> types::SDL_SensorID;
+    pub fn SDL_GetSensorName(argument_0: *mut types::SDL_Sensor) -> *const c::Char;
+    pub fn SDL_GetSensorNameForID(argument_0: types::SDL_SensorID) -> *const c::Char;
+    pub fn SDL_GetSensorNonPortableType(argument_0: *mut types::SDL_Sensor) -> c::Int;
+    pub fn SDL_GetSensorNonPortableTypeForID(argument_0: types::SDL_SensorID) -> c::Int;
+    pub fn SDL_GetSensorProperties(argument_0: *mut types::SDL_Sensor) -> types::SDL_PropertiesID;
+    pub fn SDL_GetSensorType(argument_0: *mut types::SDL_Sensor) -> types::SDL_SensorType;
+    pub fn SDL_GetSensorTypeForID(argument_0: types::SDL_SensorID) -> types::SDL_SensorType;
+    pub fn SDL_GetSensors(argument_0: *mut c::Int) -> *mut types::SDL_SensorID;
+    pub fn SDL_GetSilenceValueForFormat(argument_0: types::SDL_AudioFormat) -> c::Int;
+    pub fn SDL_GetStorageFileSize(
+        argument_0: *mut types::SDL_Storage,
+        argument_1: *const c::Char,
+        argument_2: *mut u64,
+    ) -> bool;
+    pub fn SDL_GetStoragePathInfo(
+        argument_0: *mut types::SDL_Storage,
+        argument_1: *const c::Char,
+        argument_2: *mut types::SDL_PathInfo,
+    ) -> bool;
+    pub fn SDL_GetStorageSpaceRemaining(argument_0: *mut types::SDL_Storage) -> u64;
+    pub fn SDL_GetStringProperty(
+        argument_0: types::SDL_PropertiesID,
+        argument_1: *const c::Char,
+        argument_2: *const c::Char,
+    ) -> *const c::Char;
+    pub fn SDL_GetSurfaceAlphaMod(argument_0: *mut types::SDL_Surface, argument_1: *mut u8) -> bool;
+    pub fn SDL_GetSurfaceBlendMode(argument_0: *mut types::SDL_Surface, argument_1: *mut types::SDL_BlendMode) -> bool;
+    pub fn SDL_GetSurfaceClipRect(argument_0: *mut types::SDL_Surface, argument_1: *mut types::SDL_Rect) -> bool;
+    pub fn SDL_GetSurfaceColorKey(argument_0: *mut types::SDL_Surface, argument_1: *mut u32) -> bool;
+    pub fn SDL_GetSurfaceColorMod(
+        argument_0: *mut types::SDL_Surface,
+        argument_1: *mut u8,
+        argument_2: *mut u8,
+        argument_3: *mut u8,
+    ) -> bool;
+    pub fn SDL_GetSurfaceColorspace(argument_0: *mut types::SDL_Surface) -> types::SDL_Colorspace;
+    pub fn SDL_GetSurfaceImages(argument_0: *mut types::SDL_Surface, argument_1: *mut c::Int) -> *mut *mut types::SDL_Surface;
+    pub fn SDL_GetSurfacePalette(argument_0: *mut types::SDL_Surface) -> *mut types::SDL_Palette;
+    pub fn SDL_GetSurfaceProperties(argument_0: *mut types::SDL_Surface) -> types::SDL_PropertiesID;
+    pub fn SDL_GetSystemRAM() -> c::Int;
+    pub fn SDL_GetSystemTheme() -> types::SDL_SystemTheme;
+    pub fn SDL_GetTLS(argument_0: *mut types::SDL_TLSID) -> *mut ();
+    pub fn SDL_GetTextInputArea(
+        argument_0: *mut types::SDL_Window,
+        argument_1: *mut types::SDL_Rect,
+        argument_2: *mut c::Int,
+    ) -> bool;
+    pub fn SDL_GetTextureAlphaMod(argument_0: *mut types::SDL_Texture, argument_1: *mut u8) -> bool;
+    pub fn SDL_GetTextureAlphaModFloat(argument_0: *mut types::SDL_Texture, argument_1: *mut f32) -> bool;
+    pub fn SDL_GetTextureBlendMode(argument_0: *mut types::SDL_Texture, argument_1: *mut types::SDL_BlendMode) -> bool;
+    pub fn SDL_GetTextureColorMod(
+        argument_0: *mut types::SDL_Texture,
+        argument_1: *mut u8,
+        argument_2: *mut u8,
+        argument_3: *mut u8,
+    ) -> bool;
+    pub fn SDL_GetTextureColorModFloat(
+        argument_0: *mut types::SDL_Texture,
+        argument_1: *mut f32,
+        argument_2: *mut f32,
+        argument_3: *mut f32,
+    ) -> bool;
+    pub fn SDL_GetTextureProperties(argument_0: *mut types::SDL_Texture) -> types::SDL_PropertiesID;
+    pub fn SDL_GetTextureScaleMode(argument_0: *mut types::SDL_Texture, argument_1: *mut types::SDL_ScaleMode) -> bool;
+    pub fn SDL_GetTextureSize(
+        argument_0: *mut types::SDL_Texture,
+        argument_1: *mut f32,
+        argument_2: *mut f32,
+    ) -> bool;
+    pub fn SDL_GetThreadID(argument_0: *mut types::SDL_Thread) -> types::SDL_ThreadID;
+    pub fn SDL_GetThreadName(argument_0: *mut types::SDL_Thread) -> *const c::Char;
+    pub fn SDL_GetTicks() -> u64;
+    pub fn SDL_GetTicksNS() -> u64;
+    pub fn SDL_GetTouchDeviceName(argument_0: types::SDL_TouchID) -> *const c::Char;
+    pub fn SDL_GetTouchDeviceType(argument_0: types::SDL_TouchID) -> types::SDL_TouchDeviceType;
+    pub fn SDL_GetTouchDevices(argument_0: *mut c::Int) -> *mut types::SDL_TouchID;
+    pub fn SDL_GetTouchFingers(argument_0: types::SDL_TouchID, argument_1: *mut c::Int) -> *mut *mut types::SDL_Finger;
+    pub fn SDL_GetUserFolder(argument_0: types::SDL_Folder) -> *const c::Char;
+    pub fn SDL_GetVersion() -> c::Int;
+    pub fn SDL_GetVideoDriver(argument_0: c::Int) -> *const c::Char;
+    pub fn SDL_GetWindowAspectRatio(
+        argument_0: *mut types::SDL_Window,
+        argument_1: *mut f32,
+        argument_2: *mut f32,
+    ) -> bool;
+    pub fn SDL_GetWindowBordersSize(
+        argument_0: *mut types::SDL_Window,
+        argument_1: *mut c::Int,
+        argument_2: *mut c::Int,
+        argument_3: *mut c::Int,
+        argument_4: *mut c::Int,
+    ) -> bool;
+    pub fn SDL_GetWindowDisplayScale(argument_0: *mut types::SDL_Window) -> f32;
+    pub fn SDL_GetWindowFlags(argument_0: *mut types::SDL_Window) -> types::SDL_WindowFlags;
+    pub fn SDL_GetWindowFromEvent(argument_0: *const types::SDL_Event) -> *mut types::SDL_Window;
+    pub fn SDL_GetWindowFromID(argument_0: types::SDL_WindowID) -> *mut types::SDL_Window;
+    pub fn SDL_GetWindowFullscreenMode(argument_0: *mut types::SDL_Window) -> *const types::SDL_DisplayMode;
+    pub fn SDL_GetWindowICCProfile(argument_0: *mut types::SDL_Window, argument_1: *mut usize) -> *mut ();
+    pub fn SDL_GetWindowID(argument_0: *mut types::SDL_Window) -> types::SDL_WindowID;
+    pub fn SDL_GetWindowKeyboardGrab(argument_0: *mut types::SDL_Window) -> bool;
+    pub fn SDL_GetWindowMaximumSize(
+        argument_0: *mut types::SDL_Window,
+        argument_1: *mut c::Int,
+        argument_2: *mut c::Int,
+    ) -> bool;
+    pub fn SDL_GetWindowMinimumSize(
+        argument_0: *mut types::SDL_Window,
+        argument_1: *mut c::Int,
+        argument_2: *mut c::Int,
+    ) -> bool;
+    pub fn SDL_GetWindowMouseGrab(argument_0: *mut types::SDL_Window) -> bool;
+    pub fn SDL_GetWindowMouseRect(argument_0: *mut types::SDL_Window) -> *const types::SDL_Rect;
+    pub fn SDL_GetWindowOpacity(argument_0: *mut types::SDL_Window) -> f32;
+    pub fn SDL_GetWindowParent(argument_0: *mut types::SDL_Window) -> *mut types::SDL_Window;
+    pub fn SDL_GetWindowPixelDensity(argument_0: *mut types::SDL_Window) -> f32;
+    pub fn SDL_GetWindowPixelFormat(argument_0: *mut types::SDL_Window) -> types::SDL_PixelFormat;
+    pub fn SDL_GetWindowPosition(
+        argument_0: *mut types::SDL_Window,
+        argument_1: *mut c::Int,
+        argument_2: *mut c::Int,
+    ) -> bool;
+    pub fn SDL_GetWindowProperties(argument_0: *mut types::SDL_Window) -> types::SDL_PropertiesID;
+    pub fn SDL_GetWindowRelativeMouseMode(argument_0: *mut types::SDL_Window) -> bool;
+    pub fn SDL_GetWindowSafeArea(argument_0: *mut types::SDL_Window, argument_1: *mut types::SDL_Rect) -> bool;
+    pub fn SDL_GetWindowSize(
+        argument_0: *mut types::SDL_Window,
+        argument_1: *mut c::Int,
+        argument_2: *mut c::Int,
+    ) -> bool;
+    pub fn SDL_GetWindowSizeInPixels(
+        argument_0: *mut types::SDL_Window,
+        argument_1: *mut c::Int,
+        argument_2: *mut c::Int,
+    ) -> bool;
+    pub fn SDL_GetWindowSurface(argument_0: *mut types::SDL_Window) -> *mut types::SDL_Surface;
+    pub fn SDL_GetWindowSurfaceVSync(argument_0: *mut types::SDL_Window, argument_1: *mut c::Int) -> bool;
+    pub fn SDL_GetWindowTitle(argument_0: *mut types::SDL_Window) -> *const c::Char;
+    pub fn SDL_GetWindows(argument_0: *mut c::Int) -> *mut *mut types::SDL_Window;
+    pub fn SDL_GlobDirectory(
+        argument_0: *const c::Char,
+        argument_1: *const c::Char,
+        argument_2: types::SDL_GlobFlags,
+        argument_3: *mut c::Int,
+    ) -> *mut *mut c::Char;
+    pub fn SDL_GlobStorageDirectory(
+        argument_0: *mut types::SDL_Storage,
+        argument_1: *const c::Char,
+        argument_2: *const c::Char,
+        argument_3: types::SDL_GlobFlags,
+        argument_4: *mut c::Int,
+    ) -> *mut *mut c::Char;
+    pub fn SDL_HapticEffectSupported(argument_0: *mut types::SDL_Haptic, argument_1: *const types::SDL_HapticEffect) -> bool;
+    pub fn SDL_HapticRumbleSupported(argument_0: *mut types::SDL_Haptic) -> bool;
+    pub fn SDL_HasARMSIMD() -> bool;
+    pub fn SDL_HasAVX() -> bool;
+    pub fn SDL_HasAVX2() -> bool;
+    pub fn SDL_HasAVX512F() -> bool;
+    pub fn SDL_HasAltiVec() -> bool;
+    pub fn SDL_HasClipboardData(argument_0: *const c::Char) -> bool;
+    pub fn SDL_HasClipboardText() -> bool;
+    pub fn SDL_HasEvent(argument_0: u32) -> bool;
+    pub fn SDL_HasEvents(argument_0: u32, argument_1: u32) -> bool;
+    pub fn SDL_HasGamepad() -> bool;
+    pub fn SDL_HasJoystick() -> bool;
+    pub fn SDL_HasKeyboard() -> bool;
+    pub fn SDL_HasLASX() -> bool;
+    pub fn SDL_HasLSX() -> bool;
+    pub fn SDL_HasMMX() -> bool;
+    pub fn SDL_HasMouse() -> bool;
+    pub fn SDL_HasNEON() -> bool;
+    pub fn SDL_HasPrimarySelectionText() -> bool;
+    pub fn SDL_HasProperty(argument_0: types::SDL_PropertiesID, argument_1: *const c::Char) -> bool;
+    pub fn SDL_HasRectIntersection(argument_0: *const types::SDL_Rect, argument_1: *const types::SDL_Rect) -> bool;
+    pub fn SDL_HasRectIntersectionFloat(argument_0: *const types::SDL_FRect, argument_1: *const types::SDL_FRect) -> bool;
+    pub fn SDL_HasSSE() -> bool;
+    pub fn SDL_HasSSE2() -> bool;
+    pub fn SDL_HasSSE3() -> bool;
+    pub fn SDL_HasSSE41() -> bool;
+    pub fn SDL_HasSSE42() -> bool;
+    pub fn SDL_HasScreenKeyboardSupport() -> bool;
+    pub fn SDL_HideCursor() -> bool;
+    pub fn SDL_HideWindow(argument_0: *mut types::SDL_Window) -> bool;
+    pub fn SDL_IOFromConstMem(argument_0: *const (), argument_1: usize) -> *mut types::SDL_IOStream;
+    pub fn SDL_IOFromDynamicMem() -> *mut types::SDL_IOStream;
+    pub fn SDL_IOFromFile(argument_0: *const c::Char, argument_1: *const c::Char) -> *mut types::SDL_IOStream;
+    pub fn SDL_IOFromMem(argument_0: *mut (), argument_1: usize) -> *mut types::SDL_IOStream;
+    pub fn SDL_Init(argument_0: types::SDL_InitFlags) -> bool;
+    pub fn SDL_InitHapticRumble(argument_0: *mut types::SDL_Haptic) -> bool;
+    pub fn SDL_InitSubSystem(argument_0: types::SDL_InitFlags) -> bool;
+    pub fn SDL_InsertGPUDebugLabel(argument_0: *mut types::SDL_GPUCommandBuffer, argument_1: *const c::Char);
+    pub fn SDL_IsChromebook() -> bool;
+    pub fn SDL_IsDeXMode() -> bool;
+    pub fn SDL_IsGamepad(argument_0: types::SDL_JoystickID) -> bool;
+    pub fn SDL_IsJoystickHaptic(argument_0: *mut types::SDL_Joystick) -> bool;
+    pub fn SDL_IsJoystickVirtual(argument_0: types::SDL_JoystickID) -> bool;
+    pub fn SDL_IsMouseHaptic() -> bool;
+    pub fn SDL_IsTV() -> bool;
+    pub fn SDL_IsTablet() -> bool;
+    pub fn SDL_JoystickConnected(argument_0: *mut types::SDL_Joystick) -> bool;
+    pub fn SDL_JoystickEventsEnabled() -> bool;
+    pub fn SDL_KillProcess(argument_0: *mut types::SDL_Process, argument_1: bool) -> bool;
+    pub fn SDL_LoadBMP(argument_0: *const c::Char) -> *mut types::SDL_Surface;
+    pub fn SDL_LoadBMP_IO(argument_0: *mut types::SDL_IOStream, argument_1: bool) -> *mut types::SDL_Surface;
+    pub fn SDL_LoadFile(argument_0: *const c::Char, argument_1: *mut usize) -> *mut ();
+    pub fn SDL_LoadFile_IO(
+        argument_0: *mut types::SDL_IOStream,
+        argument_1: *mut usize,
+        argument_2: bool,
+    ) -> *mut ();
+    pub fn SDL_LoadFunction(argument_0: *mut types::SDL_SharedObject, argument_1: *const c::Char) -> types::SDL_FunctionPointer;
+    pub fn SDL_LoadObject(argument_0: *const c::Char) -> *mut types::SDL_SharedObject;
+    pub fn SDL_LoadWAV(
+        argument_0: *const c::Char,
+        argument_1: *mut types::SDL_AudioSpec,
+        argument_2: *mut *mut u8,
+        argument_3: *mut u32,
+    ) -> bool;
+    pub fn SDL_LoadWAV_IO(
+        argument_0: *mut types::SDL_IOStream,
+        argument_1: bool,
+        argument_2: *mut types::SDL_AudioSpec,
+        argument_3: *mut *mut u8,
+        argument_4: *mut u32,
+    ) -> bool;
+    pub fn SDL_LockAudioStream(argument_0: *mut types::SDL_AudioStream) -> bool;
+    pub fn SDL_LockJoysticks();
+    pub fn SDL_LockMutex(argument_0: *mut types::SDL_Mutex);
+    pub fn SDL_LockProperties(argument_0: types::SDL_PropertiesID) -> bool;
+    pub fn SDL_LockRWLockForReading(argument_0: *mut types::SDL_RWLock);
+    pub fn SDL_LockRWLockForWriting(argument_0: *mut types::SDL_RWLock);
+    pub fn SDL_LockSpinlock(argument_0: *mut types::SDL_SpinLock);
+    pub fn SDL_LockSurface(argument_0: *mut types::SDL_Surface) -> bool;
+    pub fn SDL_LockTexture(
+        argument_0: *mut types::SDL_Texture,
+        argument_1: *const types::SDL_Rect,
+        argument_2: *mut *mut (),
+        argument_3: *mut c::Int,
+    ) -> bool;
+    pub fn SDL_LockTextureToSurface(
+        argument_0: *mut types::SDL_Texture,
+        argument_1: *const types::SDL_Rect,
+        argument_2: *mut *mut types::SDL_Surface,
+    ) -> bool;
+    pub fn SDL_MapGPUTransferBuffer(
+        argument_0: *mut types::SDL_GPUDevice,
+        argument_1: *mut types::SDL_GPUTransferBuffer,
+        argument_2: bool,
+    ) -> *mut ();
+    pub fn SDL_MapRGB(
+        argument_0: *const types::SDL_PixelFormatDetails,
+        argument_1: *const types::SDL_Palette,
+        argument_2: u8,
+        argument_3: u8,
+        argument_4: u8,
+    ) -> u32;
+    pub fn SDL_MapRGBA(
+        argument_0: *const types::SDL_PixelFormatDetails,
+        argument_1: *const types::SDL_Palette,
+        argument_2: u8,
+        argument_3: u8,
+        argument_4: u8,
+        argument_5: u8,
+    ) -> u32;
+    pub fn SDL_MapSurfaceRGB(
+        argument_0: *mut types::SDL_Surface,
+        argument_1: u8,
+        argument_2: u8,
+        argument_3: u8,
+    ) -> u32;
+    pub fn SDL_MapSurfaceRGBA(
+        argument_0: *mut types::SDL_Surface,
+        argument_1: u8,
+        argument_2: u8,
+        argument_3: u8,
+        argument_4: u8,
+    ) -> u32;
+    pub fn SDL_MaximizeWindow(argument_0: *mut types::SDL_Window) -> bool;
+    pub fn SDL_MemoryBarrierAcquireFunction();
+    pub fn SDL_MemoryBarrierReleaseFunction();
+    pub fn SDL_Metal_CreateView(argument_0: *mut types::SDL_Window) -> types::SDL_MetalView;
+    pub fn SDL_Metal_DestroyView(argument_0: types::SDL_MetalView);
+    pub fn SDL_Metal_GetLayer(argument_0: types::SDL_MetalView) -> *mut ();
+    pub fn SDL_MinimizeWindow(argument_0: *mut types::SDL_Window) -> bool;
+    pub fn SDL_MixAudio(
+        argument_0: *mut u8,
+        argument_1: *const u8,
+        argument_2: types::SDL_AudioFormat,
+        argument_3: u32,
+        argument_4: f32,
+    ) -> bool;
+    pub fn SDL_OnApplicationDidChangeStatusBarOrientation();
+    pub fn SDL_OnApplicationDidEnterBackground();
+    pub fn SDL_OnApplicationDidEnterForeground();
+    pub fn SDL_OnApplicationDidReceiveMemoryWarning();
+    pub fn SDL_OnApplicationWillEnterBackground();
+    pub fn SDL_OnApplicationWillEnterForeground();
+    pub fn SDL_OnApplicationWillTerminate();
+    pub fn SDL_OpenAudioDevice(argument_0: types::SDL_AudioDeviceID, argument_1: *const types::SDL_AudioSpec) -> types::SDL_AudioDeviceID;
+    pub fn SDL_OpenAudioDeviceStream(
+        argument_0: types::SDL_AudioDeviceID,
+        argument_1: *const types::SDL_AudioSpec,
+        argument_2: types::SDL_AudioStreamCallback,
+        argument_3: *mut (),
+    ) -> *mut types::SDL_AudioStream;
+    pub fn SDL_OpenCamera(argument_0: types::SDL_CameraID, argument_1: *const types::SDL_CameraSpec) -> *mut types::SDL_Camera;
+    pub fn SDL_OpenFileStorage(argument_0: *const c::Char) -> *mut types::SDL_Storage;
+    pub fn SDL_OpenGamepad(argument_0: types::SDL_JoystickID) -> *mut types::SDL_Gamepad;
+    pub fn SDL_OpenHaptic(argument_0: types::SDL_HapticID) -> *mut types::SDL_Haptic;
+    pub fn SDL_OpenHapticFromJoystick(argument_0: *mut types::SDL_Joystick) -> *mut types::SDL_Haptic;
+    pub fn SDL_OpenHapticFromMouse() -> *mut types::SDL_Haptic;
+    pub fn SDL_OpenIO(argument_0: *const types::SDL_IOStreamInterface, argument_1: *mut ()) -> *mut types::SDL_IOStream;
+    pub fn SDL_OpenJoystick(argument_0: types::SDL_JoystickID) -> *mut types::SDL_Joystick;
+    pub fn SDL_OpenSensor(argument_0: types::SDL_SensorID) -> *mut types::SDL_Sensor;
+    pub fn SDL_OpenStorage(argument_0: *const types::SDL_StorageInterface, argument_1: *mut ()) -> *mut types::SDL_Storage;
+    pub fn SDL_OpenTitleStorage(argument_0: *const c::Char, argument_1: types::SDL_PropertiesID) -> *mut types::SDL_Storage;
+    pub fn SDL_OpenURL(argument_0: *const c::Char) -> bool;
+    pub fn SDL_OpenUserStorage(
+        argument_0: *const c::Char,
+        argument_1: *const c::Char,
+        argument_2: types::SDL_PropertiesID,
+    ) -> *mut types::SDL_Storage;
+    pub fn SDL_OutOfMemory() -> bool;
+    pub fn SDL_PauseAudioDevice(argument_0: types::SDL_AudioDeviceID) -> bool;
+    pub fn SDL_PauseAudioStreamDevice(argument_0: *mut types::SDL_AudioStream) -> bool;
+    pub fn SDL_PauseHaptic(argument_0: *mut types::SDL_Haptic) -> bool;
+    pub fn SDL_PeepEvents(
+        argument_0: *mut types::SDL_Event,
+        argument_1: c::Int,
+        argument_2: types::SDL_EventAction,
+        argument_3: u32,
+        argument_4: u32,
+    ) -> c::Int;
+    pub fn SDL_PlayHapticRumble(
+        argument_0: *mut types::SDL_Haptic,
+        argument_1: f32,
+        argument_2: u32,
+    ) -> bool;
+    pub fn SDL_PollEvent(argument_0: *mut types::SDL_Event) -> bool;
+    pub fn SDL_PopGPUDebugGroup(argument_0: *mut types::SDL_GPUCommandBuffer);
+    pub fn SDL_PremultiplyAlpha(
+        argument_0: c::Int,
+        argument_1: c::Int,
+        argument_2: types::SDL_PixelFormat,
+        argument_3: *const (),
+        argument_4: c::Int,
+        argument_5: types::SDL_PixelFormat,
+        argument_6: *mut (),
+        argument_7: c::Int,
+        argument_8: bool,
+    ) -> bool;
+    pub fn SDL_PremultiplySurfaceAlpha(argument_0: *mut types::SDL_Surface, argument_1: bool) -> bool;
+    pub fn SDL_PumpEvents();
+    pub fn SDL_PushEvent(argument_0: *mut types::SDL_Event) -> bool;
+    pub fn SDL_PushGPUComputeUniformData(
+        argument_0: *mut types::SDL_GPUCommandBuffer,
+        argument_1: u32,
+        argument_2: *const (),
+        argument_3: u32,
+    );
+    pub fn SDL_PushGPUDebugGroup(argument_0: *mut types::SDL_GPUCommandBuffer, argument_1: *const c::Char);
+    pub fn SDL_PushGPUFragmentUniformData(
+        argument_0: *mut types::SDL_GPUCommandBuffer,
+        argument_1: u32,
+        argument_2: *const (),
+        argument_3: u32,
+    );
+    pub fn SDL_PushGPUVertexUniformData(
+        argument_0: *mut types::SDL_GPUCommandBuffer,
+        argument_1: u32,
+        argument_2: *const (),
+        argument_3: u32,
+    );
+    pub fn SDL_PutAudioStreamData(
+        argument_0: *mut types::SDL_AudioStream,
+        argument_1: *const (),
+        argument_2: c::Int,
+    ) -> bool;
+    pub fn SDL_QueryGPUFence(argument_0: *mut types::SDL_GPUDevice, argument_1: *mut types::SDL_GPUFence) -> bool;
+    pub fn SDL_Quit();
+    pub fn SDL_QuitSubSystem(argument_0: types::SDL_InitFlags);
+    pub fn SDL_RaiseWindow(argument_0: *mut types::SDL_Window) -> bool;
+    pub fn SDL_ReadIO(
+        argument_0: *mut types::SDL_IOStream,
+        argument_1: *mut (),
+        argument_2: usize,
+    ) -> usize;
+    pub fn SDL_ReadProcess(
+        argument_0: *mut types::SDL_Process,
+        argument_1: *mut usize,
+        argument_2: *mut c::Int,
+    ) -> *mut ();
+    pub fn SDL_ReadS16BE(argument_0: *mut types::SDL_IOStream, argument_1: *mut i16) -> bool;
+    pub fn SDL_ReadS16LE(argument_0: *mut types::SDL_IOStream, argument_1: *mut i16) -> bool;
+    pub fn SDL_ReadS32BE(argument_0: *mut types::SDL_IOStream, argument_1: *mut i32) -> bool;
+    pub fn SDL_ReadS32LE(argument_0: *mut types::SDL_IOStream, argument_1: *mut i32) -> bool;
+    pub fn SDL_ReadS64BE(argument_0: *mut types::SDL_IOStream, argument_1: *mut i64) -> bool;
+    pub fn SDL_ReadS64LE(argument_0: *mut types::SDL_IOStream, argument_1: *mut i64) -> bool;
+    pub fn SDL_ReadS8(argument_0: *mut types::SDL_IOStream, argument_1: *mut i8) -> bool;
+    pub fn SDL_ReadStorageFile(
+        argument_0: *mut types::SDL_Storage,
+        argument_1: *const c::Char,
+        argument_2: *mut (),
+        argument_3: u64,
+    ) -> bool;
+    pub fn SDL_ReadSurfacePixel(
+        argument_0: *mut types::SDL_Surface,
+        argument_1: c::Int,
+        argument_2: c::Int,
+        argument_3: *mut u8,
+        argument_4: *mut u8,
+        argument_5: *mut u8,
+        argument_6: *mut u8,
+    ) -> bool;
+    pub fn SDL_ReadSurfacePixelFloat(
+        argument_0: *mut types::SDL_Surface,
+        argument_1: c::Int,
+        argument_2: c::Int,
+        argument_3: *mut f32,
+        argument_4: *mut f32,
+        argument_5: *mut f32,
+        argument_6: *mut f32,
+    ) -> bool;
+    pub fn SDL_ReadU16BE(argument_0: *mut types::SDL_IOStream, argument_1: *mut u16) -> bool;
+    pub fn SDL_ReadU16LE(argument_0: *mut types::SDL_IOStream, argument_1: *mut u16) -> bool;
+    pub fn SDL_ReadU32BE(argument_0: *mut types::SDL_IOStream, argument_1: *mut u32) -> bool;
+    pub fn SDL_ReadU32LE(argument_0: *mut types::SDL_IOStream, argument_1: *mut u32) -> bool;
+    pub fn SDL_ReadU64BE(argument_0: *mut types::SDL_IOStream, argument_1: *mut u64) -> bool;
+    pub fn SDL_ReadU64LE(argument_0: *mut types::SDL_IOStream, argument_1: *mut u64) -> bool;
+    pub fn SDL_ReadU8(argument_0: *mut types::SDL_IOStream, argument_1: *mut u8) -> bool;
+    pub fn SDL_RegisterApp(
+        argument_0: *const c::Char,
+        argument_1: u32,
+        argument_2: *mut (),
+    ) -> bool;
+    pub fn SDL_RegisterEvents(argument_0: c::Int) -> u32;
+    pub fn SDL_ReleaseCameraFrame(argument_0: *mut types::SDL_Camera, argument_1: *mut types::SDL_Surface);
+    pub fn SDL_ReleaseGPUBuffer(argument_0: *mut types::SDL_GPUDevice, argument_1: *mut types::SDL_GPUBuffer);
+    pub fn SDL_ReleaseGPUComputePipeline(argument_0: *mut types::SDL_GPUDevice, argument_1: *mut types::SDL_GPUComputePipeline);
+    pub fn SDL_ReleaseGPUFence(argument_0: *mut types::SDL_GPUDevice, argument_1: *mut types::SDL_GPUFence);
+    pub fn SDL_ReleaseGPUGraphicsPipeline(argument_0: *mut types::SDL_GPUDevice, argument_1: *mut types::SDL_GPUGraphicsPipeline);
+    pub fn SDL_ReleaseGPUSampler(argument_0: *mut types::SDL_GPUDevice, argument_1: *mut types::SDL_GPUSampler);
+    pub fn SDL_ReleaseGPUShader(argument_0: *mut types::SDL_GPUDevice, argument_1: *mut types::SDL_GPUShader);
+    pub fn SDL_ReleaseGPUTexture(argument_0: *mut types::SDL_GPUDevice, argument_1: *mut types::SDL_GPUTexture);
+    pub fn SDL_ReleaseGPUTransferBuffer(argument_0: *mut types::SDL_GPUDevice, argument_1: *mut types::SDL_GPUTransferBuffer);
+    pub fn SDL_ReleaseWindowFromGPUDevice(argument_0: *mut types::SDL_GPUDevice, argument_1: *mut types::SDL_Window);
+    pub fn SDL_ReloadGamepadMappings() -> bool;
+    pub fn SDL_RemoveEventWatch(argument_0: types::SDL_EventFilter, argument_1: *mut ());
+    pub fn SDL_RemoveHintCallback(
+        argument_0: *const c::Char,
+        argument_1: types::SDL_HintCallback,
+        argument_2: *mut (),
+    );
+    pub fn SDL_RemovePath(argument_0: *const c::Char) -> bool;
+    pub fn SDL_RemoveStoragePath(argument_0: *mut types::SDL_Storage, argument_1: *const c::Char) -> bool;
+    pub fn SDL_RemoveSurfaceAlternateImages(argument_0: *mut types::SDL_Surface);
+    pub fn SDL_RemoveTimer(argument_0: types::SDL_TimerID) -> bool;
+    pub fn SDL_RenamePath(argument_0: *const c::Char, argument_1: *const c::Char) -> bool;
+    pub fn SDL_RenameStoragePath(
+        argument_0: *mut types::SDL_Storage,
+        argument_1: *const c::Char,
+        argument_2: *const c::Char,
+    ) -> bool;
+    pub fn SDL_RenderClear(argument_0: *mut types::SDL_Renderer) -> bool;
+    pub fn SDL_RenderClipEnabled(argument_0: *mut types::SDL_Renderer) -> bool;
+    pub fn SDL_RenderCoordinatesFromWindow(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: f32,
+        argument_2: f32,
+        argument_3: *mut f32,
+        argument_4: *mut f32,
+    ) -> bool;
+    pub fn SDL_RenderCoordinatesToWindow(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: f32,
+        argument_2: f32,
+        argument_3: *mut f32,
+        argument_4: *mut f32,
+    ) -> bool;
+    pub fn SDL_RenderFillRect(argument_0: *mut types::SDL_Renderer, argument_1: *const types::SDL_FRect) -> bool;
+    pub fn SDL_RenderFillRects(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: *const types::SDL_FRect,
+        argument_2: c::Int,
+    ) -> bool;
+    pub fn SDL_RenderGeometry(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: *mut types::SDL_Texture,
+        argument_2: *const types::SDL_Vertex,
+        argument_3: c::Int,
+        argument_4: *const c::Int,
+        argument_5: c::Int,
+    ) -> bool;
+    pub fn SDL_RenderGeometryRaw(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: *mut types::SDL_Texture,
+        argument_2: *const f32,
+        argument_3: c::Int,
+        argument_4: *const types::SDL_FColor,
+        argument_5: c::Int,
+        argument_6: *const f32,
+        argument_7: c::Int,
+        argument_8: c::Int,
+        argument_9: *const (),
+        argument_10: c::Int,
+        argument_11: c::Int,
+    ) -> bool;
+    pub fn SDL_RenderLine(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: f32,
+        argument_2: f32,
+        argument_3: f32,
+        argument_4: f32,
+    ) -> bool;
+    pub fn SDL_RenderLines(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: *const types::SDL_FPoint,
+        argument_2: c::Int,
+    ) -> bool;
+    pub fn SDL_RenderPoint(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: f32,
+        argument_2: f32,
+    ) -> bool;
+    pub fn SDL_RenderPoints(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: *const types::SDL_FPoint,
+        argument_2: c::Int,
+    ) -> bool;
+    pub fn SDL_RenderPresent(argument_0: *mut types::SDL_Renderer) -> bool;
+    pub fn SDL_RenderReadPixels(argument_0: *mut types::SDL_Renderer, argument_1: *const types::SDL_Rect) -> *mut types::SDL_Surface;
+    pub fn SDL_RenderRect(argument_0: *mut types::SDL_Renderer, argument_1: *const types::SDL_FRect) -> bool;
+    pub fn SDL_RenderRects(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: *const types::SDL_FRect,
+        argument_2: c::Int,
+    ) -> bool;
+    pub fn SDL_RenderTexture(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: *mut types::SDL_Texture,
+        argument_2: *const types::SDL_FRect,
+        argument_3: *const types::SDL_FRect,
+    ) -> bool;
+    pub fn SDL_RenderTexture9Grid(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: *mut types::SDL_Texture,
+        argument_2: *const types::SDL_FRect,
+        argument_3: f32,
+        argument_4: f32,
+        argument_5: f32,
+        argument_6: f32,
+        argument_7: f32,
+        argument_8: *const types::SDL_FRect,
+    ) -> bool;
+    pub fn SDL_RenderTextureRotated(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: *mut types::SDL_Texture,
+        argument_2: *const types::SDL_FRect,
+        argument_3: *const types::SDL_FRect,
+        argument_4: f64,
+        argument_5: *const types::SDL_FPoint,
+        argument_6: types::SDL_FlipMode,
+    ) -> bool;
+    pub fn SDL_RenderTextureTiled(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: *mut types::SDL_Texture,
+        argument_2: *const types::SDL_FRect,
+        argument_3: f32,
+        argument_4: *const types::SDL_FRect,
+    ) -> bool;
+    pub fn SDL_RenderViewportSet(argument_0: *mut types::SDL_Renderer) -> bool;
+    pub fn SDL_ReportAssertion(
+        argument_0: *mut types::SDL_AssertData,
+        argument_1: *const c::Char,
+        argument_2: *const c::Char,
+        argument_3: c::Int,
+    ) -> types::SDL_AssertState;
+    pub fn SDL_RequestAndroidPermission(
+        argument_0: *const c::Char,
+        argument_1: types::SDL_RequestAndroidPermissionCallback,
+        argument_2: *mut (),
+    ) -> bool;
+    pub fn SDL_ResetAssertionReport();
+    pub fn SDL_ResetHint(argument_0: *const c::Char) -> bool;
+    pub fn SDL_ResetHints();
+    pub fn SDL_ResetKeyboard();
+    pub fn SDL_ResetLogPriorities();
+    pub fn SDL_RestoreWindow(argument_0: *mut types::SDL_Window) -> bool;
+    pub fn SDL_ResumeAudioDevice(argument_0: types::SDL_AudioDeviceID) -> bool;
+    pub fn SDL_ResumeAudioStreamDevice(argument_0: *mut types::SDL_AudioStream) -> bool;
+    pub fn SDL_ResumeHaptic(argument_0: *mut types::SDL_Haptic) -> bool;
+    pub fn SDL_RumbleGamepad(
+        argument_0: *mut types::SDL_Gamepad,
+        argument_1: u16,
+        argument_2: u16,
+        argument_3: u32,
+    ) -> bool;
+    pub fn SDL_RumbleGamepadTriggers(
+        argument_0: *mut types::SDL_Gamepad,
+        argument_1: u16,
+        argument_2: u16,
+        argument_3: u32,
+    ) -> bool;
+    pub fn SDL_RumbleJoystick(
+        argument_0: *mut types::SDL_Joystick,
+        argument_1: u16,
+        argument_2: u16,
+        argument_3: u32,
+    ) -> bool;
+    pub fn SDL_RumbleJoystickTriggers(
+        argument_0: *mut types::SDL_Joystick,
+        argument_1: u16,
+        argument_2: u16,
+        argument_3: u32,
+    ) -> bool;
+    pub fn SDL_RunApp(
+        argument_0: c::Int,
+        argument_1: *mut *mut c::Char,
+        argument_2: types::SDL_main_func,
+        argument_3: *mut (),
+    ) -> c::Int;
+    pub fn SDL_RunHapticEffect(
+        argument_0: *mut types::SDL_Haptic,
+        argument_1: types::SDL_HapticEffectID,
+        argument_2: u32,
+    ) -> bool;
+    pub fn SDL_SaveBMP(argument_0: *mut types::SDL_Surface, argument_1: *const c::Char) -> bool;
+    pub fn SDL_SaveBMP_IO(
+        argument_0: *mut types::SDL_Surface,
+        argument_1: *mut types::SDL_IOStream,
+        argument_2: bool,
+    ) -> bool;
+    pub fn SDL_ScaleSurface(
+        argument_0: *mut types::SDL_Surface,
+        argument_1: c::Int,
+        argument_2: c::Int,
+        argument_3: types::SDL_ScaleMode,
+    ) -> *mut types::SDL_Surface;
+    pub fn SDL_ScreenKeyboardShown(argument_0: *mut types::SDL_Window) -> bool;
+    pub fn SDL_ScreenSaverEnabled() -> bool;
+    pub fn SDL_SeekIO(
+        argument_0: *mut types::SDL_IOStream,
+        argument_1: i64,
+        argument_2: types::SDL_IOWhence,
+    ) -> i64;
+    pub fn SDL_SendAndroidBackButton();
+    pub fn SDL_SendAndroidMessage(argument_0: u32, argument_1: c::Int) -> bool;
+    pub fn SDL_SendGamepadEffect(
+        argument_0: *mut types::SDL_Gamepad,
+        argument_1: *const (),
+        argument_2: c::Int,
+    ) -> bool;
+    pub fn SDL_SendJoystickEffect(
+        argument_0: *mut types::SDL_Joystick,
+        argument_1: *const (),
+        argument_2: c::Int,
+    ) -> bool;
+    pub fn SDL_SendJoystickVirtualSensorData(
+        argument_0: *mut types::SDL_Joystick,
+        argument_1: types::SDL_SensorType,
+        argument_2: u64,
+        argument_3: *const f32,
+        argument_4: c::Int,
+    ) -> bool;
+    pub fn SDL_SetAppMetadata(
+        argument_0: *const c::Char,
+        argument_1: *const c::Char,
+        argument_2: *const c::Char,
+    ) -> bool;
+    pub fn SDL_SetAppMetadataProperty(argument_0: *const c::Char, argument_1: *const c::Char) -> bool;
+    pub fn SDL_SetAssertionHandler(argument_0: types::SDL_AssertionHandler, argument_1: *mut ());
+    pub fn SDL_SetAtomicInt(argument_0: *mut types::SDL_AtomicInt, argument_1: c::Int) -> c::Int;
+    pub fn SDL_SetAtomicPointer(argument_0: *mut *mut (), argument_1: *mut ()) -> *mut ();
+    pub fn SDL_SetAtomicU32(argument_0: *mut types::SDL_AtomicU32, argument_1: u32) -> u32;
+    pub fn SDL_SetAudioDeviceGain(argument_0: types::SDL_AudioDeviceID, argument_1: f32) -> bool;
+    pub fn SDL_SetAudioPostmixCallback(
+        argument_0: types::SDL_AudioDeviceID,
+        argument_1: types::SDL_AudioPostmixCallback,
+        argument_2: *mut (),
+    ) -> bool;
+    pub fn SDL_SetAudioStreamFormat(
+        argument_0: *mut types::SDL_AudioStream,
+        argument_1: *const types::SDL_AudioSpec,
+        argument_2: *const types::SDL_AudioSpec,
+    ) -> bool;
+    pub fn SDL_SetAudioStreamFrequencyRatio(argument_0: *mut types::SDL_AudioStream, argument_1: f32) -> bool;
+    pub fn SDL_SetAudioStreamGain(argument_0: *mut types::SDL_AudioStream, argument_1: f32) -> bool;
+    pub fn SDL_SetAudioStreamGetCallback(
+        argument_0: *mut types::SDL_AudioStream,
+        argument_1: types::SDL_AudioStreamCallback,
+        argument_2: *mut (),
+    ) -> bool;
+    pub fn SDL_SetAudioStreamInputChannelMap(
+        argument_0: *mut types::SDL_AudioStream,
+        argument_1: *const c::Int,
+        argument_2: c::Int,
+    ) -> bool;
+    pub fn SDL_SetAudioStreamOutputChannelMap(
+        argument_0: *mut types::SDL_AudioStream,
+        argument_1: *const c::Int,
+        argument_2: c::Int,
+    ) -> bool;
+    pub fn SDL_SetAudioStreamPutCallback(
+        argument_0: *mut types::SDL_AudioStream,
+        argument_1: types::SDL_AudioStreamCallback,
+        argument_2: *mut (),
+    ) -> bool;
+    pub fn SDL_SetBooleanProperty(
+        argument_0: types::SDL_PropertiesID,
+        argument_1: *const c::Char,
+        argument_2: bool,
+    ) -> bool;
+    pub fn SDL_SetClipboardData(
+        argument_0: types::SDL_ClipboardDataCallback,
+        argument_1: types::SDL_ClipboardCleanupCallback,
+        argument_2: *mut (),
+        argument_3: *const *const c::Char,
+        argument_4: usize,
+    ) -> bool;
+    pub fn SDL_SetClipboardText(argument_0: *const c::Char) -> bool;
+    pub fn SDL_SetCurrentThreadPriority(argument_0: types::SDL_ThreadPriority) -> bool;
+    pub fn SDL_SetCursor(argument_0: *mut types::SDL_Cursor) -> bool;
+    pub fn SDL_SetEnvironmentVariable(
+        argument_0: *mut types::SDL_Environment,
+        argument_1: *const c::Char,
+        argument_2: *const c::Char,
+        argument_3: bool,
+    ) -> bool;
+    pub fn SDL_SetEventEnabled(argument_0: u32, argument_1: bool);
+    pub fn SDL_SetEventFilter(argument_0: types::SDL_EventFilter, argument_1: *mut ());
+    pub fn SDL_SetFloatProperty(
+        argument_0: types::SDL_PropertiesID,
+        argument_1: *const c::Char,
+        argument_2: f32,
+    ) -> bool;
+    pub fn SDL_SetGPUBlendConstants(argument_0: *mut types::SDL_GPURenderPass, argument_1: types::SDL_FColor);
+    pub fn SDL_SetGPUBufferName(
+        argument_0: *mut types::SDL_GPUDevice,
+        argument_1: *mut types::SDL_GPUBuffer,
+        argument_2: *const c::Char,
+    );
+    pub fn SDL_SetGPUScissor(argument_0: *mut types::SDL_GPURenderPass, argument_1: *const types::SDL_Rect);
+    pub fn SDL_SetGPUStencilReference(argument_0: *mut types::SDL_GPURenderPass, argument_1: u8);
+    pub fn SDL_SetGPUSwapchainParameters(
+        argument_0: *mut types::SDL_GPUDevice,
+        argument_1: *mut types::SDL_Window,
+        argument_2: types::SDL_GPUSwapchainComposition,
+        argument_3: types::SDL_GPUPresentMode,
+    ) -> bool;
+    pub fn SDL_SetGPUTextureName(
+        argument_0: *mut types::SDL_GPUDevice,
+        argument_1: *mut types::SDL_GPUTexture,
+        argument_2: *const c::Char,
+    );
+    pub fn SDL_SetGPUViewport(argument_0: *mut types::SDL_GPURenderPass, argument_1: *const types::SDL_GPUViewport);
+    pub fn SDL_SetGamepadEventsEnabled(argument_0: bool);
+    pub fn SDL_SetGamepadLED(
+        argument_0: *mut types::SDL_Gamepad,
+        argument_1: u8,
+        argument_2: u8,
+        argument_3: u8,
+    ) -> bool;
+    pub fn SDL_SetGamepadMapping(argument_0: types::SDL_JoystickID, argument_1: *const c::Char) -> bool;
+    pub fn SDL_SetGamepadPlayerIndex(argument_0: *mut types::SDL_Gamepad, argument_1: c::Int) -> bool;
+    pub fn SDL_SetGamepadSensorEnabled(
+        argument_0: *mut types::SDL_Gamepad,
+        argument_1: types::SDL_SensorType,
+        argument_2: bool,
+    ) -> bool;
+    pub fn SDL_SetHapticAutocenter(argument_0: *mut types::SDL_Haptic, argument_1: c::Int) -> bool;
+    pub fn SDL_SetHapticGain(argument_0: *mut types::SDL_Haptic, argument_1: c::Int) -> bool;
+    pub fn SDL_SetHint(argument_0: *const c::Char, argument_1: *const c::Char) -> bool;
+    pub fn SDL_SetHintWithPriority(
+        argument_0: *const c::Char,
+        argument_1: *const c::Char,
+        argument_2: types::SDL_HintPriority,
+    ) -> bool;
+    pub fn SDL_SetInitialized(argument_0: *mut types::SDL_InitState, argument_1: bool);
+    pub fn SDL_SetJoystickEventsEnabled(argument_0: bool);
+    pub fn SDL_SetJoystickLED(
+        argument_0: *mut types::SDL_Joystick,
+        argument_1: u8,
+        argument_2: u8,
+        argument_3: u8,
+    ) -> bool;
+    pub fn SDL_SetJoystickPlayerIndex(argument_0: *mut types::SDL_Joystick, argument_1: c::Int) -> bool;
+    pub fn SDL_SetJoystickVirtualAxis(
+        argument_0: *mut types::SDL_Joystick,
+        argument_1: c::Int,
+        argument_2: i16,
+    ) -> bool;
+    pub fn SDL_SetJoystickVirtualBall(
+        argument_0: *mut types::SDL_Joystick,
+        argument_1: c::Int,
+        argument_2: i16,
+        argument_3: i16,
+    ) -> bool;
+    pub fn SDL_SetJoystickVirtualButton(
+        argument_0: *mut types::SDL_Joystick,
+        argument_1: c::Int,
+        argument_2: bool,
+    ) -> bool;
+    pub fn SDL_SetJoystickVirtualHat(
+        argument_0: *mut types::SDL_Joystick,
+        argument_1: c::Int,
+        argument_2: u8,
+    ) -> bool;
+    pub fn SDL_SetJoystickVirtualTouchpad(
+        argument_0: *mut types::SDL_Joystick,
+        argument_1: c::Int,
+        argument_2: c::Int,
+        argument_3: bool,
+        argument_4: f32,
+        argument_5: f32,
+        argument_6: f32,
+    ) -> bool;
+    pub fn SDL_SetLinuxThreadPriority(argument_0: i64, argument_1: c::Int) -> bool;
+    pub fn SDL_SetLinuxThreadPriorityAndPolicy(
+        argument_0: i64,
+        argument_1: c::Int,
+        argument_2: c::Int,
+    ) -> bool;
+    pub fn SDL_SetLogOutputFunction(argument_0: types::SDL_LogOutputFunction, argument_1: *mut ());
+    pub fn SDL_SetLogPriorities(argument_0: types::SDL_LogPriority);
+    pub fn SDL_SetLogPriority(argument_0: c::Int, argument_1: types::SDL_LogPriority);
+    pub fn SDL_SetLogPriorityPrefix(argument_0: types::SDL_LogPriority, argument_1: *const c::Char) -> bool;
+    pub fn SDL_SetMainReady();
+    pub fn SDL_SetMemoryFunctions(
+        argument_0: types::SDL_malloc_func,
+        argument_1: types::SDL_calloc_func,
+        argument_2: types::SDL_realloc_func,
+        argument_3: types::SDL_free_func,
+    ) -> bool;
+    pub fn SDL_SetModState(argument_0: types::SDL_Keymod);
+    pub fn SDL_SetNumberProperty(
+        argument_0: types::SDL_PropertiesID,
+        argument_1: *const c::Char,
+        argument_2: i64,
+    ) -> bool;
+    pub fn SDL_SetPaletteColors(
+        argument_0: *mut types::SDL_Palette,
+        argument_1: *const types::SDL_Color,
+        argument_2: c::Int,
+        argument_3: c::Int,
+    ) -> bool;
+    pub fn SDL_SetPointerProperty(
+        argument_0: types::SDL_PropertiesID,
+        argument_1: *const c::Char,
+        argument_2: *mut (),
+    ) -> bool;
+    pub fn SDL_SetPointerPropertyWithCleanup(
+        argument_0: types::SDL_PropertiesID,
+        argument_1: *const c::Char,
+        argument_2: *mut (),
+        argument_3: types::SDL_CleanupPropertyCallback,
+        argument_4: *mut (),
+    ) -> bool;
+    pub fn SDL_SetPrimarySelectionText(argument_0: *const c::Char) -> bool;
+    pub fn SDL_SetRenderClipRect(argument_0: *mut types::SDL_Renderer, argument_1: *const types::SDL_Rect) -> bool;
+    pub fn SDL_SetRenderColorScale(argument_0: *mut types::SDL_Renderer, argument_1: f32) -> bool;
+    pub fn SDL_SetRenderDrawBlendMode(argument_0: *mut types::SDL_Renderer, argument_1: types::SDL_BlendMode) -> bool;
+    pub fn SDL_SetRenderDrawColor(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: u8,
+        argument_2: u8,
+        argument_3: u8,
+        argument_4: u8,
+    ) -> bool;
+    pub fn SDL_SetRenderDrawColorFloat(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: f32,
+        argument_2: f32,
+        argument_3: f32,
+        argument_4: f32,
+    ) -> bool;
+    pub fn SDL_SetRenderLogicalPresentation(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: c::Int,
+        argument_2: c::Int,
+        argument_3: types::SDL_RendererLogicalPresentation,
+    ) -> bool;
+    pub fn SDL_SetRenderScale(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: f32,
+        argument_2: f32,
+    ) -> bool;
+    pub fn SDL_SetRenderTarget(argument_0: *mut types::SDL_Renderer, argument_1: *mut types::SDL_Texture) -> bool;
+    pub fn SDL_SetRenderVSync(argument_0: *mut types::SDL_Renderer, argument_1: c::Int) -> bool;
+    pub fn SDL_SetRenderViewport(argument_0: *mut types::SDL_Renderer, argument_1: *const types::SDL_Rect) -> bool;
+    pub fn SDL_SetScancodeName(argument_0: types::SDL_Scancode, argument_1: *const c::Char) -> bool;
+    pub fn SDL_SetStringProperty(
+        argument_0: types::SDL_PropertiesID,
+        argument_1: *const c::Char,
+        argument_2: *const c::Char,
+    ) -> bool;
+    pub fn SDL_SetSurfaceAlphaMod(argument_0: *mut types::SDL_Surface, argument_1: u8) -> bool;
+    pub fn SDL_SetSurfaceBlendMode(argument_0: *mut types::SDL_Surface, argument_1: types::SDL_BlendMode) -> bool;
+    pub fn SDL_SetSurfaceClipRect(argument_0: *mut types::SDL_Surface, argument_1: *const types::SDL_Rect) -> bool;
+    pub fn SDL_SetSurfaceColorKey(
+        argument_0: *mut types::SDL_Surface,
+        argument_1: bool,
+        argument_2: u32,
+    ) -> bool;
+    pub fn SDL_SetSurfaceColorMod(
+        argument_0: *mut types::SDL_Surface,
+        argument_1: u8,
+        argument_2: u8,
+        argument_3: u8,
+    ) -> bool;
+    pub fn SDL_SetSurfaceColorspace(argument_0: *mut types::SDL_Surface, argument_1: types::SDL_Colorspace) -> bool;
+    pub fn SDL_SetSurfacePalette(argument_0: *mut types::SDL_Surface, argument_1: *mut types::SDL_Palette) -> bool;
+    pub fn SDL_SetSurfaceRLE(argument_0: *mut types::SDL_Surface, argument_1: bool) -> bool;
+    pub fn SDL_SetTLS(
+        argument_0: *mut types::SDL_TLSID,
+        argument_1: *const (),
+        argument_2: types::SDL_TLSDestructorCallback,
+    ) -> bool;
+    pub fn SDL_SetTextInputArea(
+        argument_0: *mut types::SDL_Window,
+        argument_1: *const types::SDL_Rect,
+        argument_2: c::Int,
+    ) -> bool;
+    pub fn SDL_SetTextureAlphaMod(argument_0: *mut types::SDL_Texture, argument_1: u8) -> bool;
+    pub fn SDL_SetTextureAlphaModFloat(argument_0: *mut types::SDL_Texture, argument_1: f32) -> bool;
+    pub fn SDL_SetTextureBlendMode(argument_0: *mut types::SDL_Texture, argument_1: types::SDL_BlendMode) -> bool;
+    pub fn SDL_SetTextureColorMod(
+        argument_0: *mut types::SDL_Texture,
+        argument_1: u8,
+        argument_2: u8,
+        argument_3: u8,
+    ) -> bool;
+    pub fn SDL_SetTextureColorModFloat(
+        argument_0: *mut types::SDL_Texture,
+        argument_1: f32,
+        argument_2: f32,
+        argument_3: f32,
+    ) -> bool;
+    pub fn SDL_SetTextureScaleMode(argument_0: *mut types::SDL_Texture, argument_1: types::SDL_ScaleMode) -> bool;
+    pub fn SDL_SetWindowAlwaysOnTop(argument_0: *mut types::SDL_Window, argument_1: bool) -> bool;
+    pub fn SDL_SetWindowAspectRatio(
+        argument_0: *mut types::SDL_Window,
+        argument_1: f32,
+        argument_2: f32,
+    ) -> bool;
+    pub fn SDL_SetWindowBordered(argument_0: *mut types::SDL_Window, argument_1: bool) -> bool;
+    pub fn SDL_SetWindowFocusable(argument_0: *mut types::SDL_Window, argument_1: bool) -> bool;
+    pub fn SDL_SetWindowFullscreen(argument_0: *mut types::SDL_Window, argument_1: bool) -> bool;
+    pub fn SDL_SetWindowFullscreenMode(argument_0: *mut types::SDL_Window, argument_1: *const types::SDL_DisplayMode) -> bool;
+    pub fn SDL_SetWindowHitTest(
+        argument_0: *mut types::SDL_Window,
+        argument_1: types::SDL_HitTest,
+        argument_2: *mut (),
+    ) -> bool;
+    pub fn SDL_SetWindowIcon(argument_0: *mut types::SDL_Window, argument_1: *mut types::SDL_Surface) -> bool;
+    pub fn SDL_SetWindowKeyboardGrab(argument_0: *mut types::SDL_Window, argument_1: bool) -> bool;
+    pub fn SDL_SetWindowMaximumSize(
+        argument_0: *mut types::SDL_Window,
+        argument_1: c::Int,
+        argument_2: c::Int,
+    ) -> bool;
+    pub fn SDL_SetWindowMinimumSize(
+        argument_0: *mut types::SDL_Window,
+        argument_1: c::Int,
+        argument_2: c::Int,
+    ) -> bool;
+    pub fn SDL_SetWindowModal(argument_0: *mut types::SDL_Window, argument_1: bool) -> bool;
+    pub fn SDL_SetWindowMouseGrab(argument_0: *mut types::SDL_Window, argument_1: bool) -> bool;
+    pub fn SDL_SetWindowMouseRect(argument_0: *mut types::SDL_Window, argument_1: *const types::SDL_Rect) -> bool;
+    pub fn SDL_SetWindowOpacity(argument_0: *mut types::SDL_Window, argument_1: f32) -> bool;
+    pub fn SDL_SetWindowParent(argument_0: *mut types::SDL_Window, argument_1: *mut types::SDL_Window) -> bool;
+    pub fn SDL_SetWindowPosition(
+        argument_0: *mut types::SDL_Window,
+        argument_1: c::Int,
+        argument_2: c::Int,
+    ) -> bool;
+    pub fn SDL_SetWindowRelativeMouseMode(argument_0: *mut types::SDL_Window, argument_1: bool) -> bool;
+    pub fn SDL_SetWindowResizable(argument_0: *mut types::SDL_Window, argument_1: bool) -> bool;
+    pub fn SDL_SetWindowShape(argument_0: *mut types::SDL_Window, argument_1: *mut types::SDL_Surface) -> bool;
+    pub fn SDL_SetWindowSize(
+        argument_0: *mut types::SDL_Window,
+        argument_1: c::Int,
+        argument_2: c::Int,
+    ) -> bool;
+    pub fn SDL_SetWindowSurfaceVSync(argument_0: *mut types::SDL_Window, argument_1: c::Int) -> bool;
+    pub fn SDL_SetWindowTitle(argument_0: *mut types::SDL_Window, argument_1: *const c::Char) -> bool;
+    pub fn SDL_SetWindowsMessageHook(argument_0: types::SDL_WindowsMessageHook, argument_1: *mut ());
+    pub fn SDL_SetX11EventHook(argument_0: types::SDL_X11EventHook, argument_1: *mut ());
+    pub fn SDL_SetiOSAnimationCallback(
+        argument_0: *mut types::SDL_Window,
+        argument_1: c::Int,
+        argument_2: types::SDL_iOSAnimationCallback,
+        argument_3: *mut (),
+    ) -> bool;
+    pub fn SDL_SetiOSEventPump(argument_0: bool);
+    pub fn SDL_ShouldInit(argument_0: *mut types::SDL_InitState) -> bool;
+    pub fn SDL_ShouldQuit(argument_0: *mut types::SDL_InitState) -> bool;
+    pub fn SDL_ShowAndroidToast(
+        argument_0: *const c::Char,
+        argument_1: c::Int,
+        argument_2: c::Int,
+        argument_3: c::Int,
+        argument_4: c::Int,
+    ) -> bool;
+    pub fn SDL_ShowCursor() -> bool;
+    pub fn SDL_ShowMessageBox(argument_0: *const types::SDL_MessageBoxData, argument_1: *mut c::Int) -> bool;
+    pub fn SDL_ShowOpenFileDialog(
+        argument_0: types::SDL_DialogFileCallback,
+        argument_1: *mut (),
+        argument_2: *mut types::SDL_Window,
+        argument_3: *const types::SDL_DialogFileFilter,
+        argument_4: c::Int,
+        argument_5: *const c::Char,
+        argument_6: bool,
+    );
+    pub fn SDL_ShowOpenFolderDialog(
+        argument_0: types::SDL_DialogFileCallback,
+        argument_1: *mut (),
+        argument_2: *mut types::SDL_Window,
+        argument_3: *const c::Char,
+        argument_4: bool,
+    );
+    pub fn SDL_ShowSaveFileDialog(
+        argument_0: types::SDL_DialogFileCallback,
+        argument_1: *mut (),
+        argument_2: *mut types::SDL_Window,
+        argument_3: *const types::SDL_DialogFileFilter,
+        argument_4: c::Int,
+        argument_5: *const c::Char,
+    );
+    pub fn SDL_ShowSimpleMessageBox(
+        argument_0: types::SDL_MessageBoxFlags,
+        argument_1: *const c::Char,
+        argument_2: *const c::Char,
+        argument_3: *mut types::SDL_Window,
+    ) -> bool;
+    pub fn SDL_ShowWindow(argument_0: *mut types::SDL_Window) -> bool;
+    pub fn SDL_ShowWindowSystemMenu(
+        argument_0: *mut types::SDL_Window,
+        argument_1: c::Int,
+        argument_2: c::Int,
+    ) -> bool;
+    pub fn SDL_SignalCondition(argument_0: *mut types::SDL_Condition);
+    pub fn SDL_SignalSemaphore(argument_0: *mut types::SDL_Semaphore);
+    pub fn SDL_StartTextInput(argument_0: *mut types::SDL_Window) -> bool;
+    pub fn SDL_StartTextInputWithProperties(argument_0: *mut types::SDL_Window, argument_1: types::SDL_PropertiesID) -> bool;
+    pub fn SDL_StepUTF8(argument_0: *mut *const c::Char, argument_1: *mut usize) -> u32;
+    pub fn SDL_StopHapticEffect(argument_0: *mut types::SDL_Haptic, argument_1: types::SDL_HapticEffectID) -> bool;
+    pub fn SDL_StopHapticEffects(argument_0: *mut types::SDL_Haptic) -> bool;
+    pub fn SDL_StopHapticRumble(argument_0: *mut types::SDL_Haptic) -> bool;
+    pub fn SDL_StopTextInput(argument_0: *mut types::SDL_Window) -> bool;
+    pub fn SDL_StorageReady(argument_0: *mut types::SDL_Storage) -> bool;
+    pub fn SDL_StringToGUID(argument_0: *const c::Char) -> types::SDL_GUID;
+    pub fn SDL_SubmitGPUCommandBuffer(argument_0: *mut types::SDL_GPUCommandBuffer) -> bool;
+    pub fn SDL_SubmitGPUCommandBufferAndAcquireFence(argument_0: *mut types::SDL_GPUCommandBuffer) -> *mut types::SDL_GPUFence;
+    pub fn SDL_SurfaceHasAlternateImages(argument_0: *mut types::SDL_Surface) -> bool;
+    pub fn SDL_SurfaceHasColorKey(argument_0: *mut types::SDL_Surface) -> bool;
+    pub fn SDL_SurfaceHasRLE(argument_0: *mut types::SDL_Surface) -> bool;
+    pub fn SDL_SyncWindow(argument_0: *mut types::SDL_Window) -> bool;
+    pub fn SDL_TellIO(argument_0: *mut types::SDL_IOStream) -> i64;
+    pub fn SDL_TextInputActive(argument_0: *mut types::SDL_Window) -> bool;
+    pub fn SDL_TimeFromWindows(argument_0: u32, argument_1: u32) -> types::SDL_Time;
+    pub fn SDL_TimeToDateTime(
+        argument_0: types::SDL_Time,
+        argument_1: *mut types::SDL_DateTime,
+        argument_2: bool,
+    ) -> bool;
+    pub fn SDL_TimeToWindows(
+        argument_0: types::SDL_Time,
+        argument_1: *mut u32,
+        argument_2: *mut u32,
+    );
+    pub fn SDL_TryLockMutex(argument_0: *mut types::SDL_Mutex) -> bool;
+    pub fn SDL_TryLockRWLockForReading(argument_0: *mut types::SDL_RWLock) -> bool;
+    pub fn SDL_TryLockRWLockForWriting(argument_0: *mut types::SDL_RWLock) -> bool;
+    pub fn SDL_TryLockSpinlock(argument_0: *mut types::SDL_SpinLock) -> bool;
+    pub fn SDL_TryWaitSemaphore(argument_0: *mut types::SDL_Semaphore) -> bool;
+    pub fn SDL_UCS4ToUTF8(argument_0: u32, argument_1: *mut c::Char) -> *mut c::Char;
+    pub fn SDL_UnbindAudioStream(argument_0: *mut types::SDL_AudioStream);
+    pub fn SDL_UnbindAudioStreams(argument_0: *const *mut types::SDL_AudioStream, argument_1: c::Int);
+    pub fn SDL_UnloadObject(argument_0: *mut types::SDL_SharedObject);
+    pub fn SDL_UnlockAudioStream(argument_0: *mut types::SDL_AudioStream) -> bool;
+    pub fn SDL_UnlockJoysticks();
+    pub fn SDL_UnlockMutex(argument_0: *mut types::SDL_Mutex);
+    pub fn SDL_UnlockProperties(argument_0: types::SDL_PropertiesID);
+    pub fn SDL_UnlockRWLock(argument_0: *mut types::SDL_RWLock);
+    pub fn SDL_UnlockSpinlock(argument_0: *mut types::SDL_SpinLock);
+    pub fn SDL_UnlockSurface(argument_0: *mut types::SDL_Surface);
+    pub fn SDL_UnlockTexture(argument_0: *mut types::SDL_Texture);
+    pub fn SDL_UnmapGPUTransferBuffer(argument_0: *mut types::SDL_GPUDevice, argument_1: *mut types::SDL_GPUTransferBuffer);
+    pub fn SDL_UnregisterApp();
+    pub fn SDL_UnsetEnvironmentVariable(argument_0: *mut types::SDL_Environment, argument_1: *const c::Char) -> bool;
+    pub fn SDL_UpdateGamepads();
+    pub fn SDL_UpdateHapticEffect(
+        argument_0: *mut types::SDL_Haptic,
+        argument_1: types::SDL_HapticEffectID,
+        argument_2: *const types::SDL_HapticEffect,
+    ) -> bool;
+    pub fn SDL_UpdateJoysticks();
+    pub fn SDL_UpdateNVTexture(
+        argument_0: *mut types::SDL_Texture,
+        argument_1: *const types::SDL_Rect,
+        argument_2: *const u8,
+        argument_3: c::Int,
+        argument_4: *const u8,
+        argument_5: c::Int,
+    ) -> bool;
+    pub fn SDL_UpdateSensors();
+    pub fn SDL_UpdateTexture(
+        argument_0: *mut types::SDL_Texture,
+        argument_1: *const types::SDL_Rect,
+        argument_2: *const (),
+        argument_3: c::Int,
+    ) -> bool;
+    pub fn SDL_UpdateWindowSurface(argument_0: *mut types::SDL_Window) -> bool;
+    pub fn SDL_UpdateWindowSurfaceRects(
+        argument_0: *mut types::SDL_Window,
+        argument_1: *const types::SDL_Rect,
+        argument_2: c::Int,
+    ) -> bool;
+    pub fn SDL_UpdateYUVTexture(
+        argument_0: *mut types::SDL_Texture,
+        argument_1: *const types::SDL_Rect,
+        argument_2: *const u8,
+        argument_3: c::Int,
+        argument_4: *const u8,
+        argument_5: c::Int,
+        argument_6: *const u8,
+        argument_7: c::Int,
+    ) -> bool;
+    pub fn SDL_UploadToGPUBuffer(
+        argument_0: *mut types::SDL_GPUCopyPass,
+        argument_1: *const types::SDL_GPUTransferBufferLocation,
+        argument_2: *const types::SDL_GPUBufferRegion,
+        argument_3: bool,
+    );
+    pub fn SDL_UploadToGPUTexture(
+        argument_0: *mut types::SDL_GPUCopyPass,
+        argument_1: *const types::SDL_GPUTextureTransferInfo,
+        argument_2: *const types::SDL_GPUTextureRegion,
+        argument_3: bool,
+    );
+    pub fn SDL_Vulkan_CreateSurface(
+        argument_0: *mut types::SDL_Window,
+        argument_1: types::VkInstance,
+        argument_2: *const types::VkAllocationCallbacks,
+        argument_3: *mut types::VkSurfaceKHR,
+    ) -> bool;
+    pub fn SDL_Vulkan_DestroySurface(
+        argument_0: types::VkInstance,
+        argument_1: types::VkSurfaceKHR,
+        argument_2: *const types::VkAllocationCallbacks,
+    );
+    pub fn SDL_Vulkan_GetInstanceExtensions(argument_0: *mut u32) -> *const *const c::Char;
+    pub fn SDL_Vulkan_GetPresentationSupport(
+        argument_0: types::VkInstance,
+        argument_1: types::VkPhysicalDevice,
+        argument_2: u32,
+    ) -> bool;
+    pub fn SDL_Vulkan_GetVkGetInstanceProcAddr() -> types::SDL_FunctionPointer;
+    pub fn SDL_Vulkan_LoadLibrary(argument_0: *const c::Char) -> bool;
+    pub fn SDL_Vulkan_UnloadLibrary();
+    pub fn SDL_WaitCondition(argument_0: *mut types::SDL_Condition, argument_1: *mut types::SDL_Mutex);
+    pub fn SDL_WaitConditionTimeout(
+        argument_0: *mut types::SDL_Condition,
+        argument_1: *mut types::SDL_Mutex,
+        argument_2: i32,
+    ) -> bool;
+    pub fn SDL_WaitEvent(argument_0: *mut types::SDL_Event) -> bool;
+    pub fn SDL_WaitEventTimeout(argument_0: *mut types::SDL_Event, argument_1: i32) -> bool;
+    pub fn SDL_WaitForGPUFences(
+        argument_0: *mut types::SDL_GPUDevice,
+        argument_1: bool,
+        argument_2: *const *mut types::SDL_GPUFence,
+        argument_3: u32,
+    ) -> bool;
+    pub fn SDL_WaitForGPUIdle(argument_0: *mut types::SDL_GPUDevice) -> bool;
+    pub fn SDL_WaitProcess(
+        argument_0: *mut types::SDL_Process,
+        argument_1: bool,
+        argument_2: *mut c::Int,
+    ) -> bool;
+    pub fn SDL_WaitSemaphore(argument_0: *mut types::SDL_Semaphore);
+    pub fn SDL_WaitSemaphoreTimeout(argument_0: *mut types::SDL_Semaphore, argument_1: i32) -> bool;
+    pub fn SDL_WaitThread(argument_0: *mut types::SDL_Thread, argument_1: *mut c::Int);
+    pub fn SDL_WarpMouseGlobal(argument_0: f32, argument_1: f32) -> bool;
+    pub fn SDL_WarpMouseInWindow(
+        argument_0: *mut types::SDL_Window,
+        argument_1: f32,
+        argument_2: f32,
+    );
+    pub fn SDL_WasInit(argument_0: types::SDL_InitFlags) -> types::SDL_InitFlags;
+    pub fn SDL_WindowHasSurface(argument_0: *mut types::SDL_Window) -> bool;
+    pub fn SDL_WindowSupportsGPUPresentMode(
+        argument_0: *mut types::SDL_GPUDevice,
+        argument_1: *mut types::SDL_Window,
+        argument_2: types::SDL_GPUPresentMode,
+    ) -> bool;
+    pub fn SDL_WindowSupportsGPUSwapchainComposition(
+        argument_0: *mut types::SDL_GPUDevice,
+        argument_1: *mut types::SDL_Window,
+        argument_2: types::SDL_GPUSwapchainComposition,
+    ) -> bool;
+    pub fn SDL_WriteIO(
+        argument_0: *mut types::SDL_IOStream,
+        argument_1: *const (),
+        argument_2: usize,
+    ) -> usize;
+    pub fn SDL_WriteS16BE(argument_0: *mut types::SDL_IOStream, argument_1: i16) -> bool;
+    pub fn SDL_WriteS16LE(argument_0: *mut types::SDL_IOStream, argument_1: i16) -> bool;
+    pub fn SDL_WriteS32BE(argument_0: *mut types::SDL_IOStream, argument_1: i32) -> bool;
+    pub fn SDL_WriteS32LE(argument_0: *mut types::SDL_IOStream, argument_1: i32) -> bool;
+    pub fn SDL_WriteS64BE(argument_0: *mut types::SDL_IOStream, argument_1: i64) -> bool;
+    pub fn SDL_WriteS64LE(argument_0: *mut types::SDL_IOStream, argument_1: i64) -> bool;
+    pub fn SDL_WriteS8(argument_0: *mut types::SDL_IOStream, argument_1: i8) -> bool;
+    pub fn SDL_WriteStorageFile(
+        argument_0: *mut types::SDL_Storage,
+        argument_1: *const c::Char,
+        argument_2: *const (),
+        argument_3: u64,
+    ) -> bool;
+    pub fn SDL_WriteSurfacePixel(
+        argument_0: *mut types::SDL_Surface,
+        argument_1: c::Int,
+        argument_2: c::Int,
+        argument_3: u8,
+        argument_4: u8,
+        argument_5: u8,
+        argument_6: u8,
+    ) -> bool;
+    pub fn SDL_WriteSurfacePixelFloat(
+        argument_0: *mut types::SDL_Surface,
+        argument_1: c::Int,
+        argument_2: c::Int,
+        argument_3: f32,
+        argument_4: f32,
+        argument_5: f32,
+        argument_6: f32,
+    ) -> bool;
+    pub fn SDL_WriteU16BE(argument_0: *mut types::SDL_IOStream, argument_1: u16) -> bool;
+    pub fn SDL_WriteU16LE(argument_0: *mut types::SDL_IOStream, argument_1: u16) -> bool;
+    pub fn SDL_WriteU32BE(argument_0: *mut types::SDL_IOStream, argument_1: u32) -> bool;
+    pub fn SDL_WriteU32LE(argument_0: *mut types::SDL_IOStream, argument_1: u32) -> bool;
+    pub fn SDL_WriteU64BE(argument_0: *mut types::SDL_IOStream, argument_1: u64) -> bool;
+    pub fn SDL_WriteU64LE(argument_0: *mut types::SDL_IOStream, argument_1: u64) -> bool;
+    pub fn SDL_WriteU8(argument_0: *mut types::SDL_IOStream, argument_1: u8) -> bool;
+    pub fn SDL_abs(argument_0: c::Int) -> c::Int;
+    pub fn SDL_acos(argument_0: f64) -> f64;
+    pub fn SDL_acosf(argument_0: f32) -> f32;
+    pub fn SDL_aligned_alloc(argument_0: usize, argument_1: usize) -> *mut ();
+    pub fn SDL_aligned_free(argument_0: *mut ());
+    pub fn SDL_asin(argument_0: f64) -> f64;
+    pub fn SDL_asinf(argument_0: f32) -> f32;
+    pub fn SDL_atan(argument_0: f64) -> f64;
+    pub fn SDL_atan2(argument_0: f64, argument_1: f64) -> f64;
+    pub fn SDL_atan2f(argument_0: f32, argument_1: f32) -> f32;
+    pub fn SDL_atanf(argument_0: f32) -> f32;
+    pub fn SDL_atof(argument_0: *const c::Char) -> f64;
+    pub fn SDL_atoi(argument_0: *const c::Char) -> c::Int;
+    pub fn SDL_bsearch(
+        argument_0: *const (),
+        argument_1: *const (),
+        argument_2: usize,
+        argument_3: usize,
+        argument_4: types::SDL_CompareCallback,
+    ) -> *mut ();
+    pub fn SDL_bsearch_r(
+        argument_0: *const (),
+        argument_1: *const (),
+        argument_2: usize,
+        argument_3: usize,
+        argument_4: types::SDL_CompareCallback_r,
+        argument_5: *mut (),
+    ) -> *mut ();
+    pub fn SDL_calloc(argument_0: usize, argument_1: usize) -> *mut ();
+    pub fn SDL_ceil(argument_0: f64) -> f64;
+    pub fn SDL_ceilf(argument_0: f32) -> f32;
+    pub fn SDL_copysign(argument_0: f64, argument_1: f64) -> f64;
+    pub fn SDL_copysignf(argument_0: f32, argument_1: f32) -> f32;
+    pub fn SDL_cos(argument_0: f64) -> f64;
+    pub fn SDL_cosf(argument_0: f32) -> f32;
+    pub fn SDL_crc16(
+        argument_0: u16,
+        argument_1: *const (),
+        argument_2: usize,
+    ) -> u16;
+    pub fn SDL_crc32(
+        argument_0: u32,
+        argument_1: *const (),
+        argument_2: usize,
+    ) -> u32;
+    pub fn SDL_exp(argument_0: f64) -> f64;
+    pub fn SDL_expf(argument_0: f32) -> f32;
+    pub fn SDL_fabs(argument_0: f64) -> f64;
+    pub fn SDL_fabsf(argument_0: f32) -> f32;
+    pub fn SDL_floor(argument_0: f64) -> f64;
+    pub fn SDL_floorf(argument_0: f32) -> f32;
+    pub fn SDL_fmod(argument_0: f64, argument_1: f64) -> f64;
+    pub fn SDL_fmodf(argument_0: f32, argument_1: f32) -> f32;
+    pub fn SDL_free(argument_0: *mut ());
+    pub fn SDL_getenv(argument_0: *const c::Char) -> *const c::Char;
+    pub fn SDL_getenv_unsafe(argument_0: *const c::Char) -> *const c::Char;
+    pub fn SDL_hid_ble_scan(argument_0: bool);
+    pub fn SDL_hid_close(argument_0: *mut types::SDL_hid_device) -> c::Int;
+    pub fn SDL_hid_device_change_count() -> u32;
+    pub fn SDL_hid_enumerate(argument_0: c::UnsignedShort, argument_1: c::UnsignedShort) -> *mut types::SDL_hid_device_info;
+    pub fn SDL_hid_exit() -> c::Int;
+    pub fn SDL_hid_free_enumeration(argument_0: *mut types::SDL_hid_device_info);
+    pub fn SDL_hid_get_device_info(argument_0: *mut types::SDL_hid_device) -> *mut types::SDL_hid_device_info;
+    pub fn SDL_hid_get_feature_report(
+        argument_0: *mut types::SDL_hid_device,
+        argument_1: *mut c::UnsignedChar,
+        argument_2: usize,
+    ) -> c::Int;
+    pub fn SDL_hid_get_indexed_string(
+        argument_0: *mut types::SDL_hid_device,
+        argument_1: c::Int,
+        argument_2: *mut types::wchar_t,
+        argument_3: usize,
+    ) -> c::Int;
+    pub fn SDL_hid_get_input_report(
+        argument_0: *mut types::SDL_hid_device,
+        argument_1: *mut c::UnsignedChar,
+        argument_2: usize,
+    ) -> c::Int;
+    pub fn SDL_hid_get_manufacturer_string(
+        argument_0: *mut types::SDL_hid_device,
+        argument_1: *mut types::wchar_t,
+        argument_2: usize,
+    ) -> c::Int;
+    pub fn SDL_hid_get_product_string(
+        argument_0: *mut types::SDL_hid_device,
+        argument_1: *mut types::wchar_t,
+        argument_2: usize,
+    ) -> c::Int;
+    pub fn SDL_hid_get_report_descriptor(
+        argument_0: *mut types::SDL_hid_device,
+        argument_1: *mut c::UnsignedChar,
+        argument_2: usize,
+    ) -> c::Int;
+    pub fn SDL_hid_get_serial_number_string(
+        argument_0: *mut types::SDL_hid_device,
+        argument_1: *mut types::wchar_t,
+        argument_2: usize,
+    ) -> c::Int;
+    pub fn SDL_hid_init() -> c::Int;
+    pub fn SDL_hid_open(
+        argument_0: c::UnsignedShort,
+        argument_1: c::UnsignedShort,
+        argument_2: *const types::wchar_t,
+    ) -> *mut types::SDL_hid_device;
+    pub fn SDL_hid_open_path(argument_0: *const c::Char) -> *mut types::SDL_hid_device;
+    pub fn SDL_hid_read(
+        argument_0: *mut types::SDL_hid_device,
+        argument_1: *mut c::UnsignedChar,
+        argument_2: usize,
+    ) -> c::Int;
+    pub fn SDL_hid_read_timeout(
+        argument_0: *mut types::SDL_hid_device,
+        argument_1: *mut c::UnsignedChar,
+        argument_2: usize,
+        argument_3: c::Int,
+    ) -> c::Int;
+    pub fn SDL_hid_send_feature_report(
+        argument_0: *mut types::SDL_hid_device,
+        argument_1: *const c::UnsignedChar,
+        argument_2: usize,
+    ) -> c::Int;
+    pub fn SDL_hid_set_nonblocking(argument_0: *mut types::SDL_hid_device, argument_1: c::Int) -> c::Int;
+    pub fn SDL_hid_write(
+        argument_0: *mut types::SDL_hid_device,
+        argument_1: *const c::UnsignedChar,
+        argument_2: usize,
+    ) -> c::Int;
+    pub fn SDL_iconv(
+        argument_0: types::SDL_iconv_t,
+        argument_1: *mut *const c::Char,
+        argument_2: *mut usize,
+        argument_3: *mut *mut c::Char,
+        argument_4: *mut usize,
+    ) -> usize;
+    pub fn SDL_iconv_close(argument_0: types::SDL_iconv_t) -> c::Int;
+    pub fn SDL_iconv_open(argument_0: *const c::Char, argument_1: *const c::Char) -> types::SDL_iconv_t;
+    pub fn SDL_iconv_string(
+        argument_0: *const c::Char,
+        argument_1: *const c::Char,
+        argument_2: *const c::Char,
+        argument_3: usize,
+    ) -> *mut c::Char;
+    pub fn SDL_isalnum(argument_0: c::Int) -> c::Int;
+    pub fn SDL_isalpha(argument_0: c::Int) -> c::Int;
+    pub fn SDL_isblank(argument_0: c::Int) -> c::Int;
+    pub fn SDL_iscntrl(argument_0: c::Int) -> c::Int;
+    pub fn SDL_isdigit(argument_0: c::Int) -> c::Int;
+    pub fn SDL_isgraph(argument_0: c::Int) -> c::Int;
+    pub fn SDL_isinf(argument_0: f64) -> c::Int;
+    pub fn SDL_isinff(argument_0: f32) -> c::Int;
+    pub fn SDL_islower(argument_0: c::Int) -> c::Int;
+    pub fn SDL_isnan(argument_0: f64) -> c::Int;
+    pub fn SDL_isnanf(argument_0: f32) -> c::Int;
+    pub fn SDL_isprint(argument_0: c::Int) -> c::Int;
+    pub fn SDL_ispunct(argument_0: c::Int) -> c::Int;
+    pub fn SDL_isspace(argument_0: c::Int) -> c::Int;
+    pub fn SDL_isupper(argument_0: c::Int) -> c::Int;
+    pub fn SDL_isxdigit(argument_0: c::Int) -> c::Int;
+    pub fn SDL_itoa(
+        argument_0: c::Int,
+        argument_1: *mut c::Char,
+        argument_2: c::Int,
+    ) -> *mut c::Char;
+    pub fn SDL_lltoa(
+        argument_0: c::LongLong,
+        argument_1: *mut c::Char,
+        argument_2: c::Int,
+    ) -> *mut c::Char;
+    pub fn SDL_log(argument_0: f64) -> f64;
+    pub fn SDL_log10(argument_0: f64) -> f64;
+    pub fn SDL_log10f(argument_0: f32) -> f32;
+    pub fn SDL_logf(argument_0: f32) -> f32;
+    pub fn SDL_lround(argument_0: f64) -> c::Long;
+    pub fn SDL_lroundf(argument_0: f32) -> c::Long;
+    pub fn SDL_ltoa(
+        argument_0: c::Long,
+        argument_1: *mut c::Char,
+        argument_2: c::Int,
+    ) -> *mut c::Char;
+    pub fn SDL_malloc(argument_0: usize) -> *mut ();
+    pub fn SDL_memcmp(
+        argument_0: *const (),
+        argument_1: *const (),
+        argument_2: usize,
+    ) -> c::Int;
+    pub fn SDL_memcpy(
+        argument_0: *mut (),
+        argument_1: *const (),
+        argument_2: usize,
+    ) -> *mut ();
+    pub fn SDL_memmove(
+        argument_0: *mut (),
+        argument_1: *const (),
+        argument_2: usize,
+    ) -> *mut ();
+    pub fn SDL_memset(
+        argument_0: *mut (),
+        argument_1: c::Int,
+        argument_2: usize,
+    ) -> *mut ();
+    pub fn SDL_memset4(
+        argument_0: *mut (),
+        argument_1: u32,
+        argument_2: usize,
+    ) -> *mut ();
+    pub fn SDL_modf(argument_0: f64, argument_1: *mut f64) -> f64;
+    pub fn SDL_modff(argument_0: f32, argument_1: *mut f32) -> f32;
+    pub fn SDL_murmur3_32(
+        argument_0: *const (),
+        argument_1: usize,
+        argument_2: u32,
+    ) -> u32;
+    pub fn SDL_pow(argument_0: f64, argument_1: f64) -> f64;
+    pub fn SDL_powf(argument_0: f32, argument_1: f32) -> f32;
+    pub fn SDL_qsort(
+        argument_0: *mut (),
+        argument_1: usize,
+        argument_2: usize,
+        argument_3: types::SDL_CompareCallback,
+    );
+    pub fn SDL_qsort_r(
+        argument_0: *mut (),
+        argument_1: usize,
+        argument_2: usize,
+        argument_3: types::SDL_CompareCallback_r,
+        argument_4: *mut (),
+    );
+    pub fn SDL_rand(argument_0: i32) -> i32;
+    pub fn SDL_rand_bits() -> u32;
+    pub fn SDL_rand_bits_r(argument_0: *mut u64) -> u32;
+    pub fn SDL_rand_r(argument_0: *mut u64, argument_1: i32) -> i32;
+    pub fn SDL_randf() -> f32;
+    pub fn SDL_randf_r(argument_0: *mut u64) -> f32;
+    pub fn SDL_realloc(argument_0: *mut (), argument_1: usize) -> *mut ();
+    pub fn SDL_round(argument_0: f64) -> f64;
+    pub fn SDL_roundf(argument_0: f32) -> f32;
+    pub fn SDL_scalbn(argument_0: f64, argument_1: c::Int) -> f64;
+    pub fn SDL_scalbnf(argument_0: f32, argument_1: c::Int) -> f32;
+    pub fn SDL_setenv_unsafe(
+        argument_0: *const c::Char,
+        argument_1: *const c::Char,
+        argument_2: c::Int,
+    ) -> c::Int;
+    pub fn SDL_sin(argument_0: f64) -> f64;
+    pub fn SDL_sinf(argument_0: f32) -> f32;
+    pub fn SDL_sqrt(argument_0: f64) -> f64;
+    pub fn SDL_sqrtf(argument_0: f32) -> f32;
+    pub fn SDL_srand(argument_0: u64);
+    pub fn SDL_strcasecmp(argument_0: *const c::Char, argument_1: *const c::Char) -> c::Int;
+    pub fn SDL_strcasestr(argument_0: *const c::Char, argument_1: *const c::Char) -> *mut c::Char;
+    pub fn SDL_strchr(argument_0: *const c::Char, argument_1: c::Int) -> *mut c::Char;
+    pub fn SDL_strcmp(argument_0: *const c::Char, argument_1: *const c::Char) -> c::Int;
+    pub fn SDL_strdup(argument_0: *const c::Char) -> *mut c::Char;
+    pub fn SDL_strlcat(
+        argument_0: *mut c::Char,
+        argument_1: *const c::Char,
+        argument_2: usize,
+    ) -> usize;
+    pub fn SDL_strlcpy(
+        argument_0: *mut c::Char,
+        argument_1: *const c::Char,
+        argument_2: usize,
+    ) -> usize;
+    pub fn SDL_strlen(argument_0: *const c::Char) -> usize;
+    pub fn SDL_strlwr(argument_0: *mut c::Char) -> *mut c::Char;
+    pub fn SDL_strncasecmp(
+        argument_0: *const c::Char,
+        argument_1: *const c::Char,
+        argument_2: usize,
+    ) -> c::Int;
+    pub fn SDL_strncmp(
+        argument_0: *const c::Char,
+        argument_1: *const c::Char,
+        argument_2: usize,
+    ) -> c::Int;
+    pub fn SDL_strndup(argument_0: *const c::Char, argument_1: usize) -> *mut c::Char;
+    pub fn SDL_strnlen(argument_0: *const c::Char, argument_1: usize) -> usize;
+    pub fn SDL_strnstr(
+        argument_0: *const c::Char,
+        argument_1: *const c::Char,
+        argument_2: usize,
+    ) -> *mut c::Char;
+    pub fn SDL_strpbrk(argument_0: *const c::Char, argument_1: *const c::Char) -> *mut c::Char;
+    pub fn SDL_strrchr(argument_0: *const c::Char, argument_1: c::Int) -> *mut c::Char;
+    pub fn SDL_strrev(argument_0: *mut c::Char) -> *mut c::Char;
+    pub fn SDL_strstr(argument_0: *const c::Char, argument_1: *const c::Char) -> *mut c::Char;
+    pub fn SDL_strtod(argument_0: *const c::Char, argument_1: *mut *mut c::Char) -> f64;
+    pub fn SDL_strtok_r(
+        argument_0: *mut c::Char,
+        argument_1: *const c::Char,
+        argument_2: *mut *mut c::Char,
+    ) -> *mut c::Char;
+    pub fn SDL_strtol(
+        argument_0: *const c::Char,
+        argument_1: *mut *mut c::Char,
+        argument_2: c::Int,
+    ) -> c::Long;
+    pub fn SDL_strtoll(
+        argument_0: *const c::Char,
+        argument_1: *mut *mut c::Char,
+        argument_2: c::Int,
+    ) -> c::LongLong;
+    pub fn SDL_strtoul(
+        argument_0: *const c::Char,
+        argument_1: *mut *mut c::Char,
+        argument_2: c::Int,
+    ) -> c::UnsignedLong;
+    pub fn SDL_strtoull(
+        argument_0: *const c::Char,
+        argument_1: *mut *mut c::Char,
+        argument_2: c::Int,
+    ) -> c::UnsignedLongLong;
+    pub fn SDL_strupr(argument_0: *mut c::Char) -> *mut c::Char;
+    pub fn SDL_tan(argument_0: f64) -> f64;
+    pub fn SDL_tanf(argument_0: f32) -> f32;
+    pub fn SDL_tolower(argument_0: c::Int) -> c::Int;
+    pub fn SDL_toupper(argument_0: c::Int) -> c::Int;
+    pub fn SDL_trunc(argument_0: f64) -> f64;
+    pub fn SDL_truncf(argument_0: f32) -> f32;
+    pub fn SDL_uitoa(
+        argument_0: c::UnsignedInt,
+        argument_1: *mut c::Char,
+        argument_2: c::Int,
+    ) -> *mut c::Char;
+    pub fn SDL_ulltoa(
+        argument_0: c::UnsignedLongLong,
+        argument_1: *mut c::Char,
+        argument_2: c::Int,
+    ) -> *mut c::Char;
+    pub fn SDL_ultoa(
+        argument_0: c::UnsignedLong,
+        argument_1: *mut c::Char,
+        argument_2: c::Int,
+    ) -> *mut c::Char;
+    pub fn SDL_unsetenv_unsafe(argument_0: *const c::Char) -> c::Int;
+    pub fn SDL_utf8strlcpy(
+        argument_0: *mut c::Char,
+        argument_1: *const c::Char,
+        argument_2: usize,
+    ) -> usize;
+    pub fn SDL_utf8strlen(argument_0: *const c::Char) -> usize;
+    pub fn SDL_utf8strnlen(argument_0: *const c::Char, argument_1: usize) -> usize;
+    pub fn SDL_wcscasecmp(argument_0: *const types::wchar_t, argument_1: *const types::wchar_t) -> c::Int;
+    pub fn SDL_wcscmp(argument_0: *const types::wchar_t, argument_1: *const types::wchar_t) -> c::Int;
+    pub fn SDL_wcsdup(argument_0: *const types::wchar_t) -> *mut types::wchar_t;
+    pub fn SDL_wcslcat(
+        argument_0: *mut types::wchar_t,
+        argument_1: *const types::wchar_t,
+        argument_2: usize,
+    ) -> usize;
+    pub fn SDL_wcslcpy(
+        argument_0: *mut types::wchar_t,
+        argument_1: *const types::wchar_t,
+        argument_2: usize,
+    ) -> usize;
+    pub fn SDL_wcslen(argument_0: *const types::wchar_t) -> usize;
+    pub fn SDL_wcsncasecmp(
+        argument_0: *const types::wchar_t,
+        argument_1: *const types::wchar_t,
+        argument_2: usize,
+    ) -> c::Int;
+    pub fn SDL_wcsncmp(
+        argument_0: *const types::wchar_t,
+        argument_1: *const types::wchar_t,
+        argument_2: usize,
+    ) -> c::Int;
+    pub fn SDL_wcsnlen(argument_0: *const types::wchar_t, argument_1: usize) -> usize;
+    pub fn SDL_wcsnstr(
+        argument_0: *const types::wchar_t,
+        argument_1: *const types::wchar_t,
+        argument_2: usize,
+    ) -> *mut types::wchar_t;
+    pub fn SDL_wcsstr(argument_0: *const types::wchar_t, argument_1: *const types::wchar_t) -> *mut types::wchar_t;
+    pub fn SDL_wcstol(
+        argument_0: *const types::wchar_t,
+        argument_1: *mut *mut types::wchar_t,
+        argument_2: c::Int,
+    ) -> c::Long;
+    pub fn SDL_StepBackUTF8(argument_0: *const c::Char, argument_1: *mut *const c::Char) -> u32;
+    pub fn SDL_DelayPrecise(argument_0: u64);
+    pub fn SDL_CalculateGPUTextureFormatSize(
+        argument_0: types::SDL_GPUTextureFormat,
+        argument_1: u32,
+        argument_2: u32,
+        argument_3: u32,
+    ) -> u32;
+    pub fn SDL_GetDefaultLogOutputFunction() -> types::SDL_LogOutputFunction;
+    pub fn SDL_RenderDebugText(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: f32,
+        argument_2: f32,
+        argument_3: *const c::Char,
+    ) -> bool;
+    pub fn SDL_GetSandbox() -> types::SDL_Sandbox;
+    pub fn SDL_CancelGPUCommandBuffer(argument_0: *mut types::SDL_GPUCommandBuffer) -> bool;
+    pub fn SDL_SaveFile_IO(
+        argument_0: *mut types::SDL_IOStream,
+        argument_1: *const (),
+        argument_2: usize,
+        argument_3: bool,
+    ) -> bool;
+    pub fn SDL_SaveFile(
+        argument_0: *const c::Char,
+        argument_1: *const (),
+        argument_2: usize,
+    ) -> bool;
+    pub fn SDL_GetCurrentDirectory() -> *mut c::Char;
+    pub fn SDL_IsAudioDevicePhysical(argument_0: types::SDL_AudioDeviceID) -> bool;
+    pub fn SDL_IsAudioDevicePlayback(argument_0: types::SDL_AudioDeviceID) -> bool;
+    pub fn SDL_AsyncIOFromFile(argument_0: *const c::Char, argument_1: *const c::Char) -> *mut types::SDL_AsyncIO;
+    pub fn SDL_GetAsyncIOSize(argument_0: *mut types::SDL_AsyncIO) -> i64;
+    pub fn SDL_ReadAsyncIO(
+        argument_0: *mut types::SDL_AsyncIO,
+        argument_1: *mut (),
+        argument_2: u64,
+        argument_3: u64,
+        argument_4: *mut types::SDL_AsyncIOQueue,
+        argument_5: *mut (),
+    ) -> bool;
+    pub fn SDL_WriteAsyncIO(
+        argument_0: *mut types::SDL_AsyncIO,
+        argument_1: *mut (),
+        argument_2: u64,
+        argument_3: u64,
+        argument_4: *mut types::SDL_AsyncIOQueue,
+        argument_5: *mut (),
+    ) -> bool;
+    pub fn SDL_CloseAsyncIO(
+        argument_0: *mut types::SDL_AsyncIO,
+        argument_1: bool,
+        argument_2: *mut types::SDL_AsyncIOQueue,
+        argument_3: *mut (),
+    ) -> bool;
+    pub fn SDL_CreateAsyncIOQueue() -> *mut types::SDL_AsyncIOQueue;
+    pub fn SDL_DestroyAsyncIOQueue(argument_0: *mut types::SDL_AsyncIOQueue);
+    pub fn SDL_GetAsyncIOResult(argument_0: *mut types::SDL_AsyncIOQueue, argument_1: *mut types::SDL_AsyncIOOutcome) -> bool;
+    pub fn SDL_WaitAsyncIOResult(
+        argument_0: *mut types::SDL_AsyncIOQueue,
+        argument_1: *mut types::SDL_AsyncIOOutcome,
+        argument_2: i32,
+    ) -> bool;
+    pub fn SDL_SignalAsyncIOQueue(argument_0: *mut types::SDL_AsyncIOQueue);
+    pub fn SDL_LoadFileAsync(
+        argument_0: *const c::Char,
+        argument_1: *mut types::SDL_AsyncIOQueue,
+        argument_2: *mut (),
+    ) -> bool;
+    pub fn SDL_ShowFileDialogWithProperties(
+        argument_0: types::SDL_FileDialogType,
+        argument_1: types::SDL_DialogFileCallback,
+        argument_2: *mut (),
+        argument_3: types::SDL_PropertiesID,
+    );
+    pub fn SDL_IsMainThread() -> bool;
+    pub fn SDL_RunOnMainThread(
+        argument_0: types::SDL_MainThreadCallback,
+        argument_1: *mut (),
+        argument_2: bool,
+    ) -> bool;
+    pub fn SDL_SetGPUAllowedFramesInFlight(argument_0: *mut types::SDL_GPUDevice, argument_1: u32) -> bool;
+    pub fn SDL_RenderTextureAffine(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: *mut types::SDL_Texture,
+        argument_2: *const types::SDL_FRect,
+        argument_3: *const types::SDL_FPoint,
+        argument_4: *const types::SDL_FPoint,
+        argument_5: *const types::SDL_FPoint,
+    ) -> bool;
+    pub fn SDL_WaitForGPUSwapchain(argument_0: *mut types::SDL_GPUDevice, argument_1: *mut types::SDL_Window) -> bool;
+    pub fn SDL_WaitAndAcquireGPUSwapchainTexture(
+        argument_0: *mut types::SDL_GPUCommandBuffer,
+        argument_1: *mut types::SDL_Window,
+        argument_2: *mut *mut types::SDL_GPUTexture,
+        argument_3: *mut u32,
+        argument_4: *mut u32,
+    ) -> bool;
+    pub fn SDL_CreateTray(argument_0: *mut types::SDL_Surface, argument_1: *const c::Char) -> *mut types::SDL_Tray;
+    pub fn SDL_SetTrayIcon(argument_0: *mut types::SDL_Tray, argument_1: *mut types::SDL_Surface);
+    pub fn SDL_SetTrayTooltip(argument_0: *mut types::SDL_Tray, argument_1: *const c::Char);
+    pub fn SDL_CreateTrayMenu(argument_0: *mut types::SDL_Tray) -> *mut types::SDL_TrayMenu;
+    pub fn SDL_CreateTraySubmenu(argument_0: *mut types::SDL_TrayEntry) -> *mut types::SDL_TrayMenu;
+    pub fn SDL_GetTrayMenu(argument_0: *mut types::SDL_Tray) -> *mut types::SDL_TrayMenu;
+    pub fn SDL_GetTraySubmenu(argument_0: *mut types::SDL_TrayEntry) -> *mut types::SDL_TrayMenu;
+    pub fn SDL_GetTrayEntries(argument_0: *mut types::SDL_TrayMenu, argument_1: *mut c::Int) -> *mut *const types::SDL_TrayEntry;
+    pub fn SDL_RemoveTrayEntry(argument_0: *mut types::SDL_TrayEntry);
+    pub fn SDL_InsertTrayEntryAt(
+        argument_0: *mut types::SDL_TrayMenu,
+        argument_1: c::Int,
+        argument_2: *const c::Char,
+        argument_3: types::SDL_TrayEntryFlags,
+    ) -> *mut types::SDL_TrayEntry;
+    pub fn SDL_SetTrayEntryLabel(argument_0: *mut types::SDL_TrayEntry, argument_1: *const c::Char);
+    pub fn SDL_GetTrayEntryLabel(argument_0: *mut types::SDL_TrayEntry) -> *const c::Char;
+    pub fn SDL_SetTrayEntryChecked(argument_0: *mut types::SDL_TrayEntry, argument_1: bool);
+    pub fn SDL_GetTrayEntryChecked(argument_0: *mut types::SDL_TrayEntry) -> bool;
+    pub fn SDL_SetTrayEntryEnabled(argument_0: *mut types::SDL_TrayEntry, argument_1: bool);
+    pub fn SDL_GetTrayEntryEnabled(argument_0: *mut types::SDL_TrayEntry) -> bool;
+    pub fn SDL_SetTrayEntryCallback(
+        argument_0: *mut types::SDL_TrayEntry,
+        argument_1: types::SDL_TrayCallback,
+        argument_2: *mut (),
+    );
+    pub fn SDL_DestroyTray(argument_0: *mut types::SDL_Tray);
+    pub fn SDL_GetTrayEntryParent(argument_0: *mut types::SDL_TrayEntry) -> *mut types::SDL_TrayMenu;
+    pub fn SDL_GetTrayMenuParentEntry(argument_0: *mut types::SDL_TrayMenu) -> *mut types::SDL_TrayEntry;
+    pub fn SDL_GetTrayMenuParentTray(argument_0: *mut types::SDL_TrayMenu) -> *mut types::SDL_Tray;
+    pub fn SDL_GetThreadState(argument_0: *mut types::SDL_Thread) -> types::SDL_ThreadState;
+    pub fn SDL_AudioStreamDevicePaused(argument_0: *mut types::SDL_AudioStream) -> bool;
+    pub fn SDL_ClickTrayEntry(argument_0: *mut types::SDL_TrayEntry);
+    pub fn SDL_UpdateTrays();
+    pub fn SDL_StretchSurface(
+        argument_0: *mut types::SDL_Surface,
+        argument_1: *const types::SDL_Rect,
+        argument_2: *mut types::SDL_Surface,
+        argument_3: *const types::SDL_Rect,
+        argument_4: types::SDL_ScaleMode,
+    ) -> bool;
+    pub fn SDL_SetRelativeMouseTransform(argument_0: types::SDL_MouseMotionTransformCallback, argument_1: *mut ()) -> bool;
+    pub fn SDL_RenderTexture9GridTiled(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: *mut types::SDL_Texture,
+        argument_2: *const types::SDL_FRect,
+        argument_3: f32,
+        argument_4: f32,
+        argument_5: f32,
+        argument_6: f32,
+        argument_7: f32,
+        argument_8: *const types::SDL_FRect,
+        argument_9: f32,
+    ) -> bool;
+    pub fn SDL_SetDefaultTextureScaleMode(argument_0: *mut types::SDL_Renderer, argument_1: types::SDL_ScaleMode) -> bool;
+    pub fn SDL_GetDefaultTextureScaleMode(argument_0: *mut types::SDL_Renderer, argument_1: *mut types::SDL_ScaleMode) -> bool;
+    pub fn SDL_CreateGPURenderState(argument_0: *mut types::SDL_Renderer, argument_1: *const types::SDL_GPURenderStateCreateInfo) -> *mut types::SDL_GPURenderState;
+    pub fn SDL_SetGPURenderStateFragmentUniforms(
+        argument_0: *mut types::SDL_GPURenderState,
+        argument_1: u32,
+        argument_2: *const (),
+        argument_3: u32,
+    ) -> bool;
+    pub fn SDL_SetGPURenderState(argument_0: *mut types::SDL_Renderer, argument_1: *mut types::SDL_GPURenderState) -> bool;
+    pub fn SDL_DestroyGPURenderState(argument_0: *mut types::SDL_GPURenderState);
+    pub fn SDL_SetWindowProgressState(argument_0: *mut types::SDL_Window, argument_1: types::SDL_ProgressState) -> bool;
+    pub fn SDL_SetWindowProgressValue(argument_0: *mut types::SDL_Window, argument_1: f32) -> bool;
+    pub fn SDL_GetWindowProgressState(argument_0: *mut types::SDL_Window) -> types::SDL_ProgressState;
+    pub fn SDL_GetWindowProgressValue(argument_0: *mut types::SDL_Window) -> f32;
+    pub fn SDL_SetRenderTextureAddressMode(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: types::SDL_TextureAddressMode,
+        argument_2: types::SDL_TextureAddressMode,
+    ) -> bool;
+    pub fn SDL_GetRenderTextureAddressMode(
+        argument_0: *mut types::SDL_Renderer,
+        argument_1: *mut types::SDL_TextureAddressMode,
+        argument_2: *mut types::SDL_TextureAddressMode,
+    ) -> bool;
+    pub fn SDL_GetGPUDeviceProperties(argument_0: *mut types::SDL_GPUDevice) -> types::SDL_PropertiesID;
+    pub fn SDL_CreateGPURenderer(argument_0: *mut types::SDL_GPUDevice, argument_1: *mut types::SDL_Window) -> *mut types::SDL_Renderer;
+    pub fn SDL_PutAudioStreamPlanarData(
+        argument_0: *mut types::SDL_AudioStream,
+        argument_1: *const *const (),
+        argument_2: c::Int,
+        argument_3: c::Int,
+    ) -> bool;
+    pub fn SDL_GetEventDescription(
+        argument_0: *const types::SDL_Event,
+        argument_1: *mut c::Char,
+        argument_2: c::Int,
+    ) -> c::Int;
+    pub fn SDL_PutAudioStreamDataNoCopy(
+        argument_0: *mut types::SDL_AudioStream,
+        argument_1: *const (),
+        argument_2: c::Int,
+        argument_3: types::SDL_AudioStreamDataCompleteCallback,
+        argument_4: *mut (),
+    ) -> bool;
+    pub fn SDL_AddAtomicU32(argument_0: *mut types::SDL_AtomicU32, argument_1: c::Int) -> u32;
+    pub fn SDL_hid_get_properties(argument_0: *mut types::SDL_hid_device) -> types::SDL_PropertiesID;
+    pub fn SDL_GetPixelFormatFromGPUTextureFormat(argument_0: types::SDL_GPUTextureFormat) -> types::SDL_PixelFormat;
+    pub fn SDL_GetGPUTextureFormatFromPixelFormat(argument_0: types::SDL_PixelFormat) -> types::SDL_GPUTextureFormat;
+    pub fn JNI_OnLoad(argument_0: *mut types::JavaVM, argument_1: *mut ()) -> i32;
+    pub fn SDL_SetTexturePalette(argument_0: *mut types::SDL_Texture, argument_1: *mut types::SDL_Palette) -> bool;
+    pub fn SDL_GetTexturePalette(argument_0: *mut types::SDL_Texture) -> *mut types::SDL_Palette;
+    pub fn SDL_GetGPURendererDevice(argument_0: *mut types::SDL_Renderer) -> *mut types::SDL_GPUDevice;
+    pub fn SDL_LoadPNG_IO(argument_0: *mut types::SDL_IOStream, argument_1: bool) -> *mut types::SDL_Surface;
+    pub fn SDL_LoadPNG(argument_0: *const c::Char) -> *mut types::SDL_Surface;
+    pub fn SDL_SavePNG_IO(
+        argument_0: *mut types::SDL_Surface,
+        argument_1: *mut types::SDL_IOStream,
+        argument_2: bool,
+    ) -> bool;
+    pub fn SDL_SavePNG(argument_0: *mut types::SDL_Surface, argument_1: *const c::Char) -> bool;
+    pub fn SDL_GetSystemPageSize() -> c::Int;
+    pub fn SDL_GetPenDeviceType(argument_0: types::SDL_PenID) -> types::SDL_PenDeviceType;
+    pub fn SDL_CreateAnimatedCursor(
+        argument_0: *mut types::SDL_CursorFrameInfo,
+        argument_1: c::Int,
+        argument_2: c::Int,
+        argument_3: c::Int,
+    ) -> *mut types::SDL_Cursor;
+    pub fn SDL_RotateSurface(argument_0: *mut types::SDL_Surface, argument_1: f32) -> *mut types::SDL_Surface;
+    pub fn SDL_LoadSurface_IO(argument_0: *mut types::SDL_IOStream, argument_1: bool) -> *mut types::SDL_Surface;
+    pub fn SDL_LoadSurface(argument_0: *const c::Char) -> *mut types::SDL_Surface;
+    pub fn SDL_SetWindowFillDocument(argument_0: *mut types::SDL_Window, argument_1: bool) -> bool;
+}

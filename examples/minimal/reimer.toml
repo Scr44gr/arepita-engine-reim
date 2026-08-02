@@ -1,0 +1,13 @@
+[package]
+name = "arepita-minimal"
+version = "0.1.0"
+edition = "2026"
+
+[dependencies]
+arepita_engine = { package = "arepita-engine", path = "../..", version = "^0.1" }
+
+[profile.debug]
+optimization = 0
+
+[profile.release]
+optimization = 3

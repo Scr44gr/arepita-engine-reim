@@ -1,0 +1,113 @@
+from std::binary import to_f32_bits;
+
+/// Valid non-empty axis-aligned rectangle represented by world-space edges.
+@repr(C)
+@derive(Pod, Debug)
+pub struct Aabb {
+    pub min_x: f32,
+    pub min_y: f32,
+    pub max_x: f32,
+    pub max_y: f32,
+}
+
+impl Aabb {
+    /// Creates bounds from top-left position and positive size.
+    pub fn new(x: f32, y: f32, width: f32, height: f32) -> Option<Aabb> {
+        Aabb::from_edges(x, y, x + width, y + height)
+    }
+
+    /// Creates bounds from ordered finite edges.
+    pub fn from_edges(
+        min_x: f32,
+        min_y: f32,
+        max_x: f32,
+        max_y: f32,
+    ) -> Option<Aabb> {
+        if !finite(min_x)
+            || !finite(min_y)
+            || !finite(max_x)
+            || !finite(max_y)
+            || max_x <= min_x
+            || max_y <= min_y
+        {
+            None
+        } else {
+            Some(Aabb {
+                min_x: min_x,
+                min_y: min_y,
+                max_x: max_x,
+                max_y: max_y,
+            })
+        }
+    }
+
+    pub fn width(&self) -> f32 { self.max_x - self.min_x }
+    pub fn height(&self) -> f32 { self.max_y - self.min_y }
+    pub fn center_x(&self) -> f32 { (self.min_x + self.max_x) * 0.5 }
+    pub fn center_y(&self) -> f32 { (self.min_y + self.max_y) * 0.5 }
+
+    /// Revalidates bounds received from serialization or foreign code.
+    pub fn is_valid(&self) -> bool {
+        finite(self.min_x)
+            && finite(self.min_y)
+            && finite(self.max_x)
+            && finite(self.max_y)
+            && self.max_x > self.min_x
+            && self.max_y > self.min_y
+    }
+
+    /// Returns strict area overlap; touching edges alone do not collide.
+    pub fn overlaps(&self, other: Aabb) -> bool {
+        self.max_x > other.min_x
+            && self.min_x < other.max_x
+            && self.max_y > other.min_y
+            && self.min_y < other.max_y
+    }
+
+    pub fn contains(&self, x: f32, y: f32) -> bool {
+        x >= self.min_x && x <= self.max_x
+            && y >= self.min_y && y <= self.max_y
+    }
+
+    pub fn translated(&self, x: f32, y: f32) -> Aabb {
+        Aabb {
+            min_x: self.min_x + x,
+            min_y: self.min_y + y,
+            max_x: self.max_x + x,
+            max_y: self.max_y + y,
+        }
+    }
+
+    /// Covers the original rectangle and its translated destination.
+    pub fn swept(&self, x: f32, y: f32) -> Aabb {
+        let moved = self.translated(x, y);
+        Aabb {
+            min_x: if self.min_x < moved.min_x { self.min_x } else { moved.min_x },
+            min_y: if self.min_y < moved.min_y { self.min_y } else { moved.min_y },
+            max_x: if self.max_x > moved.max_x { self.max_x } else { moved.max_x },
+            max_y: if self.max_y > moved.max_y { self.max_y } else { moved.max_y },
+        }
+    }
+}
+
+fn finite(value: f32) -> bool {
+    to_f32_bits(value) & 0x7f80_0000 != 0x7f80_0000
+}
+
+@test
+fn aabb_should_use_strict_overlap_and_build_swept_bounds() {
+    let first = match Aabb::new(0.0, 0.0, 10.0, 10.0) {
+        Some(value) => value,
+        None => panic("valid bounds were rejected"),
+    };
+    let touching = match Aabb::new(10.0, 0.0, 5.0, 5.0) {
+        Some(value) => value,
+        None => panic("valid touching bounds were rejected"),
+    };
+    assert(!first.overlaps(touching));
+    let swept = first.swept(-4.0, 6.0);
+    assert(swept.min_x == -4.0);
+    assert(swept.min_y == 0.0);
+    assert(swept.max_x == 10.0);
+    assert(swept.max_y == 16.0);
+}

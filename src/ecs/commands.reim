@@ -1,0 +1,242 @@
+from std::alloc import AllocError, Allocator, ArenaAllocator, general_allocator;
+from std::collections import Vec;
+
+from self::entity import Entities, Entity;
+from self::store import Component, ComponentStore;
+
+struct PendingInsert<T> {
+    entity: Entity,
+    value: T,
+}
+
+impl<T: Copy> Copy for PendingInsert<T> {}
+
+/// Counts the structural changes applied at one command barrier.
+@derive(Copy, Clone, Debug, Eq)
+pub struct CommandReport {
+    pub inserted: usize,
+    pub replaced: usize,
+    pub removed: usize,
+    pub ignored: usize,
+}
+
+/// Deferred structural changes for one component type.
+///
+/// `apply` reserves every required slot before modifying the store. If that
+/// reservation fails, the component store and queued commands remain logically
+/// unchanged and the caller may retry after freeing memory.
+pub struct ComponentCommands<T> {
+    arena: ArenaAllocator,
+    inserts: Vec<PendingInsert<T>>,
+    removals: Vec<Entity>,
+    released: bool,
+}
+
+impl<T: Component> ComponentCommands<T> {
+    /// Creates an empty reusable command queue.
+    pub fn new(
+        allocator: &Allocator,
+    ) -> Result<ComponentCommands<T>, AllocError> {
+        let mut arena = ArenaAllocator::init(allocator)?;
+        let storage_allocator = arena.allocator_value();
+        let inserts_result: Result<Vec<PendingInsert<T>>, AllocError> =
+            Vec::new(&storage_allocator);
+        let inserts = match inserts_result {
+            Ok(value) => value,
+            Err(error) => {
+                arena.release();
+                return Err(error);
+            },
+        };
+        let removals_result: Result<Vec<Entity>, AllocError> =
+            Vec::new(&storage_allocator);
+        let removals = match removals_result {
+            Ok(value) => value,
+            Err(error) => {
+                arena.release();
+                return Err(error);
+            },
+        };
+        Ok(ComponentCommands {
+            arena: arena,
+            inserts: inserts,
+            removals: removals,
+            released: false,
+        })
+    }
+
+    /// Queues an insert or replacement.
+    pub fn insert(&mut self, entity: Entity, value: T) -> Result<(), AllocError> {
+        if self.released {
+            return Err(AllocError::OutOfMemory);
+        }
+        self.inserts.push(PendingInsert { entity: entity, value: value })
+    }
+
+    /// Queues removal when the component is present at the barrier.
+    pub fn remove(&mut self, entity: Entity) -> Result<(), AllocError> {
+        if self.released {
+            return Err(AllocError::OutOfMemory);
+        }
+        self.removals.push(entity)
+    }
+
+    /// Returns the number of pending structural operations.
+    pub fn len(&self) -> usize {
+        self.inserts.len() + self.removals.len()
+    }
+
+    /// Returns whether the queue has no pending operations.
+    pub fn is_empty(&self) -> bool {
+        self.inserts.is_empty() && self.removals.is_empty()
+    }
+
+    /// Applies removals followed by inserts and retains queue capacity.
+    ///
+    /// This ordering makes a remove-then-insert pair replace an asset-like
+    /// component deterministically regardless of enqueue interleaving.
+    pub fn apply(
+        &mut self,
+        entities: &Entities,
+        store: &mut ComponentStore<T>,
+    ) -> Result<CommandReport, AllocError> {
+        if self.released {
+            return Err(AllocError::OutOfMemory);
+        }
+        let mut highest_entity_index: u32 = 0;
+        let mut index: usize = 0;
+        while index < self.inserts.len() {
+            let pending = match self.inserts.get(index) {
+                Some(value) => value,
+                None => panic("component insert storage became inconsistent"),
+            };
+            if pending.entity.index() > highest_entity_index {
+                highest_entity_index = pending.entity.index();
+            }
+            index += 1;
+        }
+        index = 0;
+        while index < self.removals.len() {
+            let entity = match self.removals.get(index) {
+                Some(value) => value,
+                None => panic("component removal storage became inconsistent"),
+            };
+            if entity.index() > highest_entity_index {
+                highest_entity_index = entity.index();
+            }
+            index += 1;
+        }
+        if !self.is_empty() {
+            store.reserve(self.inserts.len(), highest_entity_index)?;
+        }
+
+        let mut report = CommandReport {
+            inserted: 0,
+            replaced: 0,
+            removed: 0,
+            ignored: 0,
+        };
+        index = 0;
+        while index < self.removals.len() {
+            let entity = match self.removals.get(index) {
+                Some(value) => value,
+                None => panic("component removal storage became inconsistent"),
+            };
+            match store.remove(entity) {
+                Some(_) => {
+                    report.removed += 1;
+                },
+                None => {
+                    report.ignored += 1;
+                },
+            }
+            index += 1;
+        }
+        index = 0;
+        while index < self.inserts.len() {
+            let pending = match self.inserts.get(index) {
+                Some(value) => value,
+                None => panic("component insert storage became inconsistent"),
+            };
+            if !entities.contains(pending.entity) {
+                report.ignored += 1;
+            } else {
+                match store.insert(pending.entity, pending.value) {
+                    Ok(Some(_)) => {
+                        report.replaced += 1;
+                    },
+                    Ok(None) => {
+                        report.inserted += 1;
+                    },
+                    Err(_) => panic("reserved component insertion failed"),
+                    _ => panic("component insertion returned an invalid state"),
+                }
+            }
+            index += 1;
+        }
+        self.removals.clear();
+        self.inserts.clear();
+        Ok(report)
+    }
+
+    /// Releases queue storage in constant time.
+    pub fn deinit(&mut self) {
+        if self.released {
+            return;
+        }
+        self.inserts.release();
+        self.removals.release();
+        self.arena.release();
+        self.released = true;
+    }
+}
+
+@derive(Copy, Component)
+struct TestHealth {
+    value: i32,
+}
+
+@test
+fn component_commands_should_apply_only_after_full_reservation() {
+    let allocator = general_allocator();
+    let mut entities = match Entities::new(&allocator) {
+        Ok(value) => value,
+        Err(_) => panic("entity registry allocation failed"),
+    };
+    defer entities.deinit();
+    let store_result: Result<ComponentStore<TestHealth>, AllocError> =
+        ComponentStore::new(&allocator);
+    let mut store = match store_result {
+        Ok(value) => value,
+        Err(_) => panic("component store allocation failed"),
+    };
+    defer store.deinit();
+    let commands_result: Result<ComponentCommands<TestHealth>, AllocError> =
+        ComponentCommands::new(&allocator);
+    let mut commands = match commands_result {
+        Ok(value) => value,
+        Err(_) => panic("component command allocation failed"),
+    };
+    defer commands.deinit();
+
+    let entity = match entities.spawn() {
+        Ok(value) => value,
+        Err(_) => panic("entity spawn failed"),
+    };
+    let health = TestHealth { value: 42 };
+    match commands.insert(entity, health) {
+        Ok(_) => {},
+        Err(_) => panic("component command enqueue failed"),
+    }
+    assert(!store.contains(entity));
+    let report = match commands.apply(&entities, &mut store) {
+        Ok(value) => value,
+        Err(_) => panic("component command apply failed"),
+    };
+    assert(report.inserted == 1);
+    assert(commands.is_empty());
+    assert(match store.get(entity) {
+        Some(health) => health.value == 42,
+        None => false,
+    });
+}

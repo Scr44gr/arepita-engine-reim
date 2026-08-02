@@ -1,0 +1,389 @@
+from self::context import ClearColor, GpuContext, RendererError;
+from self::sprite_batch import SpriteBatch;
+from wgpu import BindGroup, BindGroupLayout, Buffer, PrimitiveTopology, RenderPipeline, Sampler, Texture, TextureView, VertexAttribute, VertexFormat;
+from wgpu_sdl3 import WindowSurface;
+
+const INSTANCE_BYTES: usize = 64;
+const SPRITE_SHADER: str = "@group(0) @binding(0) var image_sampler: sampler;\n@group(0) @binding(1) var image: texture_2d<f32>;\nstruct InstanceInput {\n    @location(0) transform: vec4<f32>,\n    @location(1) packed1: vec4<f32>,\n    @location(2) packed2: vec4<f32>,\n    @location(3) packed3: vec2<f32>,\n    @location(4) packed_indices: u32,\n    @location(5) depth: f32,\n};\nstruct VertexOutput {\n    @builtin(position) position: vec4<f32>,\n    @location(0) color: vec4<f32>,\n    @location(1) uv: vec2<f32>,\n    @location(2) @interpolate(flat) material_index: u32,\n};\n@vertex\nfn vs_main(input: InstanceInput, @builtin(vertex_index) vertex_index: u32) -> VertexOutput {\n    var corners = array<vec2<f32>, 4>(\n        vec2<f32>(-0.5, -0.5),\n        vec2<f32>(0.5, -0.5),\n        vec2<f32>(-0.5, 0.5),\n        vec2<f32>(0.5, 0.5)\n    );\n    var texture_coordinates = array<vec2<f32>, 4>(\n        vec2<f32>(input.packed1.z, input.packed2.y),\n        vec2<f32>(input.packed2.x, input.packed2.y),\n        vec2<f32>(input.packed1.z, input.packed1.w),\n        vec2<f32>(input.packed2.x, input.packed1.w)\n    );\n    let local = corners[vertex_index] * input.transform.zw;\n    let rotated = vec2<f32>(\n        local.x * input.packed1.y - local.y * input.packed1.x,\n        local.x * input.packed1.x + local.y * input.packed1.y\n    );\n    var output: VertexOutput;\n    output.position = vec4<f32>(input.transform.xy + rotated, input.depth, 1.0);\n    output.color = vec4<f32>(input.packed2.zw, input.packed3.xy);\n    output.uv = texture_coordinates[vertex_index];\n    output.material_index = input.packed_indices >> 16u;\n    return output;\n}\n@fragment\nfn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {\n    if input.material_index == 65535u {\n        return input.color;\n    }\n    let sampled = textureSample(image, image_sampler, input.uv);\n    if sampled.a == 0.0 {\n        discard;\n    }\n    return sampled * input.color;\n}\n";
+
+struct AtlasBinding {
+    texture: Texture,
+    view: TextureView,
+    bind_group: BindGroup,
+}
+
+impl AtlasBinding {
+    fn byte_len(&self) -> u64 {
+        self.texture.byte_len()
+    }
+
+    fn release(&mut self) {
+        self.bind_group.release();
+        self.view.release();
+        self.texture.release();
+    }
+}
+
+/// Persistent colored-sprite pipeline with a reusable instance buffer.
+///
+/// Positions and sizes are expressed in normalized device coordinates. The
+/// frame path performs one contiguous upload and one instanced draw call.
+pub struct SpriteRenderer {
+    pipeline: RenderPipeline,
+    layout: BindGroupLayout,
+    sampler: Sampler,
+    atlas: AtlasBinding,
+    instance_buffer: Buffer,
+    capacity: usize,
+    released: bool,
+}
+
+/// Work submitted by one sprite-rendering call.
+@derive(Copy, Clone, Debug, Eq)
+pub struct RenderReport {
+    pub draw_calls: u32,
+    pub instances: u32,
+    pub uploaded_bytes: u64,
+}
+
+impl SpriteRenderer {
+    /// Creates the pipeline and prepares storage for `capacity` instances.
+    pub fn create(
+        context: &GpuContext,
+        capacity: usize,
+    ) -> Result<SpriteRenderer, RendererError> {
+        SpriteRenderer::create_with_shader(context, capacity, SPRITE_SHADER)
+    }
+
+    /// Creates the sprite pipeline from application-owned WGSL.
+    ///
+    /// The shader must consume the documented 64-byte `SpriteInstance`
+    /// layout. This keeps game-specific material behavior outside the engine
+    /// while retaining the same bounded batch and resource lifetime.
+    pub fn create_with_shader(
+        context: &GpuContext,
+        capacity: usize,
+        shader_source: str,
+    ) -> Result<SpriteRenderer, RendererError> {
+        let capacity = if capacity < 1 as usize { 1 as usize } else { capacity };
+        if capacity > 0xffff_ffff {
+            return Err(RendererError::BatchCapacityExceeded);
+        }
+        let attributes = [
+            VertexAttribute::new(VertexFormat::Float32x4, 0, 0),
+            VertexAttribute::new(VertexFormat::Float32x4, 16, 1),
+            VertexAttribute::new(VertexFormat::Float32x4, 32, 2),
+            VertexAttribute::new(VertexFormat::Float32x2, 48, 3),
+            VertexAttribute::new(VertexFormat::Uint32, 56, 4),
+            VertexAttribute::new(VertexFormat::Float32, 60, 5),
+        ];
+        let device = context.device()?;
+        let format = context.format()?;
+        let mut pipeline = match device.create_render_pipeline_wgsl_with_topology(
+            "arepita colored sprites",
+            shader_source,
+            format,
+            INSTANCE_BYTES as u64,
+            true,
+            &attributes,
+            PrimitiveTopology::TriangleStrip,
+        ) {
+            Ok(value) => value,
+            Err(_) => {
+                return Err(RendererError::PipelineCreationFailed);
+            },
+        };
+        let byte_capacity = capacity as u64 * INSTANCE_BYTES as u64;
+        let mut instance_buffer = match device.create_vertex_buffer(byte_capacity) {
+            Ok(value) => value,
+            Err(_) => {
+                pipeline.release();
+                return Err(RendererError::BufferCreationFailed);
+            },
+        };
+        let mut layout = match pipeline.bind_group_layout(0) {
+            Ok(value) => value,
+            Err(_) => {
+                instance_buffer.release();
+                pipeline.release();
+                return Err(RendererError::BindingCreationFailed);
+            },
+        };
+        let mut sampler = match device.create_nearest_sampler() {
+            Ok(value) => value,
+            Err(_) => {
+                layout.release();
+                instance_buffer.release();
+                pipeline.release();
+                return Err(RendererError::BindingCreationFailed);
+            },
+        };
+        let white: [u8; 4] = [255, 255, 255, 255];
+        let atlas = match create_atlas(context, &layout, &sampler, 1, 1, &white) {
+            Ok(value) => value,
+            Err(error) => {
+                sampler.release();
+                layout.release();
+                instance_buffer.release();
+                pipeline.release();
+                return Err(error);
+            },
+        };
+        Ok(SpriteRenderer {
+            pipeline: pipeline,
+            layout: layout,
+            sampler: sampler,
+            atlas: atlas,
+            instance_buffer: instance_buffer,
+            capacity: capacity,
+            released: false,
+        })
+    }
+
+    /// Returns the maximum batch size that does not allocate.
+    pub fn capacity(&self) -> usize {
+        if self.released { 0 } else { self.capacity }
+    }
+
+    /// Returns persistent GPU buffer memory owned by this renderer.
+    pub fn allocated_bytes(&self) -> u64 {
+        if self.released {
+            0
+        } else {
+            self.capacity as u64 * INSTANCE_BYTES as u64 + self.atlas.byte_len()
+        }
+    }
+
+    /// Atomically replaces the sprite pipeline with application-owned WGSL.
+    ///
+    /// The current pipeline remains usable when compilation or binding fails.
+    /// Atlas pixels, sampler state, and prepared instance storage are retained.
+    pub fn set_shader(
+        &mut self,
+        context: &GpuContext,
+        shader_source: str,
+    ) -> Result<(), RendererError> {
+        if self.released {
+            return Err(RendererError::Released);
+        }
+        let attributes = [
+            VertexAttribute::new(VertexFormat::Float32x4, 0, 0),
+            VertexAttribute::new(VertexFormat::Float32x4, 16, 1),
+            VertexAttribute::new(VertexFormat::Float32x4, 32, 2),
+            VertexAttribute::new(VertexFormat::Float32x2, 48, 3),
+            VertexAttribute::new(VertexFormat::Uint32, 56, 4),
+            VertexAttribute::new(VertexFormat::Float32, 60, 5),
+        ];
+        let device = context.device()?;
+        let format = context.format()?;
+        let mut replacement_pipeline = match device.create_render_pipeline_wgsl_with_topology(
+            "application sprite materials",
+            shader_source,
+            format,
+            INSTANCE_BYTES as u64,
+            true,
+            &attributes,
+            PrimitiveTopology::TriangleStrip,
+        ) {
+            Ok(value) => value,
+            Err(_) => { return Err(RendererError::PipelineCreationFailed); },
+        };
+        let mut replacement_layout = match replacement_pipeline.bind_group_layout(0) {
+            Ok(value) => value,
+            Err(_) => {
+                replacement_pipeline.release();
+                return Err(RendererError::BindingCreationFailed);
+            },
+        };
+        let replacement_binding = match device.create_texture_bind_group(
+            &replacement_layout,
+            &self.sampler,
+            &self.atlas.view,
+        ) {
+            Ok(value) => value,
+            Err(_) => {
+                replacement_layout.release();
+                replacement_pipeline.release();
+                return Err(RendererError::BindingCreationFailed);
+            },
+        };
+        self.atlas.bind_group.release();
+        self.layout.release();
+        self.pipeline.release();
+        self.atlas.bind_group = replacement_binding;
+        self.layout = replacement_layout;
+        self.pipeline = replacement_pipeline;
+        Ok(())
+    }
+
+    /// Replaces the sprite atlas from tightly packed sRGB RGBA8 pixels.
+    ///
+    /// The old atlas remains active when creation or upload fails.
+    pub fn set_atlas_rgba8(
+        &mut self,
+        context: &GpuContext,
+        width: u32,
+        height: u32,
+        pixels: &[u8],
+    ) -> Result<(), RendererError> {
+        if self.released {
+            return Err(RendererError::Released);
+        }
+        let replacement = create_atlas(
+            context,
+            &self.layout,
+            &self.sampler,
+            width,
+            height,
+            pixels,
+        )?;
+        self.atlas.release();
+        self.atlas = replacement;
+        Ok(())
+    }
+
+    /// Replaces the instance buffer before gameplay when more room is needed.
+    pub fn reserve(
+        &mut self,
+        context: &GpuContext,
+        capacity: usize,
+    ) -> Result<(), RendererError> {
+        if self.released {
+            return Err(RendererError::Released);
+        }
+        if capacity <= self.capacity {
+            return Ok(());
+        }
+        if capacity > 0xffff_ffff {
+            return Err(RendererError::BatchCapacityExceeded);
+        }
+        let byte_capacity = capacity as u64 * INSTANCE_BYTES as u64;
+        let device = context.device()?;
+        let replacement = match device.create_vertex_buffer(byte_capacity) {
+            Ok(value) => value,
+            Err(_) => {
+                return Err(RendererError::BufferCreationFailed);
+            },
+        };
+        self.instance_buffer.release();
+        self.instance_buffer = replacement;
+        self.capacity = capacity;
+        Ok(())
+    }
+
+    /// Uploads and draws a complete batch with one instanced draw call.
+    pub fn draw(
+        &self,
+        context: &GpuContext,
+        surface: &WindowSurface,
+        batch: &SpriteBatch,
+        clear: ClearColor,
+    ) -> Result<RenderReport, RendererError> {
+        if self.released {
+            return Err(RendererError::Released);
+        }
+        let count = batch.len();
+        if count > self.capacity || count > 0xffff_ffff {
+            return Err(RendererError::BatchCapacityExceeded);
+        }
+        if count == 0 {
+            context.clear(surface, clear)?;
+            return Ok(RenderReport {
+                draw_calls: 0,
+                instances: 0,
+                uploaded_bytes: 0,
+            });
+        }
+        let queue = context.queue()?;
+        match queue.write_buffer_pod(
+            &self.instance_buffer,
+            0,
+            batch.instances(),
+        ) {
+            Ok(_) => {},
+            Err(_) => {
+                return Err(RendererError::UploadFailed);
+            },
+        }
+        context.draw_instances(
+            surface,
+            clear,
+            &self.pipeline,
+            &self.atlas.bind_group,
+            &self.instance_buffer,
+            4,
+            count as u32,
+            count as u64 * INSTANCE_BYTES as u64,
+        )?;
+        Ok(RenderReport {
+            draw_calls: 1,
+            instances: count as u32,
+            uploaded_bytes: count as u64 * INSTANCE_BYTES as u64,
+        })
+    }
+
+    /// Releases the instance buffer and render pipeline exactly once.
+    pub fn release(&mut self) {
+        if self.released {
+            return;
+        }
+        self.instance_buffer.release();
+        self.atlas.release();
+        self.sampler.release();
+        self.layout.release();
+        self.pipeline.release();
+        self.capacity = 0;
+        self.released = true;
+    }
+}
+
+fn create_atlas(
+    context: &GpuContext,
+    layout: &BindGroupLayout,
+    sampler: &Sampler,
+    width: u32,
+    height: u32,
+    pixels: &[u8],
+) -> Result<AtlasBinding, RendererError> {
+    let device = context.device()?;
+    let mut texture = match device.create_rgba8_texture(width, height, true) {
+        Ok(value) => value,
+        Err(_) => {
+            return Err(RendererError::TextureCreationFailed);
+        },
+    };
+    let mut view = match texture.create_view() {
+        Ok(value) => value,
+        Err(_) => {
+            texture.release();
+            return Err(RendererError::BindingCreationFailed);
+        },
+    };
+    let mut bind_group = match device.create_texture_bind_group(
+        layout,
+        sampler,
+        &view,
+    ) {
+        Ok(value) => value,
+        Err(_) => {
+            view.release();
+            texture.release();
+            return Err(RendererError::BindingCreationFailed);
+        },
+    };
+    let queue = context.queue()?;
+    match queue.write_texture_rgba8(&texture, pixels) {
+        Ok(_) => {},
+        Err(_) => {
+            bind_group.release();
+            view.release();
+            texture.release();
+            return Err(RendererError::UploadFailed);
+        },
+    }
+    Ok(AtlasBinding {
+        texture: texture,
+        view: view,
+        bind_group: bind_group,
+    })
+}

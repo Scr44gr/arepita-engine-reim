@@ -1,0 +1,49 @@
+from sdl3 import MouseButton, Scancode;
+import sdl3::input as input;
+
+/// Common physical keyboard scancodes.
+pub const A: Scancode = input::SCANCODE_A;
+pub const B: Scancode = input::SCANCODE_B;
+pub const C: Scancode = input::SCANCODE_C;
+pub const D: Scancode = input::SCANCODE_D;
+pub const E: Scancode = input::SCANCODE_E;
+pub const F: Scancode = input::SCANCODE_F;
+pub const G: Scancode = input::SCANCODE_G;
+pub const H: Scancode = input::SCANCODE_H;
+pub const I: Scancode = input::SCANCODE_I;
+pub const J: Scancode = input::SCANCODE_J;
+pub const K: Scancode = input::SCANCODE_K;
+pub const L: Scancode = input::SCANCODE_L;
+pub const M: Scancode = input::SCANCODE_M;
+pub const N: Scancode = input::SCANCODE_N;
+pub const O: Scancode = input::SCANCODE_O;
+pub const P: Scancode = input::SCANCODE_P;
+pub const Q: Scancode = input::SCANCODE_Q;
+pub const R: Scancode = input::SCANCODE_R;
+pub const S: Scancode = input::SCANCODE_S;
+pub const T: Scancode = input::SCANCODE_T;
+pub const U: Scancode = input::SCANCODE_U;
+pub const V: Scancode = input::SCANCODE_V;
+pub const W: Scancode = input::SCANCODE_W;
+pub const X: Scancode = input::SCANCODE_X;
+pub const Y: Scancode = input::SCANCODE_Y;
+pub const Z: Scancode = input::SCANCODE_Z;
+
+pub const ESCAPE: Scancode = input::SCANCODE_ESCAPE;
+pub const ENTER: Scancode = input::SCANCODE_RETURN;
+pub const SPACE: Scancode = input::SCANCODE_SPACE;
+pub const TAB: Scancode = input::SCANCODE_TAB;
+pub const BACKSPACE: Scancode = input::SCANCODE_BACKSPACE;
+pub const UP: Scancode = input::SCANCODE_UP;
+pub const DOWN: Scancode = input::SCANCODE_DOWN;
+pub const LEFT: Scancode = input::SCANCODE_LEFT;
+pub const RIGHT: Scancode = input::SCANCODE_RIGHT;
+pub const LEFT_SHIFT: Scancode = input::SCANCODE_LSHIFT;
+pub const RIGHT_SHIFT: Scancode = input::SCANCODE_RSHIFT;
+pub const LEFT_CONTROL: Scancode = input::SCANCODE_LCTRL;
+pub const RIGHT_CONTROL: Scancode = input::SCANCODE_RCTRL;
+
+/// Common mouse buttons.
+pub const MOUSE_LEFT: MouseButton = input::MOUSE_BUTTON_LEFT;
+pub const MOUSE_MIDDLE: MouseButton = input::MOUSE_BUTTON_MIDDLE;
+pub const MOUSE_RIGHT: MouseButton = input::MOUSE_BUTTON_RIGHT;

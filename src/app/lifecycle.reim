@@ -1,0 +1,242 @@
+from std::alloc import AllocError, Allocator, ArenaAllocator, general_allocator;
+from std::collections import Vec;
+
+struct Stage<State> {
+    arena: ArenaAllocator,
+    systems: Vec<fn(&mut State) -> ()>,
+}
+
+impl<State> Stage<State> {
+    fn new(allocator: &Allocator) -> Result<Stage<State>, AllocError> {
+        let mut arena = ArenaAllocator::init(allocator)?;
+        let storage_allocator = arena.allocator_value();
+        let created: Result<Vec<fn(&mut State) -> ()>, AllocError> =
+            Vec::new(&storage_allocator);
+        let systems = match created {
+            Ok(value) => value,
+            Err(error) => {
+                arena.release();
+                return Err(error);
+            },
+        };
+        Ok(Stage { arena: arena, systems: systems })
+    }
+
+    fn add(&mut self, system: fn(&mut State) -> ()) -> Result<(), AllocError> {
+        self.systems.push(system)
+    }
+
+    fn run(&self, state: &mut State) {
+        let mut index: usize = 0;
+        while index < self.systems.len() {
+            match self.systems.get(index) {
+                Some(system) => system(state),
+                None => panic("application stage storage became inconsistent"),
+            }
+            index += 1;
+        }
+    }
+
+    fn release(&mut self) {
+        self.systems.release();
+        self.arena.release();
+    }
+}
+
+/// State owned by an `Application` and released when it shuts down.
+pub trait ApplicationState: Send {
+    /// Releases component stores, assets, and other owned resources.
+    fn release(&mut self);
+}
+
+/// Deterministic application lifecycle built from ordinary function systems.
+///
+/// Startup runs once. Update and render run once per `run_frame` call. The
+/// application state remains a concrete struct, so system access is statically
+/// typed and does not require runtime reflection or string lookup.
+pub struct Application<State> {
+    state: State,
+    startup: Stage<State>,
+    update: Stage<State>,
+    render: Stage<State>,
+    started: bool,
+    released: bool,
+}
+
+impl<State: ApplicationState> Application<State> {
+    /// Takes ownership of state and creates empty lifecycle schedules.
+    ///
+    /// If schedule allocation fails, `state.release()` is called before the
+    /// error is returned.
+    pub fn new(
+        state: State,
+        allocator: &Allocator,
+    ) -> Result<Application<State>, AllocError> {
+        let mut state = state;
+        let startup_result: Result<Stage<State>, AllocError> = Stage::new(allocator);
+        let mut startup = match startup_result {
+            Ok(value) => value,
+            Err(error) => {
+                state.release();
+                return Err(error);
+            },
+        };
+        let update_result: Result<Stage<State>, AllocError> = Stage::new(allocator);
+        let mut update_stage = match update_result {
+            Ok(value) => value,
+            Err(error) => {
+                startup.release();
+                state.release();
+                return Err(error);
+            },
+        };
+        let render_result: Result<Stage<State>, AllocError> = Stage::new(allocator);
+        let render_stage = match render_result {
+            Ok(value) => value,
+            Err(error) => {
+                update_stage.release();
+                startup.release();
+                state.release();
+                return Err(error);
+            },
+        };
+        Ok(Application {
+            state: state,
+            startup: startup,
+            update: update_stage,
+            render: render_stage,
+            started: false,
+            released: false,
+        })
+    }
+
+    /// Registers a system that runs once before the first update.
+    pub fn add_startup_system(
+        &mut self,
+        system: fn(&mut State) -> (),
+    ) -> Result<(), AllocError> {
+        if self.released {
+            return Err(AllocError::OutOfMemory);
+        }
+        self.startup.add(system)
+    }
+
+    /// Registers a deterministic per-frame update system.
+    pub fn add_update_system(
+        &mut self,
+        system: fn(&mut State) -> (),
+    ) -> Result<(), AllocError> {
+        if self.released {
+            return Err(AllocError::OutOfMemory);
+        }
+        self.update.add(system)
+    }
+
+    /// Registers a deterministic per-frame render-extraction system.
+    pub fn add_render_system(
+        &mut self,
+        system: fn(&mut State) -> (),
+    ) -> Result<(), AllocError> {
+        if self.released {
+            return Err(AllocError::OutOfMemory);
+        }
+        self.render.add(system)
+    }
+
+    /// Runs startup if necessary, then update and render exactly once.
+    pub fn run_frame(&mut self) {
+        if self.released {
+            return;
+        }
+        if !self.started {
+            self.startup.run(&mut self.state);
+            self.started = true;
+        }
+        self.update.run(&mut self.state);
+        self.render.run(&mut self.state);
+    }
+
+    /// Borrows the concrete application state.
+    pub fn state(&self) -> &State {
+        &self.state
+    }
+
+    /// Mutably borrows the concrete application state.
+    pub fn state_mut(&mut self) -> &mut State {
+        &mut self.state
+    }
+
+    /// Releases schedules and application-owned state exactly once.
+    pub fn release(&mut self) {
+        if self.released {
+            return;
+        }
+        self.render.release();
+        self.update.release();
+        self.startup.release();
+        self.state.release();
+        self.released = true;
+    }
+}
+
+struct TestState {
+    value: i32,
+    released: bool,
+}
+
+impl ApplicationState for TestState {
+    fn release(&mut self) {
+        self.released = true;
+    }
+}
+
+fn initialize(state: &mut TestState) {
+    state.value = 20;
+}
+
+fn update(state: &mut TestState) {
+    state.value += 1;
+}
+
+fn render_extract(state: &mut TestState) {
+    state.value *= 2;
+}
+
+@test
+fn app_should_run_startup_once_and_release_state_once() {
+    let allocator = general_allocator();
+    let state = TestState { value: 0, released: false };
+    let created: Result<Application<TestState>, AllocError> =
+        Application::new(state, &allocator);
+    let mut app = match created {
+        Ok(value) => value,
+        Err(_) => panic("app allocation failed"),
+    };
+    defer app.release();
+    match app.add_startup_system(initialize) {
+        Ok(_) => {},
+        Err(_) => panic("startup registration failed"),
+    }
+    match app.add_update_system(update) {
+        Ok(_) => {},
+        Err(_) => panic("update registration failed"),
+    }
+    match app.add_render_system(render_extract) {
+        Ok(_) => {},
+        Err(_) => panic("render registration failed"),
+    }
+
+    app.run_frame();
+    {
+        assert(app.state().value == 42);
+    }
+    app.run_frame();
+    {
+        assert(app.state().value == 86);
+        assert(!app.state().released);
+    }
+    app.release();
+    {
+        assert(app.state().released);
+    }
+}

@@ -1,0 +1,127 @@
+from std::time import Duration;
+
+from self::resource import Resource;
+
+const MAX_U64: u64 = 18_446_744_073_709_551_615;
+
+/// Work budget produced for one rendered frame.
+@derive(Copy, Clone, Debug)
+pub struct FixedFrame {
+    /// Number of complete simulation updates to run now.
+    pub steps: u32,
+    /// Remaining fraction between the previous and next simulation states.
+    pub interpolation: f32,
+    /// Time discarded because it exceeded the configured catch-up budget.
+    pub dropped: Duration,
+}
+
+/// Fixed-timestep accumulator with a bounded catch-up budget.
+///
+/// The accumulator stores integer nanoseconds to avoid frame-to-frame floating
+/// point drift. Excess time is reported and discarded instead of allowing an
+/// overloaded simulation to enter an unbounded spiral of death.
+@derive(Copy, Resource)
+pub struct FixedClock {
+    step_nanoseconds: u64,
+    accumulator_nanoseconds: u64,
+    maximum_accumulator_nanoseconds: u64,
+    maximum_steps: u32,
+    frames: u64,
+    simulation_steps: u64,
+}
+
+impl FixedClock {
+    /// Creates a fixed clock, rejecting zero and overflowing configurations.
+    pub fn new(step: Duration, maximum_steps: u32) -> Option<FixedClock> {
+        let step_nanoseconds = step.as_nanoseconds();
+        if step_nanoseconds == 0 || maximum_steps == 0 {
+            return None;
+        }
+        if step_nanoseconds > MAX_U64 / maximum_steps as u64 {
+            return None;
+        }
+        Some(FixedClock {
+            step_nanoseconds: step_nanoseconds,
+            accumulator_nanoseconds: 0,
+            maximum_accumulator_nanoseconds: step_nanoseconds
+                * maximum_steps as u64,
+            maximum_steps: maximum_steps,
+            frames: 0,
+            simulation_steps: 0,
+        })
+    }
+
+    /// Accumulates one rendered-frame delta and returns the fixed work budget.
+    pub fn advance(&mut self, delta: Duration) -> FixedFrame {
+        let incoming = delta.as_nanoseconds();
+        let total: u64 = if incoming > MAX_U64 - self.accumulator_nanoseconds {
+            MAX_U64
+        } else {
+            self.accumulator_nanoseconds + incoming
+        };
+        let bounded: u64 = if total > self.maximum_accumulator_nanoseconds {
+            self.maximum_accumulator_nanoseconds
+        } else {
+            total
+        };
+        let dropped_nanoseconds = total - bounded;
+        let steps = (bounded / self.step_nanoseconds) as u32;
+        self.accumulator_nanoseconds = bounded
+            - steps as u64 * self.step_nanoseconds;
+        self.frames = self.frames.wrapping_add(1);
+        self.simulation_steps = self.simulation_steps
+            .wrapping_add(steps as u64);
+        let interpolation = self.accumulator_nanoseconds as f64
+            / self.step_nanoseconds as f64;
+        FixedFrame {
+            steps: steps,
+            interpolation: interpolation as f32,
+            dropped: Duration::from_nanoseconds(dropped_nanoseconds),
+        }
+    }
+
+    /// Returns the exact fixed simulation step.
+    pub fn step(&self) -> Duration {
+        Duration::from_nanoseconds(self.step_nanoseconds)
+    }
+
+    /// Returns the fixed step as fractional `f32` seconds for gameplay math.
+    pub fn step_seconds(&self) -> f32 {
+        (self.step_nanoseconds as f64 / 1_000_000_000.0) as f32
+    }
+
+    pub fn maximum_steps(&self) -> u32 { self.maximum_steps }
+    pub fn frames(&self) -> u64 { self.frames }
+    pub fn simulation_steps(&self) -> u64 { self.simulation_steps }
+}
+
+@test
+fn fixed_clock_should_accumulate_and_bound_catch_up() {
+    let mut clock = match FixedClock::new(Duration::from_milliseconds(10), 3) {
+        Some(value) => value,
+        None => panic("valid fixed-clock configuration was rejected"),
+    };
+    let first = clock.advance(Duration::from_milliseconds(25));
+    assert(first.steps == 2);
+    assert(first.interpolation == 0.5);
+    assert(first.dropped.is_zero());
+
+    let overloaded = clock.advance(Duration::from_milliseconds(40));
+    assert(overloaded.steps == 3);
+    assert(overloaded.interpolation == 0.0);
+    assert(overloaded.dropped.as_milliseconds() == 15);
+    assert(clock.frames() == 2);
+    assert(clock.simulation_steps() == 5);
+}
+
+@test
+fn fixed_clock_should_reject_invalid_budgets() {
+    assert(match FixedClock::new(Duration::from_nanoseconds(0), 4) {
+        Some(_) => false,
+        None => true,
+    });
+    assert(match FixedClock::new(Duration::from_milliseconds(16), 0) {
+        Some(_) => false,
+        None => true,
+    });
+}

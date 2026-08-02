@@ -1,0 +1,28 @@
+import std::c;
+
+import self::raw as raw;
+
+fn main() -> i32 {
+    let guid = unsafe {
+        raw::functions::SDL_StringToGUID(
+            c"030000005e0400008e02000000000000" as *const c::Char,
+        )
+    };
+    let mut output: [c::Char; 33] = [
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    ];
+    unsafe {
+        raw::functions::SDL_GUIDToString(
+            guid,
+            &mut output as *mut c::Char,
+            33,
+        );
+    }
+    if output[0] == 48 && output[1] == 51 && output[32] == 0 {
+        0
+    } else {
+        1
+    }
+}

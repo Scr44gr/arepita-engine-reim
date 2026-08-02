@@ -1,0 +1,11 @@
+from self::files import load_file;
+
+fn main() -> i32 {
+    match load_file(c"__missing_sdl3_vendor_fixture__.bin") {
+        Ok(bytes) => {
+            bytes.deinit();
+            1
+        },
+        Err(_) => 0,
+    }
+}

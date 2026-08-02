@@ -1,0 +1,2035 @@
+// Generated from wgpu-native 29.0.1.1: raw constants and enumeration values. Do not edit by hand.
+// Run `vendor/wgpu/tools/generate.ps1` to update this file.
+
+import self::types as types;
+
+/// Pinned wgpu-native release represented by these declarations.
+pub const WGPU_NATIVE_VERSION: cstr = c"29.0.1.1";
+
+/// `WGPUAdapterType_DiscreteGPU` value from `WGPUAdapterType`.
+pub const WGPUAdapterType_DiscreteGPU: types::WGPUAdapterType = 0x00000001;
+/// `WGPUAdapterType_IntegratedGPU` value from `WGPUAdapterType`.
+pub const WGPUAdapterType_IntegratedGPU: types::WGPUAdapterType = 0x00000002;
+/// `WGPUAdapterType_CPU` value from `WGPUAdapterType`.
+pub const WGPUAdapterType_CPU: types::WGPUAdapterType = 0x00000003;
+/// `WGPUAdapterType_Unknown` value from `WGPUAdapterType`.
+pub const WGPUAdapterType_Unknown: types::WGPUAdapterType = 0x00000004;
+/// `WGPUAdapterType_Force32` value from `WGPUAdapterType`.
+pub const WGPUAdapterType_Force32: types::WGPUAdapterType = 0x7fffffff;
+
+/// `0`. Indicates no value is passed for this argument. See SentinelValues.
+pub const WGPUAddressMode_Undefined: types::WGPUAddressMode = 0x00000000;
+/// `WGPUAddressMode_ClampToEdge` value from `WGPUAddressMode`.
+pub const WGPUAddressMode_ClampToEdge: types::WGPUAddressMode = 0x00000001;
+/// `WGPUAddressMode_Repeat` value from `WGPUAddressMode`.
+pub const WGPUAddressMode_Repeat: types::WGPUAddressMode = 0x00000002;
+/// `WGPUAddressMode_MirrorRepeat` value from `WGPUAddressMode`.
+pub const WGPUAddressMode_MirrorRepeat: types::WGPUAddressMode = 0x00000003;
+/// `WGPUAddressMode_Force32` value from `WGPUAddressMode`.
+pub const WGPUAddressMode_Force32: types::WGPUAddressMode = 0x7fffffff;
+
+/// `0`. Indicates no value is passed for this argument. See SentinelValues.
+pub const WGPUBackendType_Undefined: types::WGPUBackendType = 0x00000000;
+/// `WGPUBackendType_Null` value from `WGPUBackendType`.
+pub const WGPUBackendType_Null: types::WGPUBackendType = 0x00000001;
+/// `WGPUBackendType_WebGPU` value from `WGPUBackendType`.
+pub const WGPUBackendType_WebGPU: types::WGPUBackendType = 0x00000002;
+/// `WGPUBackendType_D3D11` value from `WGPUBackendType`.
+pub const WGPUBackendType_D3D11: types::WGPUBackendType = 0x00000003;
+/// `WGPUBackendType_D3D12` value from `WGPUBackendType`.
+pub const WGPUBackendType_D3D12: types::WGPUBackendType = 0x00000004;
+/// `WGPUBackendType_Metal` value from `WGPUBackendType`.
+pub const WGPUBackendType_Metal: types::WGPUBackendType = 0x00000005;
+/// `WGPUBackendType_Vulkan` value from `WGPUBackendType`.
+pub const WGPUBackendType_Vulkan: types::WGPUBackendType = 0x00000006;
+/// `WGPUBackendType_OpenGL` value from `WGPUBackendType`.
+pub const WGPUBackendType_OpenGL: types::WGPUBackendType = 0x00000007;
+/// `WGPUBackendType_OpenGLES` value from `WGPUBackendType`.
+pub const WGPUBackendType_OpenGLES: types::WGPUBackendType = 0x00000008;
+/// `WGPUBackendType_Force32` value from `WGPUBackendType`.
+pub const WGPUBackendType_Force32: types::WGPUBackendType = 0x7fffffff;
+
+/// `0`. Indicates no value is passed for this argument. See SentinelValues.
+pub const WGPUBlendFactor_Undefined: types::WGPUBlendFactor = 0x00000000;
+/// `WGPUBlendFactor_Zero` value from `WGPUBlendFactor`.
+pub const WGPUBlendFactor_Zero: types::WGPUBlendFactor = 0x00000001;
+/// `WGPUBlendFactor_One` value from `WGPUBlendFactor`.
+pub const WGPUBlendFactor_One: types::WGPUBlendFactor = 0x00000002;
+/// `WGPUBlendFactor_Src` value from `WGPUBlendFactor`.
+pub const WGPUBlendFactor_Src: types::WGPUBlendFactor = 0x00000003;
+/// `WGPUBlendFactor_OneMinusSrc` value from `WGPUBlendFactor`.
+pub const WGPUBlendFactor_OneMinusSrc: types::WGPUBlendFactor = 0x00000004;
+/// `WGPUBlendFactor_SrcAlpha` value from `WGPUBlendFactor`.
+pub const WGPUBlendFactor_SrcAlpha: types::WGPUBlendFactor = 0x00000005;
+/// `WGPUBlendFactor_OneMinusSrcAlpha` value from `WGPUBlendFactor`.
+pub const WGPUBlendFactor_OneMinusSrcAlpha: types::WGPUBlendFactor = 0x00000006;
+/// `WGPUBlendFactor_Dst` value from `WGPUBlendFactor`.
+pub const WGPUBlendFactor_Dst: types::WGPUBlendFactor = 0x00000007;
+/// `WGPUBlendFactor_OneMinusDst` value from `WGPUBlendFactor`.
+pub const WGPUBlendFactor_OneMinusDst: types::WGPUBlendFactor = 0x00000008;
+/// `WGPUBlendFactor_DstAlpha` value from `WGPUBlendFactor`.
+pub const WGPUBlendFactor_DstAlpha: types::WGPUBlendFactor = 0x00000009;
+/// `WGPUBlendFactor_OneMinusDstAlpha` value from `WGPUBlendFactor`.
+pub const WGPUBlendFactor_OneMinusDstAlpha: types::WGPUBlendFactor = 0x0000000a;
+/// `WGPUBlendFactor_SrcAlphaSaturated` value from `WGPUBlendFactor`.
+pub const WGPUBlendFactor_SrcAlphaSaturated: types::WGPUBlendFactor = 0x0000000b;
+/// `WGPUBlendFactor_Constant` value from `WGPUBlendFactor`.
+pub const WGPUBlendFactor_Constant: types::WGPUBlendFactor = 0x0000000c;
+/// `WGPUBlendFactor_OneMinusConstant` value from `WGPUBlendFactor`.
+pub const WGPUBlendFactor_OneMinusConstant: types::WGPUBlendFactor = 0x0000000d;
+/// `WGPUBlendFactor_Src1` value from `WGPUBlendFactor`.
+pub const WGPUBlendFactor_Src1: types::WGPUBlendFactor = 0x0000000e;
+/// `WGPUBlendFactor_OneMinusSrc1` value from `WGPUBlendFactor`.
+pub const WGPUBlendFactor_OneMinusSrc1: types::WGPUBlendFactor = 0x0000000f;
+/// `WGPUBlendFactor_Src1Alpha` value from `WGPUBlendFactor`.
+pub const WGPUBlendFactor_Src1Alpha: types::WGPUBlendFactor = 0x00000010;
+/// `WGPUBlendFactor_OneMinusSrc1Alpha` value from `WGPUBlendFactor`.
+pub const WGPUBlendFactor_OneMinusSrc1Alpha: types::WGPUBlendFactor = 0x00000011;
+/// `WGPUBlendFactor_Force32` value from `WGPUBlendFactor`.
+pub const WGPUBlendFactor_Force32: types::WGPUBlendFactor = 0x7fffffff;
+
+/// `0`. Indicates no value is passed for this argument. See SentinelValues.
+pub const WGPUBlendOperation_Undefined: types::WGPUBlendOperation = 0x00000000;
+/// `WGPUBlendOperation_Add` value from `WGPUBlendOperation`.
+pub const WGPUBlendOperation_Add: types::WGPUBlendOperation = 0x00000001;
+/// `WGPUBlendOperation_Subtract` value from `WGPUBlendOperation`.
+pub const WGPUBlendOperation_Subtract: types::WGPUBlendOperation = 0x00000002;
+/// `WGPUBlendOperation_ReverseSubtract` value from `WGPUBlendOperation`.
+pub const WGPUBlendOperation_ReverseSubtract: types::WGPUBlendOperation = 0x00000003;
+/// `WGPUBlendOperation_Min` value from `WGPUBlendOperation`.
+pub const WGPUBlendOperation_Min: types::WGPUBlendOperation = 0x00000004;
+/// `WGPUBlendOperation_Max` value from `WGPUBlendOperation`.
+pub const WGPUBlendOperation_Max: types::WGPUBlendOperation = 0x00000005;
+/// `WGPUBlendOperation_Force32` value from `WGPUBlendOperation`.
+pub const WGPUBlendOperation_Force32: types::WGPUBlendOperation = 0x7fffffff;
+
+/// `0`. Indicates that this WGPUBufferBindingLayout member of
+/// its parent WGPUBindGroupLayoutEntry is not used.
+/// (See also SentinelValues.)
+pub const WGPUBufferBindingType_BindingNotUsed: types::WGPUBufferBindingType = 0x00000000;
+/// `1`. Indicates no value is passed for this argument. See SentinelValues.
+pub const WGPUBufferBindingType_Undefined: types::WGPUBufferBindingType = 0x00000001;
+/// `WGPUBufferBindingType_Uniform` value from `WGPUBufferBindingType`.
+pub const WGPUBufferBindingType_Uniform: types::WGPUBufferBindingType = 0x00000002;
+/// `WGPUBufferBindingType_Storage` value from `WGPUBufferBindingType`.
+pub const WGPUBufferBindingType_Storage: types::WGPUBufferBindingType = 0x00000003;
+/// `WGPUBufferBindingType_ReadOnlyStorage` value from `WGPUBufferBindingType`.
+pub const WGPUBufferBindingType_ReadOnlyStorage: types::WGPUBufferBindingType = 0x00000004;
+/// `WGPUBufferBindingType_Force32` value from `WGPUBufferBindingType`.
+pub const WGPUBufferBindingType_Force32: types::WGPUBufferBindingType = 0x7fffffff;
+
+/// `WGPUBufferMapState_Unmapped` value from `WGPUBufferMapState`.
+pub const WGPUBufferMapState_Unmapped: types::WGPUBufferMapState = 0x00000001;
+/// `WGPUBufferMapState_Pending` value from `WGPUBufferMapState`.
+pub const WGPUBufferMapState_Pending: types::WGPUBufferMapState = 0x00000002;
+/// `WGPUBufferMapState_Mapped` value from `WGPUBufferMapState`.
+pub const WGPUBufferMapState_Mapped: types::WGPUBufferMapState = 0x00000003;
+/// `WGPUBufferMapState_Force32` value from `WGPUBufferMapState`.
+pub const WGPUBufferMapState_Force32: types::WGPUBufferMapState = 0x7fffffff;
+
+/// Callbacks created with `WGPUCallbackMode_WaitAnyOnly`:
+/// - fire when the asynchronous operation's future is passed to a call to wgpuInstanceWaitAny
+/// AND the operation has already completed or it completes inside the call to wgpuInstanceWaitAny.
+pub const WGPUCallbackMode_WaitAnyOnly: types::WGPUCallbackMode = 0x00000001;
+/// Callbacks created with `WGPUCallbackMode_AllowProcessEvents`:
+/// - fire for the same reasons as callbacks created with `WGPUCallbackMode_WaitAnyOnly`
+/// - fire inside a call to wgpuInstanceProcessEvents if the asynchronous operation is complete.
+pub const WGPUCallbackMode_AllowProcessEvents: types::WGPUCallbackMode = 0x00000002;
+/// Callbacks created with `WGPUCallbackMode_AllowSpontaneous`:
+/// - fire for the same reasons as callbacks created with `WGPUCallbackMode_AllowProcessEvents`
+/// - **may** fire spontaneously on an arbitrary or application thread, when the WebGPU implementations discovers that the asynchronous operation is complete.
+///
+/// Implementations _should_ fire spontaneous callbacks as soon as possible.
+///
+/// Note: Because spontaneous callbacks may fire at an arbitrary time on an arbitrary thread, applications should take extra care when acquiring locks or mutating state inside the callback. It undefined behavior to re-entrantly call into the webgpu.h API if the callback fires while inside the callstack of another webgpu.h function that is not `wgpuInstanceWaitAny` or `wgpuInstanceProcessEvents`.
+pub const WGPUCallbackMode_AllowSpontaneous: types::WGPUCallbackMode = 0x00000003;
+/// `WGPUCallbackMode_Force32` value from `WGPUCallbackMode`.
+pub const WGPUCallbackMode_Force32: types::WGPUCallbackMode = 0x7fffffff;
+
+/// `0`. Indicates no value is passed for this argument. See SentinelValues.
+pub const WGPUCompareFunction_Undefined: types::WGPUCompareFunction = 0x00000000;
+/// `WGPUCompareFunction_Never` value from `WGPUCompareFunction`.
+pub const WGPUCompareFunction_Never: types::WGPUCompareFunction = 0x00000001;
+/// `WGPUCompareFunction_Less` value from `WGPUCompareFunction`.
+pub const WGPUCompareFunction_Less: types::WGPUCompareFunction = 0x00000002;
+/// `WGPUCompareFunction_Equal` value from `WGPUCompareFunction`.
+pub const WGPUCompareFunction_Equal: types::WGPUCompareFunction = 0x00000003;
+/// `WGPUCompareFunction_LessEqual` value from `WGPUCompareFunction`.
+pub const WGPUCompareFunction_LessEqual: types::WGPUCompareFunction = 0x00000004;
+/// `WGPUCompareFunction_Greater` value from `WGPUCompareFunction`.
+pub const WGPUCompareFunction_Greater: types::WGPUCompareFunction = 0x00000005;
+/// `WGPUCompareFunction_NotEqual` value from `WGPUCompareFunction`.
+pub const WGPUCompareFunction_NotEqual: types::WGPUCompareFunction = 0x00000006;
+/// `WGPUCompareFunction_GreaterEqual` value from `WGPUCompareFunction`.
+pub const WGPUCompareFunction_GreaterEqual: types::WGPUCompareFunction = 0x00000007;
+/// `WGPUCompareFunction_Always` value from `WGPUCompareFunction`.
+pub const WGPUCompareFunction_Always: types::WGPUCompareFunction = 0x00000008;
+/// `WGPUCompareFunction_Force32` value from `WGPUCompareFunction`.
+pub const WGPUCompareFunction_Force32: types::WGPUCompareFunction = 0x7fffffff;
+
+/// `WGPUCompilationInfoRequestStatus_Success` value from `WGPUCompilationInfoRequestStatus`.
+pub const WGPUCompilationInfoRequestStatus_Success: types::WGPUCompilationInfoRequestStatus = 0x00000001;
+/// See CallbackStatuses.
+pub const WGPUCompilationInfoRequestStatus_CallbackCancelled: types::WGPUCompilationInfoRequestStatus = 0x00000002;
+/// `WGPUCompilationInfoRequestStatus_Force32` value from `WGPUCompilationInfoRequestStatus`.
+pub const WGPUCompilationInfoRequestStatus_Force32: types::WGPUCompilationInfoRequestStatus = 0x7fffffff;
+
+/// `WGPUCompilationMessageType_Error` value from `WGPUCompilationMessageType`.
+pub const WGPUCompilationMessageType_Error: types::WGPUCompilationMessageType = 0x00000001;
+/// `WGPUCompilationMessageType_Warning` value from `WGPUCompilationMessageType`.
+pub const WGPUCompilationMessageType_Warning: types::WGPUCompilationMessageType = 0x00000002;
+/// `WGPUCompilationMessageType_Info` value from `WGPUCompilationMessageType`.
+pub const WGPUCompilationMessageType_Info: types::WGPUCompilationMessageType = 0x00000003;
+/// `WGPUCompilationMessageType_Force32` value from `WGPUCompilationMessageType`.
+pub const WGPUCompilationMessageType_Force32: types::WGPUCompilationMessageType = 0x7fffffff;
+
+/// `0`. Indicates no value is passed for this argument. See SentinelValues.
+pub const WGPUComponentSwizzle_Undefined: types::WGPUComponentSwizzle = 0x00000000;
+/// Force its value to 0.
+pub const WGPUComponentSwizzle_Zero: types::WGPUComponentSwizzle = 0x00000001;
+/// Force its value to 1.
+pub const WGPUComponentSwizzle_One: types::WGPUComponentSwizzle = 0x00000002;
+/// Take its value from the red channel of the texture.
+pub const WGPUComponentSwizzle_R: types::WGPUComponentSwizzle = 0x00000003;
+/// Take its value from the green channel of the texture.
+pub const WGPUComponentSwizzle_G: types::WGPUComponentSwizzle = 0x00000004;
+/// Take its value from the blue channel of the texture.
+pub const WGPUComponentSwizzle_B: types::WGPUComponentSwizzle = 0x00000005;
+/// Take its value from the alpha channel of the texture.
+pub const WGPUComponentSwizzle_A: types::WGPUComponentSwizzle = 0x00000006;
+/// `WGPUComponentSwizzle_Force32` value from `WGPUComponentSwizzle`.
+pub const WGPUComponentSwizzle_Force32: types::WGPUComponentSwizzle = 0x7fffffff;
+
+/// `0`. Lets the WebGPU implementation choose the best mode (supported, and with the best performance) between WGPUCompositeAlphaMode_Opaque or WGPUCompositeAlphaMode_Inherit.
+pub const WGPUCompositeAlphaMode_Auto: types::WGPUCompositeAlphaMode = 0x00000000;
+/// The alpha component of the image is ignored and teated as if it is always 1.0.
+pub const WGPUCompositeAlphaMode_Opaque: types::WGPUCompositeAlphaMode = 0x00000001;
+/// The alpha component is respected and non-alpha components are assumed to be already multiplied with the alpha component. For example, (0.5, 0, 0, 0.5) is semi-transparent bright red.
+pub const WGPUCompositeAlphaMode_Premultiplied: types::WGPUCompositeAlphaMode = 0x00000002;
+/// The alpha component is respected and non-alpha components are assumed to NOT be already multiplied with the alpha component. For example, (1.0, 0, 0, 0.5) is semi-transparent bright red.
+pub const WGPUCompositeAlphaMode_Unpremultiplied: types::WGPUCompositeAlphaMode = 0x00000003;
+/// The handling of the alpha component is unknown to WebGPU and should be handled by the application using system-specific APIs. This mode may be unavailable (for example on Wasm).
+pub const WGPUCompositeAlphaMode_Inherit: types::WGPUCompositeAlphaMode = 0x00000004;
+/// `WGPUCompositeAlphaMode_Force32` value from `WGPUCompositeAlphaMode`.
+pub const WGPUCompositeAlphaMode_Force32: types::WGPUCompositeAlphaMode = 0x7fffffff;
+
+/// `WGPUCreatePipelineAsyncStatus_Success` value from `WGPUCreatePipelineAsyncStatus`.
+pub const WGPUCreatePipelineAsyncStatus_Success: types::WGPUCreatePipelineAsyncStatus = 0x00000001;
+/// See CallbackStatuses.
+pub const WGPUCreatePipelineAsyncStatus_CallbackCancelled: types::WGPUCreatePipelineAsyncStatus = 0x00000002;
+/// `WGPUCreatePipelineAsyncStatus_ValidationError` value from `WGPUCreatePipelineAsyncStatus`.
+pub const WGPUCreatePipelineAsyncStatus_ValidationError: types::WGPUCreatePipelineAsyncStatus = 0x00000003;
+/// `WGPUCreatePipelineAsyncStatus_InternalError` value from `WGPUCreatePipelineAsyncStatus`.
+pub const WGPUCreatePipelineAsyncStatus_InternalError: types::WGPUCreatePipelineAsyncStatus = 0x00000004;
+/// `WGPUCreatePipelineAsyncStatus_Force32` value from `WGPUCreatePipelineAsyncStatus`.
+pub const WGPUCreatePipelineAsyncStatus_Force32: types::WGPUCreatePipelineAsyncStatus = 0x7fffffff;
+
+/// `0`. Indicates no value is passed for this argument. See SentinelValues.
+pub const WGPUCullMode_Undefined: types::WGPUCullMode = 0x00000000;
+/// `WGPUCullMode_None` value from `WGPUCullMode`.
+pub const WGPUCullMode_None: types::WGPUCullMode = 0x00000001;
+/// `WGPUCullMode_Front` value from `WGPUCullMode`.
+pub const WGPUCullMode_Front: types::WGPUCullMode = 0x00000002;
+/// `WGPUCullMode_Back` value from `WGPUCullMode`.
+pub const WGPUCullMode_Back: types::WGPUCullMode = 0x00000003;
+/// `WGPUCullMode_Force32` value from `WGPUCullMode`.
+pub const WGPUCullMode_Force32: types::WGPUCullMode = 0x7fffffff;
+
+/// `WGPUDeviceLostReason_Unknown` value from `WGPUDeviceLostReason`.
+pub const WGPUDeviceLostReason_Unknown: types::WGPUDeviceLostReason = 0x00000001;
+/// `WGPUDeviceLostReason_Destroyed` value from `WGPUDeviceLostReason`.
+pub const WGPUDeviceLostReason_Destroyed: types::WGPUDeviceLostReason = 0x00000002;
+/// See CallbackStatuses.
+pub const WGPUDeviceLostReason_CallbackCancelled: types::WGPUDeviceLostReason = 0x00000003;
+/// `WGPUDeviceLostReason_FailedCreation` value from `WGPUDeviceLostReason`.
+pub const WGPUDeviceLostReason_FailedCreation: types::WGPUDeviceLostReason = 0x00000004;
+/// `WGPUDeviceLostReason_Force32` value from `WGPUDeviceLostReason`.
+pub const WGPUDeviceLostReason_Force32: types::WGPUDeviceLostReason = 0x7fffffff;
+
+/// `WGPUErrorFilter_Validation` value from `WGPUErrorFilter`.
+pub const WGPUErrorFilter_Validation: types::WGPUErrorFilter = 0x00000001;
+/// `WGPUErrorFilter_OutOfMemory` value from `WGPUErrorFilter`.
+pub const WGPUErrorFilter_OutOfMemory: types::WGPUErrorFilter = 0x00000002;
+/// `WGPUErrorFilter_Internal` value from `WGPUErrorFilter`.
+pub const WGPUErrorFilter_Internal: types::WGPUErrorFilter = 0x00000003;
+/// `WGPUErrorFilter_Force32` value from `WGPUErrorFilter`.
+pub const WGPUErrorFilter_Force32: types::WGPUErrorFilter = 0x7fffffff;
+
+/// `WGPUErrorType_NoError` value from `WGPUErrorType`.
+pub const WGPUErrorType_NoError: types::WGPUErrorType = 0x00000001;
+/// `WGPUErrorType_Validation` value from `WGPUErrorType`.
+pub const WGPUErrorType_Validation: types::WGPUErrorType = 0x00000002;
+/// `WGPUErrorType_OutOfMemory` value from `WGPUErrorType`.
+pub const WGPUErrorType_OutOfMemory: types::WGPUErrorType = 0x00000003;
+/// `WGPUErrorType_Internal` value from `WGPUErrorType`.
+pub const WGPUErrorType_Internal: types::WGPUErrorType = 0x00000004;
+/// `WGPUErrorType_Unknown` value from `WGPUErrorType`.
+pub const WGPUErrorType_Unknown: types::WGPUErrorType = 0x00000005;
+/// `WGPUErrorType_Force32` value from `WGPUErrorType`.
+pub const WGPUErrorType_Force32: types::WGPUErrorType = 0x7fffffff;
+
+/// `0`. Indicates no value is passed for this argument. See SentinelValues.
+pub const WGPUFeatureLevel_Undefined: types::WGPUFeatureLevel = 0x00000000;
+/// "Compatibility" profile which can be supported on OpenGL ES 3.1 and D3D11.
+pub const WGPUFeatureLevel_Compatibility: types::WGPUFeatureLevel = 0x00000001;
+/// "Core" profile which can be supported on Vulkan/Metal/D3D12 (at least).
+pub const WGPUFeatureLevel_Core: types::WGPUFeatureLevel = 0x00000002;
+/// `WGPUFeatureLevel_Force32` value from `WGPUFeatureLevel`.
+pub const WGPUFeatureLevel_Force32: types::WGPUFeatureLevel = 0x7fffffff;
+
+/// `WGPUFeatureName_CoreFeaturesAndLimits` value from `WGPUFeatureName`.
+pub const WGPUFeatureName_CoreFeaturesAndLimits: types::WGPUFeatureName = 0x00000001;
+/// `WGPUFeatureName_DepthClipControl` value from `WGPUFeatureName`.
+pub const WGPUFeatureName_DepthClipControl: types::WGPUFeatureName = 0x00000002;
+/// `WGPUFeatureName_Depth32FloatStencil8` value from `WGPUFeatureName`.
+pub const WGPUFeatureName_Depth32FloatStencil8: types::WGPUFeatureName = 0x00000003;
+/// `WGPUFeatureName_TextureCompressionBC` value from `WGPUFeatureName`.
+pub const WGPUFeatureName_TextureCompressionBC: types::WGPUFeatureName = 0x00000004;
+/// `WGPUFeatureName_TextureCompressionBCSliced3D` value from `WGPUFeatureName`.
+pub const WGPUFeatureName_TextureCompressionBCSliced3D: types::WGPUFeatureName = 0x00000005;
+/// `WGPUFeatureName_TextureCompressionETC2` value from `WGPUFeatureName`.
+pub const WGPUFeatureName_TextureCompressionETC2: types::WGPUFeatureName = 0x00000006;
+/// `WGPUFeatureName_TextureCompressionASTC` value from `WGPUFeatureName`.
+pub const WGPUFeatureName_TextureCompressionASTC: types::WGPUFeatureName = 0x00000007;
+/// `WGPUFeatureName_TextureCompressionASTCSliced3D` value from `WGPUFeatureName`.
+pub const WGPUFeatureName_TextureCompressionASTCSliced3D: types::WGPUFeatureName = 0x00000008;
+/// `WGPUFeatureName_TimestampQuery` value from `WGPUFeatureName`.
+pub const WGPUFeatureName_TimestampQuery: types::WGPUFeatureName = 0x00000009;
+/// `WGPUFeatureName_IndirectFirstInstance` value from `WGPUFeatureName`.
+pub const WGPUFeatureName_IndirectFirstInstance: types::WGPUFeatureName = 0x0000000a;
+/// `WGPUFeatureName_ShaderF16` value from `WGPUFeatureName`.
+pub const WGPUFeatureName_ShaderF16: types::WGPUFeatureName = 0x0000000b;
+/// `WGPUFeatureName_RG11B10UfloatRenderable` value from `WGPUFeatureName`.
+pub const WGPUFeatureName_RG11B10UfloatRenderable: types::WGPUFeatureName = 0x0000000c;
+/// `WGPUFeatureName_BGRA8UnormStorage` value from `WGPUFeatureName`.
+pub const WGPUFeatureName_BGRA8UnormStorage: types::WGPUFeatureName = 0x0000000d;
+/// `WGPUFeatureName_Float32Filterable` value from `WGPUFeatureName`.
+pub const WGPUFeatureName_Float32Filterable: types::WGPUFeatureName = 0x0000000e;
+/// `WGPUFeatureName_Float32Blendable` value from `WGPUFeatureName`.
+pub const WGPUFeatureName_Float32Blendable: types::WGPUFeatureName = 0x0000000f;
+/// `WGPUFeatureName_ClipDistances` value from `WGPUFeatureName`.
+pub const WGPUFeatureName_ClipDistances: types::WGPUFeatureName = 0x00000010;
+/// `WGPUFeatureName_DualSourceBlending` value from `WGPUFeatureName`.
+pub const WGPUFeatureName_DualSourceBlending: types::WGPUFeatureName = 0x00000011;
+/// `WGPUFeatureName_Subgroups` value from `WGPUFeatureName`.
+pub const WGPUFeatureName_Subgroups: types::WGPUFeatureName = 0x00000012;
+/// `WGPUFeatureName_TextureFormatsTier1` value from `WGPUFeatureName`.
+pub const WGPUFeatureName_TextureFormatsTier1: types::WGPUFeatureName = 0x00000013;
+/// `WGPUFeatureName_TextureFormatsTier2` value from `WGPUFeatureName`.
+pub const WGPUFeatureName_TextureFormatsTier2: types::WGPUFeatureName = 0x00000014;
+/// `WGPUFeatureName_PrimitiveIndex` value from `WGPUFeatureName`.
+pub const WGPUFeatureName_PrimitiveIndex: types::WGPUFeatureName = 0x00000015;
+/// `WGPUFeatureName_TextureComponentSwizzle` value from `WGPUFeatureName`.
+pub const WGPUFeatureName_TextureComponentSwizzle: types::WGPUFeatureName = 0x00000016;
+/// `WGPUFeatureName_Force32` value from `WGPUFeatureName`.
+pub const WGPUFeatureName_Force32: types::WGPUFeatureName = 0x7fffffff;
+
+/// `0`. Indicates no value is passed for this argument. See SentinelValues.
+pub const WGPUFilterMode_Undefined: types::WGPUFilterMode = 0x00000000;
+/// `WGPUFilterMode_Nearest` value from `WGPUFilterMode`.
+pub const WGPUFilterMode_Nearest: types::WGPUFilterMode = 0x00000001;
+/// `WGPUFilterMode_Linear` value from `WGPUFilterMode`.
+pub const WGPUFilterMode_Linear: types::WGPUFilterMode = 0x00000002;
+/// `WGPUFilterMode_Force32` value from `WGPUFilterMode`.
+pub const WGPUFilterMode_Force32: types::WGPUFilterMode = 0x7fffffff;
+
+/// `0`. Indicates no value is passed for this argument. See SentinelValues.
+pub const WGPUFrontFace_Undefined: types::WGPUFrontFace = 0x00000000;
+/// `WGPUFrontFace_CCW` value from `WGPUFrontFace`.
+pub const WGPUFrontFace_CCW: types::WGPUFrontFace = 0x00000001;
+/// `WGPUFrontFace_CW` value from `WGPUFrontFace`.
+pub const WGPUFrontFace_CW: types::WGPUFrontFace = 0x00000002;
+/// `WGPUFrontFace_Force32` value from `WGPUFrontFace`.
+pub const WGPUFrontFace_Force32: types::WGPUFrontFace = 0x7fffffff;
+
+/// `0`. Indicates no value is passed for this argument. See SentinelValues.
+pub const WGPUIndexFormat_Undefined: types::WGPUIndexFormat = 0x00000000;
+/// `WGPUIndexFormat_Uint16` value from `WGPUIndexFormat`.
+pub const WGPUIndexFormat_Uint16: types::WGPUIndexFormat = 0x00000001;
+/// `WGPUIndexFormat_Uint32` value from `WGPUIndexFormat`.
+pub const WGPUIndexFormat_Uint32: types::WGPUIndexFormat = 0x00000002;
+/// `WGPUIndexFormat_Force32` value from `WGPUIndexFormat`.
+pub const WGPUIndexFormat_Force32: types::WGPUIndexFormat = 0x7fffffff;
+
+/// Enable use of ::wgpuInstanceWaitAny with `timeoutNS > 0`.
+pub const WGPUInstanceFeatureName_TimedWaitAny: types::WGPUInstanceFeatureName = 0x00000001;
+/// Enable passing SPIR-V shaders to wgpuDeviceCreateShaderModule,
+/// via WGPUShaderSourceSPIRV.
+pub const WGPUInstanceFeatureName_ShaderSourceSPIRV: types::WGPUInstanceFeatureName = 0x00000002;
+/// Normally, a WGPUAdapter can only create a single device. If this is
+/// available and enabled, then adapters won't immediately expire when they
+/// create a device, so can be reused to make multiple devices. They may
+/// still expire for other reasons.
+pub const WGPUInstanceFeatureName_MultipleDevicesPerAdapter: types::WGPUInstanceFeatureName = 0x00000003;
+/// `WGPUInstanceFeatureName_Force32` value from `WGPUInstanceFeatureName`.
+pub const WGPUInstanceFeatureName_Force32: types::WGPUInstanceFeatureName = 0x7fffffff;
+
+/// `0`. Indicates no value is passed for this argument. See SentinelValues.
+pub const WGPULoadOp_Undefined: types::WGPULoadOp = 0x00000000;
+/// `WGPULoadOp_Load` value from `WGPULoadOp`.
+pub const WGPULoadOp_Load: types::WGPULoadOp = 0x00000001;
+/// `WGPULoadOp_Clear` value from `WGPULoadOp`.
+pub const WGPULoadOp_Clear: types::WGPULoadOp = 0x00000002;
+/// `WGPULoadOp_Force32` value from `WGPULoadOp`.
+pub const WGPULoadOp_Force32: types::WGPULoadOp = 0x7fffffff;
+
+/// `WGPUMapAsyncStatus_Success` value from `WGPUMapAsyncStatus`.
+pub const WGPUMapAsyncStatus_Success: types::WGPUMapAsyncStatus = 0x00000001;
+/// See CallbackStatuses.
+pub const WGPUMapAsyncStatus_CallbackCancelled: types::WGPUMapAsyncStatus = 0x00000002;
+/// `WGPUMapAsyncStatus_Error` value from `WGPUMapAsyncStatus`.
+pub const WGPUMapAsyncStatus_Error: types::WGPUMapAsyncStatus = 0x00000003;
+/// `WGPUMapAsyncStatus_Aborted` value from `WGPUMapAsyncStatus`.
+pub const WGPUMapAsyncStatus_Aborted: types::WGPUMapAsyncStatus = 0x00000004;
+/// `WGPUMapAsyncStatus_Force32` value from `WGPUMapAsyncStatus`.
+pub const WGPUMapAsyncStatus_Force32: types::WGPUMapAsyncStatus = 0x7fffffff;
+
+/// `0`. Indicates no value is passed for this argument. See SentinelValues.
+pub const WGPUMipmapFilterMode_Undefined: types::WGPUMipmapFilterMode = 0x00000000;
+/// `WGPUMipmapFilterMode_Nearest` value from `WGPUMipmapFilterMode`.
+pub const WGPUMipmapFilterMode_Nearest: types::WGPUMipmapFilterMode = 0x00000001;
+/// `WGPUMipmapFilterMode_Linear` value from `WGPUMipmapFilterMode`.
+pub const WGPUMipmapFilterMode_Linear: types::WGPUMipmapFilterMode = 0x00000002;
+/// `WGPUMipmapFilterMode_Force32` value from `WGPUMipmapFilterMode`.
+pub const WGPUMipmapFilterMode_Force32: types::WGPUMipmapFilterMode = 0x7fffffff;
+
+/// `0`.
+pub const WGPUOptionalBool_False: types::WGPUOptionalBool = 0x00000000;
+/// `WGPUOptionalBool_True` value from `WGPUOptionalBool`.
+pub const WGPUOptionalBool_True: types::WGPUOptionalBool = 0x00000001;
+/// `WGPUOptionalBool_Undefined` value from `WGPUOptionalBool`.
+pub const WGPUOptionalBool_Undefined: types::WGPUOptionalBool = 0x00000002;
+/// `WGPUOptionalBool_Force32` value from `WGPUOptionalBool`.
+pub const WGPUOptionalBool_Force32: types::WGPUOptionalBool = 0x7fffffff;
+
+/// The error scope stack was successfully popped and a result was reported.
+pub const WGPUPopErrorScopeStatus_Success: types::WGPUPopErrorScopeStatus = 0x00000001;
+/// See CallbackStatuses.
+pub const WGPUPopErrorScopeStatus_CallbackCancelled: types::WGPUPopErrorScopeStatus = 0x00000002;
+/// The error scope stack could not be popped, because it was empty.
+pub const WGPUPopErrorScopeStatus_Error: types::WGPUPopErrorScopeStatus = 0x00000003;
+/// `WGPUPopErrorScopeStatus_Force32` value from `WGPUPopErrorScopeStatus`.
+pub const WGPUPopErrorScopeStatus_Force32: types::WGPUPopErrorScopeStatus = 0x7fffffff;
+
+/// `0`. No preference. (See also SentinelValues.)
+pub const WGPUPowerPreference_Undefined: types::WGPUPowerPreference = 0x00000000;
+/// `WGPUPowerPreference_LowPower` value from `WGPUPowerPreference`.
+pub const WGPUPowerPreference_LowPower: types::WGPUPowerPreference = 0x00000001;
+/// `WGPUPowerPreference_HighPerformance` value from `WGPUPowerPreference`.
+pub const WGPUPowerPreference_HighPerformance: types::WGPUPowerPreference = 0x00000002;
+/// `WGPUPowerPreference_Force32` value from `WGPUPowerPreference`.
+pub const WGPUPowerPreference_Force32: types::WGPUPowerPreference = 0x7fffffff;
+
+/// `WGPUPredefinedColorSpace_SRGB` value from `WGPUPredefinedColorSpace`.
+pub const WGPUPredefinedColorSpace_SRGB: types::WGPUPredefinedColorSpace = 0x00000001;
+/// `WGPUPredefinedColorSpace_DisplayP3` value from `WGPUPredefinedColorSpace`.
+pub const WGPUPredefinedColorSpace_DisplayP3: types::WGPUPredefinedColorSpace = 0x00000002;
+/// `WGPUPredefinedColorSpace_Force32` value from `WGPUPredefinedColorSpace`.
+pub const WGPUPredefinedColorSpace_Force32: types::WGPUPredefinedColorSpace = 0x7fffffff;
+
+/// `0`. Present mode is not specified. Use the default.
+pub const WGPUPresentMode_Undefined: types::WGPUPresentMode = 0x00000000;
+/// The presentation of the image to the user waits for the next vertical blanking period to update in a first-in, first-out manner.
+/// Tearing cannot be observed and frame-loop will be limited to the display's refresh rate.
+/// This is the only mode that's always available.
+pub const WGPUPresentMode_Fifo: types::WGPUPresentMode = 0x00000001;
+/// The presentation of the image to the user tries to wait for the next vertical blanking period but may decide to not wait if a frame is presented late.
+/// Tearing can sometimes be observed but late-frame don't produce a full-frame stutter in the presentation.
+/// This is still a first-in, first-out mechanism so a frame-loop will be limited to the display's refresh rate.
+pub const WGPUPresentMode_FifoRelaxed: types::WGPUPresentMode = 0x00000002;
+/// The presentation of the image to the user is updated immediately without waiting for a vertical blank.
+/// Tearing can be observed but latency is minimized.
+pub const WGPUPresentMode_Immediate: types::WGPUPresentMode = 0x00000003;
+/// The presentation of the image to the user waits for the next vertical blanking period to update to the latest provided image.
+/// Tearing cannot be observed and a frame-loop is not limited to the display's refresh rate.
+pub const WGPUPresentMode_Mailbox: types::WGPUPresentMode = 0x00000004;
+/// `WGPUPresentMode_Force32` value from `WGPUPresentMode`.
+pub const WGPUPresentMode_Force32: types::WGPUPresentMode = 0x7fffffff;
+
+/// `0`. Indicates no value is passed for this argument. See SentinelValues.
+pub const WGPUPrimitiveTopology_Undefined: types::WGPUPrimitiveTopology = 0x00000000;
+/// `WGPUPrimitiveTopology_PointList` value from `WGPUPrimitiveTopology`.
+pub const WGPUPrimitiveTopology_PointList: types::WGPUPrimitiveTopology = 0x00000001;
+/// `WGPUPrimitiveTopology_LineList` value from `WGPUPrimitiveTopology`.
+pub const WGPUPrimitiveTopology_LineList: types::WGPUPrimitiveTopology = 0x00000002;
+/// `WGPUPrimitiveTopology_LineStrip` value from `WGPUPrimitiveTopology`.
+pub const WGPUPrimitiveTopology_LineStrip: types::WGPUPrimitiveTopology = 0x00000003;
+/// `WGPUPrimitiveTopology_TriangleList` value from `WGPUPrimitiveTopology`.
+pub const WGPUPrimitiveTopology_TriangleList: types::WGPUPrimitiveTopology = 0x00000004;
+/// `WGPUPrimitiveTopology_TriangleStrip` value from `WGPUPrimitiveTopology`.
+pub const WGPUPrimitiveTopology_TriangleStrip: types::WGPUPrimitiveTopology = 0x00000005;
+/// `WGPUPrimitiveTopology_Force32` value from `WGPUPrimitiveTopology`.
+pub const WGPUPrimitiveTopology_Force32: types::WGPUPrimitiveTopology = 0x7fffffff;
+
+/// `WGPUQueryType_Occlusion` value from `WGPUQueryType`.
+pub const WGPUQueryType_Occlusion: types::WGPUQueryType = 0x00000001;
+/// `WGPUQueryType_Timestamp` value from `WGPUQueryType`.
+pub const WGPUQueryType_Timestamp: types::WGPUQueryType = 0x00000002;
+/// `WGPUQueryType_Force32` value from `WGPUQueryType`.
+pub const WGPUQueryType_Force32: types::WGPUQueryType = 0x7fffffff;
+
+/// `WGPUQueueWorkDoneStatus_Success` value from `WGPUQueueWorkDoneStatus`.
+pub const WGPUQueueWorkDoneStatus_Success: types::WGPUQueueWorkDoneStatus = 0x00000001;
+/// See CallbackStatuses.
+pub const WGPUQueueWorkDoneStatus_CallbackCancelled: types::WGPUQueueWorkDoneStatus = 0x00000002;
+/// There was some deterministic error. (Note this is currently never used,
+/// but it will be relevant when it's possible to create a queue object.)
+pub const WGPUQueueWorkDoneStatus_Error: types::WGPUQueueWorkDoneStatus = 0x00000003;
+/// `WGPUQueueWorkDoneStatus_Force32` value from `WGPUQueueWorkDoneStatus`.
+pub const WGPUQueueWorkDoneStatus_Force32: types::WGPUQueueWorkDoneStatus = 0x7fffffff;
+
+/// `WGPURequestAdapterStatus_Success` value from `WGPURequestAdapterStatus`.
+pub const WGPURequestAdapterStatus_Success: types::WGPURequestAdapterStatus = 0x00000001;
+/// See CallbackStatuses.
+pub const WGPURequestAdapterStatus_CallbackCancelled: types::WGPURequestAdapterStatus = 0x00000002;
+/// `WGPURequestAdapterStatus_Unavailable` value from `WGPURequestAdapterStatus`.
+pub const WGPURequestAdapterStatus_Unavailable: types::WGPURequestAdapterStatus = 0x00000003;
+/// `WGPURequestAdapterStatus_Error` value from `WGPURequestAdapterStatus`.
+pub const WGPURequestAdapterStatus_Error: types::WGPURequestAdapterStatus = 0x00000004;
+/// `WGPURequestAdapterStatus_Force32` value from `WGPURequestAdapterStatus`.
+pub const WGPURequestAdapterStatus_Force32: types::WGPURequestAdapterStatus = 0x7fffffff;
+
+/// `WGPURequestDeviceStatus_Success` value from `WGPURequestDeviceStatus`.
+pub const WGPURequestDeviceStatus_Success: types::WGPURequestDeviceStatus = 0x00000001;
+/// See CallbackStatuses.
+pub const WGPURequestDeviceStatus_CallbackCancelled: types::WGPURequestDeviceStatus = 0x00000002;
+/// `WGPURequestDeviceStatus_Error` value from `WGPURequestDeviceStatus`.
+pub const WGPURequestDeviceStatus_Error: types::WGPURequestDeviceStatus = 0x00000003;
+/// `WGPURequestDeviceStatus_Force32` value from `WGPURequestDeviceStatus`.
+pub const WGPURequestDeviceStatus_Force32: types::WGPURequestDeviceStatus = 0x7fffffff;
+
+/// `0`. Indicates that this WGPUSamplerBindingLayout member of
+/// its parent WGPUBindGroupLayoutEntry is not used.
+/// (See also SentinelValues.)
+pub const WGPUSamplerBindingType_BindingNotUsed: types::WGPUSamplerBindingType = 0x00000000;
+/// `1`. Indicates no value is passed for this argument. See SentinelValues.
+pub const WGPUSamplerBindingType_Undefined: types::WGPUSamplerBindingType = 0x00000001;
+/// `WGPUSamplerBindingType_Filtering` value from `WGPUSamplerBindingType`.
+pub const WGPUSamplerBindingType_Filtering: types::WGPUSamplerBindingType = 0x00000002;
+/// `WGPUSamplerBindingType_NonFiltering` value from `WGPUSamplerBindingType`.
+pub const WGPUSamplerBindingType_NonFiltering: types::WGPUSamplerBindingType = 0x00000003;
+/// `WGPUSamplerBindingType_Comparison` value from `WGPUSamplerBindingType`.
+pub const WGPUSamplerBindingType_Comparison: types::WGPUSamplerBindingType = 0x00000004;
+/// `WGPUSamplerBindingType_Force32` value from `WGPUSamplerBindingType`.
+pub const WGPUSamplerBindingType_Force32: types::WGPUSamplerBindingType = 0x7fffffff;
+
+/// `WGPUStatus_Success` value from `WGPUStatus`.
+pub const WGPUStatus_Success: types::WGPUStatus = 0x00000001;
+/// `WGPUStatus_Error` value from `WGPUStatus`.
+pub const WGPUStatus_Error: types::WGPUStatus = 0x00000002;
+/// `WGPUStatus_Force32` value from `WGPUStatus`.
+pub const WGPUStatus_Force32: types::WGPUStatus = 0x7fffffff;
+
+/// `0`. Indicates no value is passed for this argument. See SentinelValues.
+pub const WGPUStencilOperation_Undefined: types::WGPUStencilOperation = 0x00000000;
+/// `WGPUStencilOperation_Keep` value from `WGPUStencilOperation`.
+pub const WGPUStencilOperation_Keep: types::WGPUStencilOperation = 0x00000001;
+/// `WGPUStencilOperation_Zero` value from `WGPUStencilOperation`.
+pub const WGPUStencilOperation_Zero: types::WGPUStencilOperation = 0x00000002;
+/// `WGPUStencilOperation_Replace` value from `WGPUStencilOperation`.
+pub const WGPUStencilOperation_Replace: types::WGPUStencilOperation = 0x00000003;
+/// `WGPUStencilOperation_Invert` value from `WGPUStencilOperation`.
+pub const WGPUStencilOperation_Invert: types::WGPUStencilOperation = 0x00000004;
+/// `WGPUStencilOperation_IncrementClamp` value from `WGPUStencilOperation`.
+pub const WGPUStencilOperation_IncrementClamp: types::WGPUStencilOperation = 0x00000005;
+/// `WGPUStencilOperation_DecrementClamp` value from `WGPUStencilOperation`.
+pub const WGPUStencilOperation_DecrementClamp: types::WGPUStencilOperation = 0x00000006;
+/// `WGPUStencilOperation_IncrementWrap` value from `WGPUStencilOperation`.
+pub const WGPUStencilOperation_IncrementWrap: types::WGPUStencilOperation = 0x00000007;
+/// `WGPUStencilOperation_DecrementWrap` value from `WGPUStencilOperation`.
+pub const WGPUStencilOperation_DecrementWrap: types::WGPUStencilOperation = 0x00000008;
+/// `WGPUStencilOperation_Force32` value from `WGPUStencilOperation`.
+pub const WGPUStencilOperation_Force32: types::WGPUStencilOperation = 0x7fffffff;
+
+/// `0`. Indicates that this WGPUStorageTextureBindingLayout member of
+/// its parent WGPUBindGroupLayoutEntry is not used.
+/// (See also SentinelValues.)
+pub const WGPUStorageTextureAccess_BindingNotUsed: types::WGPUStorageTextureAccess = 0x00000000;
+/// `1`. Indicates no value is passed for this argument. See SentinelValues.
+pub const WGPUStorageTextureAccess_Undefined: types::WGPUStorageTextureAccess = 0x00000001;
+/// `WGPUStorageTextureAccess_WriteOnly` value from `WGPUStorageTextureAccess`.
+pub const WGPUStorageTextureAccess_WriteOnly: types::WGPUStorageTextureAccess = 0x00000002;
+/// `WGPUStorageTextureAccess_ReadOnly` value from `WGPUStorageTextureAccess`.
+pub const WGPUStorageTextureAccess_ReadOnly: types::WGPUStorageTextureAccess = 0x00000003;
+/// `WGPUStorageTextureAccess_ReadWrite` value from `WGPUStorageTextureAccess`.
+pub const WGPUStorageTextureAccess_ReadWrite: types::WGPUStorageTextureAccess = 0x00000004;
+/// `WGPUStorageTextureAccess_Force32` value from `WGPUStorageTextureAccess`.
+pub const WGPUStorageTextureAccess_Force32: types::WGPUStorageTextureAccess = 0x7fffffff;
+
+/// `0`. Indicates no value is passed for this argument. See SentinelValues.
+pub const WGPUStoreOp_Undefined: types::WGPUStoreOp = 0x00000000;
+/// `WGPUStoreOp_Store` value from `WGPUStoreOp`.
+pub const WGPUStoreOp_Store: types::WGPUStoreOp = 0x00000001;
+/// `WGPUStoreOp_Discard` value from `WGPUStoreOp`.
+pub const WGPUStoreOp_Discard: types::WGPUStoreOp = 0x00000002;
+/// `WGPUStoreOp_Force32` value from `WGPUStoreOp`.
+pub const WGPUStoreOp_Force32: types::WGPUStoreOp = 0x7fffffff;
+
+/// `WGPUSType_ShaderSourceSPIRV` value from `WGPUSType`.
+pub const WGPUSType_ShaderSourceSPIRV: types::WGPUSType = 0x00000001;
+/// `WGPUSType_ShaderSourceWGSL` value from `WGPUSType`.
+pub const WGPUSType_ShaderSourceWGSL: types::WGPUSType = 0x00000002;
+/// `WGPUSType_RenderPassMaxDrawCount` value from `WGPUSType`.
+pub const WGPUSType_RenderPassMaxDrawCount: types::WGPUSType = 0x00000003;
+/// `WGPUSType_SurfaceSourceMetalLayer` value from `WGPUSType`.
+pub const WGPUSType_SurfaceSourceMetalLayer: types::WGPUSType = 0x00000004;
+/// `WGPUSType_SurfaceSourceWindowsHWND` value from `WGPUSType`.
+pub const WGPUSType_SurfaceSourceWindowsHWND: types::WGPUSType = 0x00000005;
+/// `WGPUSType_SurfaceSourceXlibWindow` value from `WGPUSType`.
+pub const WGPUSType_SurfaceSourceXlibWindow: types::WGPUSType = 0x00000006;
+/// `WGPUSType_SurfaceSourceWaylandSurface` value from `WGPUSType`.
+pub const WGPUSType_SurfaceSourceWaylandSurface: types::WGPUSType = 0x00000007;
+/// `WGPUSType_SurfaceSourceAndroidNativeWindow` value from `WGPUSType`.
+pub const WGPUSType_SurfaceSourceAndroidNativeWindow: types::WGPUSType = 0x00000008;
+/// `WGPUSType_SurfaceSourceXCBWindow` value from `WGPUSType`.
+pub const WGPUSType_SurfaceSourceXCBWindow: types::WGPUSType = 0x00000009;
+/// `WGPUSType_SurfaceColorManagement` value from `WGPUSType`.
+pub const WGPUSType_SurfaceColorManagement: types::WGPUSType = 0x0000000a;
+/// `WGPUSType_RequestAdapterWebXROptions` value from `WGPUSType`.
+pub const WGPUSType_RequestAdapterWebXROptions: types::WGPUSType = 0x0000000b;
+/// `WGPUSType_TextureComponentSwizzleDescriptor` value from `WGPUSType`.
+pub const WGPUSType_TextureComponentSwizzleDescriptor: types::WGPUSType = 0x0000000c;
+/// `WGPUSType_ExternalTextureBindingLayout` value from `WGPUSType`.
+pub const WGPUSType_ExternalTextureBindingLayout: types::WGPUSType = 0x0000000d;
+/// `WGPUSType_ExternalTextureBindingEntry` value from `WGPUSType`.
+pub const WGPUSType_ExternalTextureBindingEntry: types::WGPUSType = 0x0000000e;
+/// `WGPUSType_CompatibilityModeLimits` value from `WGPUSType`.
+pub const WGPUSType_CompatibilityModeLimits: types::WGPUSType = 0x0000000f;
+/// `WGPUSType_TextureBindingViewDimension` value from `WGPUSType`.
+pub const WGPUSType_TextureBindingViewDimension: types::WGPUSType = 0x00000010;
+/// `WGPUSType_Force32` value from `WGPUSType`.
+pub const WGPUSType_Force32: types::WGPUSType = 0x7fffffff;
+
+/// Yay! Everything is good and we can render this frame.
+pub const WGPUSurfaceGetCurrentTextureStatus_SuccessOptimal: types::WGPUSurfaceGetCurrentTextureStatus = 0x00000001;
+/// Still OK - the surface can present the frame, but in a suboptimal way. The surface may need reconfiguration.
+pub const WGPUSurfaceGetCurrentTextureStatus_SuccessSuboptimal: types::WGPUSurfaceGetCurrentTextureStatus = 0x00000002;
+/// Some operation timed out while trying to acquire the frame.
+pub const WGPUSurfaceGetCurrentTextureStatus_Timeout: types::WGPUSurfaceGetCurrentTextureStatus = 0x00000003;
+/// The surface is too different to be used, compared to when it was originally created.
+pub const WGPUSurfaceGetCurrentTextureStatus_Outdated: types::WGPUSurfaceGetCurrentTextureStatus = 0x00000004;
+/// The connection to whatever owns the surface was lost, or generally needs to be fully reinitialized.
+pub const WGPUSurfaceGetCurrentTextureStatus_Lost: types::WGPUSurfaceGetCurrentTextureStatus = 0x00000005;
+/// There was some deterministic error (for example, the surface is not configured, or there was an OutStructChainError). Should produce ImplementationDefinedLogging containing details.
+pub const WGPUSurfaceGetCurrentTextureStatus_Error: types::WGPUSurfaceGetCurrentTextureStatus = 0x00000006;
+/// `WGPUSurfaceGetCurrentTextureStatus_Force32` value from `WGPUSurfaceGetCurrentTextureStatus`.
+pub const WGPUSurfaceGetCurrentTextureStatus_Force32: types::WGPUSurfaceGetCurrentTextureStatus = 0x7fffffff;
+
+/// `0`. Indicates no value is passed for this argument. See SentinelValues.
+pub const WGPUTextureAspect_Undefined: types::WGPUTextureAspect = 0x00000000;
+/// `WGPUTextureAspect_All` value from `WGPUTextureAspect`.
+pub const WGPUTextureAspect_All: types::WGPUTextureAspect = 0x00000001;
+/// `WGPUTextureAspect_StencilOnly` value from `WGPUTextureAspect`.
+pub const WGPUTextureAspect_StencilOnly: types::WGPUTextureAspect = 0x00000002;
+/// `WGPUTextureAspect_DepthOnly` value from `WGPUTextureAspect`.
+pub const WGPUTextureAspect_DepthOnly: types::WGPUTextureAspect = 0x00000003;
+/// `WGPUTextureAspect_Force32` value from `WGPUTextureAspect`.
+pub const WGPUTextureAspect_Force32: types::WGPUTextureAspect = 0x7fffffff;
+
+/// `0`. Indicates no value is passed for this argument. See SentinelValues.
+pub const WGPUTextureDimension_Undefined: types::WGPUTextureDimension = 0x00000000;
+/// `WGPUTextureDimension_1D` value from `WGPUTextureDimension`.
+pub const WGPUTextureDimension_1D: types::WGPUTextureDimension = 0x00000001;
+/// `WGPUTextureDimension_2D` value from `WGPUTextureDimension`.
+pub const WGPUTextureDimension_2D: types::WGPUTextureDimension = 0x00000002;
+/// `WGPUTextureDimension_3D` value from `WGPUTextureDimension`.
+pub const WGPUTextureDimension_3D: types::WGPUTextureDimension = 0x00000003;
+/// `WGPUTextureDimension_Force32` value from `WGPUTextureDimension`.
+pub const WGPUTextureDimension_Force32: types::WGPUTextureDimension = 0x7fffffff;
+
+/// `0`. Indicates no value is passed for this argument. See SentinelValues.
+pub const WGPUTextureFormat_Undefined: types::WGPUTextureFormat = 0x00000000;
+/// `WGPUTextureFormat_R8Unorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_R8Unorm: types::WGPUTextureFormat = 0x00000001;
+/// `WGPUTextureFormat_R8Snorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_R8Snorm: types::WGPUTextureFormat = 0x00000002;
+/// `WGPUTextureFormat_R8Uint` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_R8Uint: types::WGPUTextureFormat = 0x00000003;
+/// `WGPUTextureFormat_R8Sint` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_R8Sint: types::WGPUTextureFormat = 0x00000004;
+/// `WGPUTextureFormat_R16Unorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_R16Unorm: types::WGPUTextureFormat = 0x00000005;
+/// `WGPUTextureFormat_R16Snorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_R16Snorm: types::WGPUTextureFormat = 0x00000006;
+/// `WGPUTextureFormat_R16Uint` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_R16Uint: types::WGPUTextureFormat = 0x00000007;
+/// `WGPUTextureFormat_R16Sint` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_R16Sint: types::WGPUTextureFormat = 0x00000008;
+/// `WGPUTextureFormat_R16Float` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_R16Float: types::WGPUTextureFormat = 0x00000009;
+/// `WGPUTextureFormat_RG8Unorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_RG8Unorm: types::WGPUTextureFormat = 0x0000000a;
+/// `WGPUTextureFormat_RG8Snorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_RG8Snorm: types::WGPUTextureFormat = 0x0000000b;
+/// `WGPUTextureFormat_RG8Uint` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_RG8Uint: types::WGPUTextureFormat = 0x0000000c;
+/// `WGPUTextureFormat_RG8Sint` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_RG8Sint: types::WGPUTextureFormat = 0x0000000d;
+/// `WGPUTextureFormat_R32Float` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_R32Float: types::WGPUTextureFormat = 0x0000000e;
+/// `WGPUTextureFormat_R32Uint` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_R32Uint: types::WGPUTextureFormat = 0x0000000f;
+/// `WGPUTextureFormat_R32Sint` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_R32Sint: types::WGPUTextureFormat = 0x00000010;
+/// `WGPUTextureFormat_RG16Unorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_RG16Unorm: types::WGPUTextureFormat = 0x00000011;
+/// `WGPUTextureFormat_RG16Snorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_RG16Snorm: types::WGPUTextureFormat = 0x00000012;
+/// `WGPUTextureFormat_RG16Uint` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_RG16Uint: types::WGPUTextureFormat = 0x00000013;
+/// `WGPUTextureFormat_RG16Sint` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_RG16Sint: types::WGPUTextureFormat = 0x00000014;
+/// `WGPUTextureFormat_RG16Float` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_RG16Float: types::WGPUTextureFormat = 0x00000015;
+/// `WGPUTextureFormat_RGBA8Unorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_RGBA8Unorm: types::WGPUTextureFormat = 0x00000016;
+/// `WGPUTextureFormat_RGBA8UnormSrgb` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_RGBA8UnormSrgb: types::WGPUTextureFormat = 0x00000017;
+/// `WGPUTextureFormat_RGBA8Snorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_RGBA8Snorm: types::WGPUTextureFormat = 0x00000018;
+/// `WGPUTextureFormat_RGBA8Uint` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_RGBA8Uint: types::WGPUTextureFormat = 0x00000019;
+/// `WGPUTextureFormat_RGBA8Sint` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_RGBA8Sint: types::WGPUTextureFormat = 0x0000001a;
+/// `WGPUTextureFormat_BGRA8Unorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_BGRA8Unorm: types::WGPUTextureFormat = 0x0000001b;
+/// `WGPUTextureFormat_BGRA8UnormSrgb` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_BGRA8UnormSrgb: types::WGPUTextureFormat = 0x0000001c;
+/// `WGPUTextureFormat_RGB10A2Uint` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_RGB10A2Uint: types::WGPUTextureFormat = 0x0000001d;
+/// `WGPUTextureFormat_RGB10A2Unorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_RGB10A2Unorm: types::WGPUTextureFormat = 0x0000001e;
+/// `WGPUTextureFormat_RG11B10Ufloat` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_RG11B10Ufloat: types::WGPUTextureFormat = 0x0000001f;
+/// `WGPUTextureFormat_RGB9E5Ufloat` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_RGB9E5Ufloat: types::WGPUTextureFormat = 0x00000020;
+/// `WGPUTextureFormat_RG32Float` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_RG32Float: types::WGPUTextureFormat = 0x00000021;
+/// `WGPUTextureFormat_RG32Uint` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_RG32Uint: types::WGPUTextureFormat = 0x00000022;
+/// `WGPUTextureFormat_RG32Sint` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_RG32Sint: types::WGPUTextureFormat = 0x00000023;
+/// `WGPUTextureFormat_RGBA16Unorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_RGBA16Unorm: types::WGPUTextureFormat = 0x00000024;
+/// `WGPUTextureFormat_RGBA16Snorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_RGBA16Snorm: types::WGPUTextureFormat = 0x00000025;
+/// `WGPUTextureFormat_RGBA16Uint` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_RGBA16Uint: types::WGPUTextureFormat = 0x00000026;
+/// `WGPUTextureFormat_RGBA16Sint` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_RGBA16Sint: types::WGPUTextureFormat = 0x00000027;
+/// `WGPUTextureFormat_RGBA16Float` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_RGBA16Float: types::WGPUTextureFormat = 0x00000028;
+/// `WGPUTextureFormat_RGBA32Float` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_RGBA32Float: types::WGPUTextureFormat = 0x00000029;
+/// `WGPUTextureFormat_RGBA32Uint` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_RGBA32Uint: types::WGPUTextureFormat = 0x0000002a;
+/// `WGPUTextureFormat_RGBA32Sint` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_RGBA32Sint: types::WGPUTextureFormat = 0x0000002b;
+/// `WGPUTextureFormat_Stencil8` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_Stencil8: types::WGPUTextureFormat = 0x0000002c;
+/// `WGPUTextureFormat_Depth16Unorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_Depth16Unorm: types::WGPUTextureFormat = 0x0000002d;
+/// `WGPUTextureFormat_Depth24Plus` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_Depth24Plus: types::WGPUTextureFormat = 0x0000002e;
+/// `WGPUTextureFormat_Depth24PlusStencil8` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_Depth24PlusStencil8: types::WGPUTextureFormat = 0x0000002f;
+/// `WGPUTextureFormat_Depth32Float` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_Depth32Float: types::WGPUTextureFormat = 0x00000030;
+/// `WGPUTextureFormat_Depth32FloatStencil8` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_Depth32FloatStencil8: types::WGPUTextureFormat = 0x00000031;
+/// `WGPUTextureFormat_BC1RGBAUnorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_BC1RGBAUnorm: types::WGPUTextureFormat = 0x00000032;
+/// `WGPUTextureFormat_BC1RGBAUnormSrgb` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_BC1RGBAUnormSrgb: types::WGPUTextureFormat = 0x00000033;
+/// `WGPUTextureFormat_BC2RGBAUnorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_BC2RGBAUnorm: types::WGPUTextureFormat = 0x00000034;
+/// `WGPUTextureFormat_BC2RGBAUnormSrgb` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_BC2RGBAUnormSrgb: types::WGPUTextureFormat = 0x00000035;
+/// `WGPUTextureFormat_BC3RGBAUnorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_BC3RGBAUnorm: types::WGPUTextureFormat = 0x00000036;
+/// `WGPUTextureFormat_BC3RGBAUnormSrgb` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_BC3RGBAUnormSrgb: types::WGPUTextureFormat = 0x00000037;
+/// `WGPUTextureFormat_BC4RUnorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_BC4RUnorm: types::WGPUTextureFormat = 0x00000038;
+/// `WGPUTextureFormat_BC4RSnorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_BC4RSnorm: types::WGPUTextureFormat = 0x00000039;
+/// `WGPUTextureFormat_BC5RGUnorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_BC5RGUnorm: types::WGPUTextureFormat = 0x0000003a;
+/// `WGPUTextureFormat_BC5RGSnorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_BC5RGSnorm: types::WGPUTextureFormat = 0x0000003b;
+/// `WGPUTextureFormat_BC6HRGBUfloat` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_BC6HRGBUfloat: types::WGPUTextureFormat = 0x0000003c;
+/// `WGPUTextureFormat_BC6HRGBFloat` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_BC6HRGBFloat: types::WGPUTextureFormat = 0x0000003d;
+/// `WGPUTextureFormat_BC7RGBAUnorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_BC7RGBAUnorm: types::WGPUTextureFormat = 0x0000003e;
+/// `WGPUTextureFormat_BC7RGBAUnormSrgb` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_BC7RGBAUnormSrgb: types::WGPUTextureFormat = 0x0000003f;
+/// `WGPUTextureFormat_ETC2RGB8Unorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ETC2RGB8Unorm: types::WGPUTextureFormat = 0x00000040;
+/// `WGPUTextureFormat_ETC2RGB8UnormSrgb` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ETC2RGB8UnormSrgb: types::WGPUTextureFormat = 0x00000041;
+/// `WGPUTextureFormat_ETC2RGB8A1Unorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ETC2RGB8A1Unorm: types::WGPUTextureFormat = 0x00000042;
+/// `WGPUTextureFormat_ETC2RGB8A1UnormSrgb` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ETC2RGB8A1UnormSrgb: types::WGPUTextureFormat = 0x00000043;
+/// `WGPUTextureFormat_ETC2RGBA8Unorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ETC2RGBA8Unorm: types::WGPUTextureFormat = 0x00000044;
+/// `WGPUTextureFormat_ETC2RGBA8UnormSrgb` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ETC2RGBA8UnormSrgb: types::WGPUTextureFormat = 0x00000045;
+/// `WGPUTextureFormat_EACR11Unorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_EACR11Unorm: types::WGPUTextureFormat = 0x00000046;
+/// `WGPUTextureFormat_EACR11Snorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_EACR11Snorm: types::WGPUTextureFormat = 0x00000047;
+/// `WGPUTextureFormat_EACRG11Unorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_EACRG11Unorm: types::WGPUTextureFormat = 0x00000048;
+/// `WGPUTextureFormat_EACRG11Snorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_EACRG11Snorm: types::WGPUTextureFormat = 0x00000049;
+/// `WGPUTextureFormat_ASTC4x4Unorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ASTC4x4Unorm: types::WGPUTextureFormat = 0x0000004a;
+/// `WGPUTextureFormat_ASTC4x4UnormSrgb` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ASTC4x4UnormSrgb: types::WGPUTextureFormat = 0x0000004b;
+/// `WGPUTextureFormat_ASTC5x4Unorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ASTC5x4Unorm: types::WGPUTextureFormat = 0x0000004c;
+/// `WGPUTextureFormat_ASTC5x4UnormSrgb` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ASTC5x4UnormSrgb: types::WGPUTextureFormat = 0x0000004d;
+/// `WGPUTextureFormat_ASTC5x5Unorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ASTC5x5Unorm: types::WGPUTextureFormat = 0x0000004e;
+/// `WGPUTextureFormat_ASTC5x5UnormSrgb` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ASTC5x5UnormSrgb: types::WGPUTextureFormat = 0x0000004f;
+/// `WGPUTextureFormat_ASTC6x5Unorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ASTC6x5Unorm: types::WGPUTextureFormat = 0x00000050;
+/// `WGPUTextureFormat_ASTC6x5UnormSrgb` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ASTC6x5UnormSrgb: types::WGPUTextureFormat = 0x00000051;
+/// `WGPUTextureFormat_ASTC6x6Unorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ASTC6x6Unorm: types::WGPUTextureFormat = 0x00000052;
+/// `WGPUTextureFormat_ASTC6x6UnormSrgb` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ASTC6x6UnormSrgb: types::WGPUTextureFormat = 0x00000053;
+/// `WGPUTextureFormat_ASTC8x5Unorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ASTC8x5Unorm: types::WGPUTextureFormat = 0x00000054;
+/// `WGPUTextureFormat_ASTC8x5UnormSrgb` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ASTC8x5UnormSrgb: types::WGPUTextureFormat = 0x00000055;
+/// `WGPUTextureFormat_ASTC8x6Unorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ASTC8x6Unorm: types::WGPUTextureFormat = 0x00000056;
+/// `WGPUTextureFormat_ASTC8x6UnormSrgb` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ASTC8x6UnormSrgb: types::WGPUTextureFormat = 0x00000057;
+/// `WGPUTextureFormat_ASTC8x8Unorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ASTC8x8Unorm: types::WGPUTextureFormat = 0x00000058;
+/// `WGPUTextureFormat_ASTC8x8UnormSrgb` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ASTC8x8UnormSrgb: types::WGPUTextureFormat = 0x00000059;
+/// `WGPUTextureFormat_ASTC10x5Unorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ASTC10x5Unorm: types::WGPUTextureFormat = 0x0000005a;
+/// `WGPUTextureFormat_ASTC10x5UnormSrgb` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ASTC10x5UnormSrgb: types::WGPUTextureFormat = 0x0000005b;
+/// `WGPUTextureFormat_ASTC10x6Unorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ASTC10x6Unorm: types::WGPUTextureFormat = 0x0000005c;
+/// `WGPUTextureFormat_ASTC10x6UnormSrgb` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ASTC10x6UnormSrgb: types::WGPUTextureFormat = 0x0000005d;
+/// `WGPUTextureFormat_ASTC10x8Unorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ASTC10x8Unorm: types::WGPUTextureFormat = 0x0000005e;
+/// `WGPUTextureFormat_ASTC10x8UnormSrgb` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ASTC10x8UnormSrgb: types::WGPUTextureFormat = 0x0000005f;
+/// `WGPUTextureFormat_ASTC10x10Unorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ASTC10x10Unorm: types::WGPUTextureFormat = 0x00000060;
+/// `WGPUTextureFormat_ASTC10x10UnormSrgb` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ASTC10x10UnormSrgb: types::WGPUTextureFormat = 0x00000061;
+/// `WGPUTextureFormat_ASTC12x10Unorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ASTC12x10Unorm: types::WGPUTextureFormat = 0x00000062;
+/// `WGPUTextureFormat_ASTC12x10UnormSrgb` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ASTC12x10UnormSrgb: types::WGPUTextureFormat = 0x00000063;
+/// `WGPUTextureFormat_ASTC12x12Unorm` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ASTC12x12Unorm: types::WGPUTextureFormat = 0x00000064;
+/// `WGPUTextureFormat_ASTC12x12UnormSrgb` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_ASTC12x12UnormSrgb: types::WGPUTextureFormat = 0x00000065;
+/// `WGPUTextureFormat_Force32` value from `WGPUTextureFormat`.
+pub const WGPUTextureFormat_Force32: types::WGPUTextureFormat = 0x7fffffff;
+
+/// `0`. Indicates that this WGPUTextureBindingLayout member of
+/// its parent WGPUBindGroupLayoutEntry is not used.
+/// (See also SentinelValues.)
+pub const WGPUTextureSampleType_BindingNotUsed: types::WGPUTextureSampleType = 0x00000000;
+/// `1`. Indicates no value is passed for this argument. See SentinelValues.
+pub const WGPUTextureSampleType_Undefined: types::WGPUTextureSampleType = 0x00000001;
+/// `WGPUTextureSampleType_Float` value from `WGPUTextureSampleType`.
+pub const WGPUTextureSampleType_Float: types::WGPUTextureSampleType = 0x00000002;
+/// `WGPUTextureSampleType_UnfilterableFloat` value from `WGPUTextureSampleType`.
+pub const WGPUTextureSampleType_UnfilterableFloat: types::WGPUTextureSampleType = 0x00000003;
+/// `WGPUTextureSampleType_Depth` value from `WGPUTextureSampleType`.
+pub const WGPUTextureSampleType_Depth: types::WGPUTextureSampleType = 0x00000004;
+/// `WGPUTextureSampleType_Sint` value from `WGPUTextureSampleType`.
+pub const WGPUTextureSampleType_Sint: types::WGPUTextureSampleType = 0x00000005;
+/// `WGPUTextureSampleType_Uint` value from `WGPUTextureSampleType`.
+pub const WGPUTextureSampleType_Uint: types::WGPUTextureSampleType = 0x00000006;
+/// `WGPUTextureSampleType_Force32` value from `WGPUTextureSampleType`.
+pub const WGPUTextureSampleType_Force32: types::WGPUTextureSampleType = 0x7fffffff;
+
+/// `0`. Indicates no value is passed for this argument. See SentinelValues.
+pub const WGPUTextureViewDimension_Undefined: types::WGPUTextureViewDimension = 0x00000000;
+/// `WGPUTextureViewDimension_1D` value from `WGPUTextureViewDimension`.
+pub const WGPUTextureViewDimension_1D: types::WGPUTextureViewDimension = 0x00000001;
+/// `WGPUTextureViewDimension_2D` value from `WGPUTextureViewDimension`.
+pub const WGPUTextureViewDimension_2D: types::WGPUTextureViewDimension = 0x00000002;
+/// `WGPUTextureViewDimension_2DArray` value from `WGPUTextureViewDimension`.
+pub const WGPUTextureViewDimension_2DArray: types::WGPUTextureViewDimension = 0x00000003;
+/// `WGPUTextureViewDimension_Cube` value from `WGPUTextureViewDimension`.
+pub const WGPUTextureViewDimension_Cube: types::WGPUTextureViewDimension = 0x00000004;
+/// `WGPUTextureViewDimension_CubeArray` value from `WGPUTextureViewDimension`.
+pub const WGPUTextureViewDimension_CubeArray: types::WGPUTextureViewDimension = 0x00000005;
+/// `WGPUTextureViewDimension_3D` value from `WGPUTextureViewDimension`.
+pub const WGPUTextureViewDimension_3D: types::WGPUTextureViewDimension = 0x00000006;
+/// `WGPUTextureViewDimension_Force32` value from `WGPUTextureViewDimension`.
+pub const WGPUTextureViewDimension_Force32: types::WGPUTextureViewDimension = 0x7fffffff;
+
+/// `WGPUToneMappingMode_Standard` value from `WGPUToneMappingMode`.
+pub const WGPUToneMappingMode_Standard: types::WGPUToneMappingMode = 0x00000001;
+/// `WGPUToneMappingMode_Extended` value from `WGPUToneMappingMode`.
+pub const WGPUToneMappingMode_Extended: types::WGPUToneMappingMode = 0x00000002;
+/// `WGPUToneMappingMode_Force32` value from `WGPUToneMappingMode`.
+pub const WGPUToneMappingMode_Force32: types::WGPUToneMappingMode = 0x7fffffff;
+
+/// `WGPUVertexFormat_Uint8` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Uint8: types::WGPUVertexFormat = 0x00000001;
+/// `WGPUVertexFormat_Uint8x2` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Uint8x2: types::WGPUVertexFormat = 0x00000002;
+/// `WGPUVertexFormat_Uint8x4` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Uint8x4: types::WGPUVertexFormat = 0x00000003;
+/// `WGPUVertexFormat_Sint8` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Sint8: types::WGPUVertexFormat = 0x00000004;
+/// `WGPUVertexFormat_Sint8x2` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Sint8x2: types::WGPUVertexFormat = 0x00000005;
+/// `WGPUVertexFormat_Sint8x4` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Sint8x4: types::WGPUVertexFormat = 0x00000006;
+/// `WGPUVertexFormat_Unorm8` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Unorm8: types::WGPUVertexFormat = 0x00000007;
+/// `WGPUVertexFormat_Unorm8x2` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Unorm8x2: types::WGPUVertexFormat = 0x00000008;
+/// `WGPUVertexFormat_Unorm8x4` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Unorm8x4: types::WGPUVertexFormat = 0x00000009;
+/// `WGPUVertexFormat_Snorm8` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Snorm8: types::WGPUVertexFormat = 0x0000000a;
+/// `WGPUVertexFormat_Snorm8x2` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Snorm8x2: types::WGPUVertexFormat = 0x0000000b;
+/// `WGPUVertexFormat_Snorm8x4` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Snorm8x4: types::WGPUVertexFormat = 0x0000000c;
+/// `WGPUVertexFormat_Uint16` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Uint16: types::WGPUVertexFormat = 0x0000000d;
+/// `WGPUVertexFormat_Uint16x2` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Uint16x2: types::WGPUVertexFormat = 0x0000000e;
+/// `WGPUVertexFormat_Uint16x4` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Uint16x4: types::WGPUVertexFormat = 0x0000000f;
+/// `WGPUVertexFormat_Sint16` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Sint16: types::WGPUVertexFormat = 0x00000010;
+/// `WGPUVertexFormat_Sint16x2` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Sint16x2: types::WGPUVertexFormat = 0x00000011;
+/// `WGPUVertexFormat_Sint16x4` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Sint16x4: types::WGPUVertexFormat = 0x00000012;
+/// `WGPUVertexFormat_Unorm16` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Unorm16: types::WGPUVertexFormat = 0x00000013;
+/// `WGPUVertexFormat_Unorm16x2` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Unorm16x2: types::WGPUVertexFormat = 0x00000014;
+/// `WGPUVertexFormat_Unorm16x4` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Unorm16x4: types::WGPUVertexFormat = 0x00000015;
+/// `WGPUVertexFormat_Snorm16` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Snorm16: types::WGPUVertexFormat = 0x00000016;
+/// `WGPUVertexFormat_Snorm16x2` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Snorm16x2: types::WGPUVertexFormat = 0x00000017;
+/// `WGPUVertexFormat_Snorm16x4` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Snorm16x4: types::WGPUVertexFormat = 0x00000018;
+/// `WGPUVertexFormat_Float16` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Float16: types::WGPUVertexFormat = 0x00000019;
+/// `WGPUVertexFormat_Float16x2` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Float16x2: types::WGPUVertexFormat = 0x0000001a;
+/// `WGPUVertexFormat_Float16x4` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Float16x4: types::WGPUVertexFormat = 0x0000001b;
+/// `WGPUVertexFormat_Float32` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Float32: types::WGPUVertexFormat = 0x0000001c;
+/// `WGPUVertexFormat_Float32x2` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Float32x2: types::WGPUVertexFormat = 0x0000001d;
+/// `WGPUVertexFormat_Float32x3` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Float32x3: types::WGPUVertexFormat = 0x0000001e;
+/// `WGPUVertexFormat_Float32x4` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Float32x4: types::WGPUVertexFormat = 0x0000001f;
+/// `WGPUVertexFormat_Uint32` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Uint32: types::WGPUVertexFormat = 0x00000020;
+/// `WGPUVertexFormat_Uint32x2` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Uint32x2: types::WGPUVertexFormat = 0x00000021;
+/// `WGPUVertexFormat_Uint32x3` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Uint32x3: types::WGPUVertexFormat = 0x00000022;
+/// `WGPUVertexFormat_Uint32x4` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Uint32x4: types::WGPUVertexFormat = 0x00000023;
+/// `WGPUVertexFormat_Sint32` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Sint32: types::WGPUVertexFormat = 0x00000024;
+/// `WGPUVertexFormat_Sint32x2` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Sint32x2: types::WGPUVertexFormat = 0x00000025;
+/// `WGPUVertexFormat_Sint32x3` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Sint32x3: types::WGPUVertexFormat = 0x00000026;
+/// `WGPUVertexFormat_Sint32x4` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Sint32x4: types::WGPUVertexFormat = 0x00000027;
+/// `WGPUVertexFormat_Unorm10_10_10_2` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Unorm10_10_10_2: types::WGPUVertexFormat = 0x00000028;
+/// `WGPUVertexFormat_Unorm8x4BGRA` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Unorm8x4BGRA: types::WGPUVertexFormat = 0x00000029;
+/// `WGPUVertexFormat_Force32` value from `WGPUVertexFormat`.
+pub const WGPUVertexFormat_Force32: types::WGPUVertexFormat = 0x7fffffff;
+
+/// `0`. Indicates no value is passed for this argument. See SentinelValues.
+pub const WGPUVertexStepMode_Undefined: types::WGPUVertexStepMode = 0x00000000;
+/// `WGPUVertexStepMode_Vertex` value from `WGPUVertexStepMode`.
+pub const WGPUVertexStepMode_Vertex: types::WGPUVertexStepMode = 0x00000001;
+/// `WGPUVertexStepMode_Instance` value from `WGPUVertexStepMode`.
+pub const WGPUVertexStepMode_Instance: types::WGPUVertexStepMode = 0x00000002;
+/// `WGPUVertexStepMode_Force32` value from `WGPUVertexStepMode`.
+pub const WGPUVertexStepMode_Force32: types::WGPUVertexStepMode = 0x7fffffff;
+
+/// At least one WGPUFuture completed successfully.
+pub const WGPUWaitStatus_Success: types::WGPUWaitStatus = 0x00000001;
+/// The wait operation succeeded, but no WGPUFutures completed within the timeout.
+pub const WGPUWaitStatus_TimedOut: types::WGPUWaitStatus = 0x00000002;
+/// The call was invalid for some reason (see Wait-Any).
+/// Should produce ImplementationDefinedLogging containing details.
+pub const WGPUWaitStatus_Error: types::WGPUWaitStatus = 0x00000003;
+/// `WGPUWaitStatus_Force32` value from `WGPUWaitStatus`.
+pub const WGPUWaitStatus_Force32: types::WGPUWaitStatus = 0x7fffffff;
+
+/// `WGPUWGSLLanguageFeatureName_ReadonlyAndReadwriteStorageTextures` value from `WGPUWGSLLanguageFeatureName`.
+pub const WGPUWGSLLanguageFeatureName_ReadonlyAndReadwriteStorageTextures: types::WGPUWGSLLanguageFeatureName = 0x00000001;
+/// `WGPUWGSLLanguageFeatureName_Packed4x8IntegerDotProduct` value from `WGPUWGSLLanguageFeatureName`.
+pub const WGPUWGSLLanguageFeatureName_Packed4x8IntegerDotProduct: types::WGPUWGSLLanguageFeatureName = 0x00000002;
+/// `WGPUWGSLLanguageFeatureName_UnrestrictedPointerParameters` value from `WGPUWGSLLanguageFeatureName`.
+pub const WGPUWGSLLanguageFeatureName_UnrestrictedPointerParameters: types::WGPUWGSLLanguageFeatureName = 0x00000003;
+/// `WGPUWGSLLanguageFeatureName_PointerCompositeAccess` value from `WGPUWGSLLanguageFeatureName`.
+pub const WGPUWGSLLanguageFeatureName_PointerCompositeAccess: types::WGPUWGSLLanguageFeatureName = 0x00000004;
+/// `WGPUWGSLLanguageFeatureName_UniformBufferStandardLayout` value from `WGPUWGSLLanguageFeatureName`.
+pub const WGPUWGSLLanguageFeatureName_UniformBufferStandardLayout: types::WGPUWGSLLanguageFeatureName = 0x00000005;
+/// `WGPUWGSLLanguageFeatureName_SubgroupId` value from `WGPUWGSLLanguageFeatureName`.
+pub const WGPUWGSLLanguageFeatureName_SubgroupId: types::WGPUWGSLLanguageFeatureName = 0x00000006;
+/// `WGPUWGSLLanguageFeatureName_TextureAndSamplerLet` value from `WGPUWGSLLanguageFeatureName`.
+pub const WGPUWGSLLanguageFeatureName_TextureAndSamplerLet: types::WGPUWGSLLanguageFeatureName = 0x00000007;
+/// `WGPUWGSLLanguageFeatureName_SubgroupUniformity` value from `WGPUWGSLLanguageFeatureName`.
+pub const WGPUWGSLLanguageFeatureName_SubgroupUniformity: types::WGPUWGSLLanguageFeatureName = 0x00000008;
+/// `WGPUWGSLLanguageFeatureName_TextureFormatsTier1` value from `WGPUWGSLLanguageFeatureName`.
+pub const WGPUWGSLLanguageFeatureName_TextureFormatsTier1: types::WGPUWGSLLanguageFeatureName = 0x00000009;
+/// `WGPUWGSLLanguageFeatureName_LinearIndexing` value from `WGPUWGSLLanguageFeatureName`.
+pub const WGPUWGSLLanguageFeatureName_LinearIndexing: types::WGPUWGSLLanguageFeatureName = 0x0000000a;
+/// `WGPUWGSLLanguageFeatureName_Force32` value from `WGPUWGSLLanguageFeatureName`.
+pub const WGPUWGSLLanguageFeatureName_Force32: types::WGPUWGSLLanguageFeatureName = 0x7fffffff;
+
+/// Identifies WGPUDeviceExtras.
+pub const WGPUSType_DeviceExtras: types::WGPUNativeSType = 0x00030001;
+/// Identifies WGPUNativeLimits.
+pub const WGPUSType_NativeLimits: types::WGPUNativeSType = 0x00030002;
+/// Identifies WGPUShaderSourceGLSL.
+pub const WGPUSType_ShaderSourceGLSL: types::WGPUNativeSType = 0x00030003;
+/// Identifies WGPUInstanceExtras.
+pub const WGPUSType_InstanceExtras: types::WGPUNativeSType = 0x00030004;
+/// Identifies WGPUBindGroupEntryExtras.
+pub const WGPUSType_BindGroupEntryExtras: types::WGPUNativeSType = 0x00030005;
+/// Identifies WGPUBindGroupLayoutEntryExtras.
+pub const WGPUSType_BindGroupLayoutEntryExtras: types::WGPUNativeSType = 0x00030006;
+/// Identifies WGPUQuerySetDescriptorExtras.
+pub const WGPUSType_QuerySetDescriptorExtras: types::WGPUNativeSType = 0x00030007;
+/// Identifies WGPUSurfaceConfigurationExtras.
+pub const WGPUSType_SurfaceConfigurationExtras: types::WGPUNativeSType = 0x00030008;
+/// Identifies WGPUSurfaceSourceSwapChainPanel.
+pub const WGPUSType_SurfaceSourceSwapChainPanel: types::WGPUNativeSType = 0x00030009;
+/// Identifies WGPUPrimitiveStateExtras.
+pub const WGPUSType_PrimitiveStateExtras: types::WGPUNativeSType = 0x0003000a;
+/// Identifies WGPUSamplerDescriptorExtras.
+pub const WGPUSType_SamplerDescriptorExtras: types::WGPUNativeSType = 0x0003000b;
+/// `WGPUNativeSType_Force32` value from `WGPUNativeSType`.
+pub const WGPUNativeSType_Force32: types::WGPUNativeSType = 0x7fffffff;
+
+/// The surface texture was not acquired because the window is occluded
+/// (e.g. minimized or fully covered by another window).
+///
+/// No texture is returned and the texture field of
+/// WGPUSurfaceTexture will be NULL. The surface and swapchain remain
+/// valid -- there is no need to reconfigure or recreate the surface.
+///
+/// Applications should skip rendering for the current frame and try
+/// again once the window is no longer occluded. If you are using a
+/// windowing library such as winit, listen for the window's "occluded"
+/// event and request a new redraw when the window becomes visible again.
+///
+/// When does this occur?
+///
+/// Currently this status is only produced by the Metal backend on macOS.
+/// When a window is not visible (checked via the NSWindow
+/// occlusionState property), acquiring the next drawable would block
+/// for up to one second waiting for vsync. wgpu-native returns
+/// Occluded instead to avoid that hang.
+///
+/// Other backends (Vulkan, DX12, GL) do not currently report this
+/// status; an occluded window on those backends may produce
+/// WGPUSurfaceGetCurrentTextureStatus_Timeout or simply succeed
+/// normally.
+pub const WGPUSurfaceGetCurrentTextureStatus_Occluded: types::WGPUNativeSurfaceGetCurrentTextureStatus = 0x00030001;
+/// `WGPUNativeSurfaceGetCurrentTextureStatus_Force32` value from `WGPUNativeSurfaceGetCurrentTextureStatus`.
+pub const WGPUNativeSurfaceGetCurrentTextureStatus_Force32: types::WGPUNativeSurfaceGetCurrentTextureStatus = 0x7fffffff;
+
+/// Allows the use of immediate data: small, fast blocks of memory
+/// that can be updated inside a render pass, compute pass, or render
+/// bundle encoder.
+///
+/// Enables wgpuRenderPassEncoderSetImmediates,
+/// wgpuComputePassEncoderSetImmediates,
+/// wgpuRenderBundleEncoderSetImmediates,
+/// non-zero immediateSize in WGPUPipelineLayout,
+/// and non-zero maxImmediateSize in WGPULimits.
+///
+/// A block of immediate data can be declared in WGSL with
+/// var<immediate>:
+/// ```
+/// struct Immediates { example: f32, }
+/// var<immediate> c: Immediates;
+/// ```
+///
+/// In GLSL, this corresponds to layout(immediates) uniform Name {..}.
+///
+/// Supported platforms:
+/// - DX12
+/// - Vulkan
+/// - Metal
+/// - OpenGL (emulated with uniforms)
+/// - WebGPU
+///
+/// This is a web and native feature.
+pub const WGPUNativeFeature_Immediates: types::WGPUNativeFeature = 0x00030001;
+/// Enables device-specific texture format features.
+///
+/// By default only texture format properties as defined by the WebGPU
+/// specification are allowed. Enabling this feature flag extends the
+/// features of each format to the ones supported by the current device.
+/// Note that without this flag, read/write storage access is not allowed
+/// at all.
+///
+/// This extension does not enable additional formats.
+///
+/// Supported platforms:
+/// - Vulkan
+/// - DX12
+/// - Metal
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_TextureAdapterSpecificFormatFeatures: types::WGPUNativeFeature = 0x00030002;
+/// Allows the use of a buffer containing the actual number of draw calls.
+///
+/// Enables wgpuRenderPassEncoderMultiDrawIndirectCount and
+/// wgpuRenderPassEncoderMultiDrawIndexedIndirectCount.
+///
+/// This feature being present also implies that all calls to
+/// wgpuRenderPassEncoderMultiDrawIndirect and
+/// wgpuRenderPassEncoderMultiDrawIndexedIndirect are not being
+/// emulated with a series of draw_indirect calls.
+///
+/// Supported platforms:
+/// - DX12
+/// - Vulkan 1.2+ (or VK_KHR_draw_indirect_count)
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_MultiDrawIndirectCount: types::WGPUNativeFeature = 0x00030004;
+/// Enables bindings of writable storage buffers and textures visible
+/// to vertex shaders.
+///
+/// Note: some (tiled-based) platforms do not support vertex shaders
+/// with any side-effects.
+///
+/// Supported platforms:
+/// - All
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_VertexWritableStorage: types::WGPUNativeFeature = 0x00030005;
+/// Allows the user to create uniform arrays of textures in shaders:
+///
+/// - WGSL: var textures: binding_array<texture_2d<f32>, 10>
+/// - GLSL: uniform texture2D textures[10]
+///
+/// If WGPUNativeFeature_StorageResourceBindingArray is supported
+/// as well as this, the user may also create uniform arrays of storage
+/// textures.
+///
+/// This capability allows them to exist and to be indexed by dynamically
+/// uniform values.
+///
+/// Supported platforms:
+/// - DX12
+/// - Metal (with MSL 2.0+ on macOS 10.13+)
+/// - Vulkan
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_TextureBindingArray: types::WGPUNativeFeature = 0x00030006;
+/// Allows shaders to index sampled texture and storage buffer resource
+/// arrays with dynamically non-uniform values:
+///
+/// e.g. texture_array[vertex_data]
+///
+/// In order to use this capability, the corresponding GLSL extension must
+/// be enabled:
+///
+/// \#extension GL_EXT_nonuniform_qualifier : require
+///
+/// and then used either as nonuniformEXT qualifier in variable
+/// declaration or as nonuniformEXT constructor.
+///
+/// WGSL and HLSL do not need any extension.
+///
+/// Supported platforms:
+/// - DX12
+/// - Metal (with MSL 2.0+ on macOS 10.13+)
+/// - Vulkan 1.2+ (or VK_EXT_descriptor_indexing)
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_SampledTextureAndStorageBufferArrayNonUniformIndexing: types::WGPUNativeFeature = 0x00030007;
+/// Enables use of Pipeline Statistics Queries. These queries report the
+/// count of various operations performed between the start and stop call.
+///
+/// Use wgpuRenderPassEncoderBeginPipelineStatisticsQuery /
+/// wgpuRenderPassEncoderEndPipelineStatisticsQuery (or the compute
+/// pass equivalents) to start and stop a query.
+///
+/// They must be resolved using wgpuCommandEncoderResolveQuerySet into
+/// a buffer. See WGPUPipelineStatisticName for the list of available
+/// statistics.
+///
+/// Supported platforms:
+/// - Vulkan
+/// - DX12
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_PipelineStatisticsQuery: types::WGPUNativeFeature = 0x00030008;
+/// Allows the user to create uniform arrays of storage buffers or
+/// textures in shaders, if WGPUNativeFeature_BufferBindingArray
+/// or WGPUNativeFeature_TextureBindingArray (respectively)
+/// is also supported.
+///
+/// This capability allows them to exist and to be indexed by dynamically
+/// uniform values.
+///
+/// Supported platforms:
+/// - Metal (with MSL 2.2+ on macOS 10.13+)
+/// - Vulkan
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_StorageResourceBindingArray: types::WGPUNativeFeature = 0x00030009;
+/// Allows the user to create bind groups containing arrays with fewer
+/// bindings than the WGPUBindGroupLayout requires.
+///
+/// Supported platforms:
+/// - Vulkan
+/// - DX12
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_PartiallyBoundBindingArray: types::WGPUNativeFeature = 0x0003000a;
+/// Enables normalized 16-bit texture formats:
+/// WGPUTextureFormat_R16Unorm, WGPUTextureFormat_R16Snorm,
+/// WGPUTextureFormat_RG16Unorm, WGPUTextureFormat_RG16Snorm,
+/// WGPUTextureFormat_RGBA16Unorm, WGPUTextureFormat_RGBA16Snorm.
+///
+/// Supported platforms:
+/// - Vulkan
+/// - DX12
+/// - Metal
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_TextureFormat16bitNorm: types::WGPUNativeFeature = 0x0003000b;
+/// Enables ASTC HDR family of compressed textures.
+///
+/// Compressed textures sacrifice some quality in exchange for
+/// significantly reduced bandwidth usage.
+///
+/// Support for this feature guarantees availability of
+/// COPY_SRC | COPY_DST | TEXTURE_BINDING for ASTC formats
+/// with the HDR channel type.
+/// WGPUNativeFeature_TextureAdapterSpecificFormatFeatures may
+/// enable additional usages.
+///
+/// Supported platforms:
+/// - Metal
+/// - Vulkan
+/// - OpenGL
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_TextureCompressionAstcHdr: types::WGPUNativeFeature = 0x0003000c;
+/// Removes the WebGPU restriction that MAP_READ and MAP_WRITE
+/// buffer usages must be paired exclusively with COPY_DST and
+/// COPY_SRC respectively.
+///
+/// This is only beneficial on systems that share memory between CPU and
+/// GPU. If enabled on a system that doesn't, this can severely hinder
+/// performance. Only use if you understand the consequences.
+///
+/// Supported platforms:
+/// - Vulkan
+/// - DX12
+/// - Metal
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_MappablePrimaryBuffers: types::WGPUNativeFeature = 0x0003000e;
+/// Allows the user to create arrays of buffers in shaders:
+///
+/// - WGSL: var<uniform> buffer_array: array<MyBuffer, 10>
+/// - GLSL: uniform myBuffer { ... } buffer_array[10]
+///
+/// This capability allows them to exist and to be indexed by dynamically
+/// uniform values.
+///
+/// If WGPUNativeFeature_StorageResourceBindingArray is supported as
+/// well as this, the user may also create arrays of storage buffers.
+///
+/// Supported platforms:
+/// - Vulkan
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_BufferBindingArray: types::WGPUNativeFeature = 0x0003000f;
+/// Allows shaders to index storage texture resource
+/// arrays with dynamically non-uniform values.
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_StorageTextureArrayNonUniformIndexing: types::WGPUNativeFeature = 0x00030010;
+/// `WGPUNativeFeature_AddressModeClampToZero` value from `WGPUNativeFeature`.
+pub const WGPUNativeFeature_AddressModeClampToZero: types::WGPUNativeFeature = 0x00030011;
+/// `WGPUNativeFeature_AddressModeClampToBorder` value from `WGPUNativeFeature`.
+pub const WGPUNativeFeature_AddressModeClampToBorder: types::WGPUNativeFeature = 0x00030012;
+/// Allows the user to set WGPUPolygonMode_Line in
+/// WGPUPrimitiveStateExtras::polygonMode.
+///
+/// This allows drawing polygons/triangles as lines (wireframe) instead
+/// of filled.
+///
+/// Supported platforms:
+/// - DX12
+/// - Vulkan
+/// - Metal
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_PolygonModeLine: types::WGPUNativeFeature = 0x00030013;
+/// Allows the user to set WGPUPolygonMode_Point in
+/// WGPUPrimitiveStateExtras::polygonMode.
+///
+/// This allows only drawing the vertices of polygons/triangles instead
+/// of filled.
+///
+/// Supported platforms:
+/// - Vulkan
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_PolygonModePoint: types::WGPUNativeFeature = 0x00030014;
+/// Allows the user to enable overestimation conservative rasterization
+/// via WGPUPrimitiveStateExtras::conservative.
+///
+/// Processing of degenerate triangles/lines is hardware specific.
+/// Only triangles are supported.
+///
+/// Supported platforms:
+/// - Vulkan
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_ConservativeRasterization: types::WGPUNativeFeature = 0x00030015;
+/// Enables clear to zero for textures.
+///
+/// Supported platforms:
+/// - All
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_ClearTexture: types::WGPUNativeFeature = 0x00030016;
+/// Enables multiview render passes and `builtin(view_index)` in vertex/mesh shaders.
+///
+/// Supported platforms:
+/// - Vulkan
+/// - Metal
+/// - DX12
+/// - OpenGL (web only)
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_Multiview: types::WGPUNativeFeature = 0x00030018;
+/// Enables using 64-bit types for vertex attributes.
+///
+/// Requires WGPUNativeFeature_ShaderF64.
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_VertexAttribute64bit: types::WGPUNativeFeature = 0x00030019;
+/// Allows for creation of textures of format
+/// WGPUNativeTextureFormat_NV12.
+///
+/// Supported platforms:
+/// - DX12
+/// - Vulkan
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_TextureFormatNv12: types::WGPUNativeFeature = 0x0003001a;
+/// Allows for the creation of ray-tracing queries within shaders.
+///
+/// @b EXPERIMENTAL: Features enabled by this may have major bugs and are
+/// expected to be subject to breaking changes.
+///
+/// Supported platforms:
+/// - Vulkan
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_RayQuery: types::WGPUNativeFeature = 0x0003001c;
+/// Enables 64-bit floating point types in SPIR-V shaders.
+///
+/// Note: even when supported by GPU hardware, 64-bit floating point
+/// operations are frequently between 16 and 64 @e times slower than
+/// equivalent operations on 32-bit floats.
+///
+/// Supported platforms:
+/// - Vulkan
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_ShaderF64: types::WGPUNativeFeature = 0x0003001d;
+/// Allows shaders to use i16. Not currently supported in naga, only
+/// available through SPIR-V passthrough.
+///
+/// Supported platforms:
+/// - Vulkan
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_ShaderI16: types::WGPUNativeFeature = 0x0003001e;
+/// Allows shaders to use the early_depth_test attribute.
+///
+/// The attribute is applied to the fragment shader entry point and can be
+/// used in two ways:
+///
+/// 1. Force early depth/stencil tests:
+/// - WGSL: \@early_depth_test(force)
+/// - GLSL: layout(early_fragment_tests) in;
+///
+/// 2. Provide a conservative depth specifier that allows an additional
+/// early depth test under certain conditions:
+/// - WGSL: \@early_depth_test(greater_equal/less_equal/unchanged)
+/// - GLSL: layout(depth_<greater/less/unchanged>) out float gl_FragDepth;
+///
+/// Supported platforms:
+/// - Vulkan
+/// - GLES 3.1+
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_ShaderEarlyDepthTest: types::WGPUNativeFeature = 0x00030020;
+/// Allows compute and fragment shaders to use the subgroup operation
+/// built-ins and perform subgroup operations (except barriers).
+///
+/// Supported platforms:
+/// - Vulkan
+/// - DX12
+/// - Metal
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_Subgroup: types::WGPUNativeFeature = 0x00030021;
+/// Allows vertex shaders to use the subgroup operation built-ins and
+/// perform subgroup operations (except barriers).
+///
+/// Supported platforms:
+/// - Vulkan
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_SubgroupVertex: types::WGPUNativeFeature = 0x00030022;
+/// Allows compute shaders to use the subgroup barrier.
+///
+/// Requires WGPUNativeFeature_Subgroup. Without it, enables nothing.
+///
+/// Supported platforms:
+/// - Vulkan
+/// - Metal
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_SubgroupBarrier: types::WGPUNativeFeature = 0x00030023;
+/// Allows for timestamp queries directly on command encoders.
+///
+/// Implies WGPUFeatureName_TimestampQuery is supported.
+///
+/// Supported platforms:
+/// - Vulkan
+/// - DX12
+/// - Metal
+/// - OpenGL (with GL_ARB_timer_query)
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_TimestampQueryInsideEncoders: types::WGPUNativeFeature = 0x00030024;
+/// Allows for timestamp queries inside render and compute passes.
+///
+/// Implies WGPUFeatureName_TimestampQuery and
+/// WGPUNativeFeature_TimestampQueryInsideEncoders are supported.
+///
+/// Enables wgpuRenderPassEncoderWriteTimestamp and
+/// wgpuComputePassEncoderWriteTimestamp.
+///
+/// This is generally not available on tile-based rasterization GPUs.
+///
+/// Supported platforms:
+/// - Vulkan
+/// - DX12
+/// - Metal (AMD & Intel, not Apple GPUs)
+/// - OpenGL (with GL_ARB_timer_query)
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_TimestampQueryInsidePasses: types::WGPUNativeFeature = 0x00030025;
+/// Allows shaders to use i64 and u64.
+///
+/// Supported platforms:
+/// - Vulkan
+/// - DX12 (DXC only)
+/// - Metal (with MSL 2.3+)
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_ShaderInt64: types::WGPUNativeFeature = 0x00030026;
+/// Allows shaders to use f32 atomic load, store, add, sub, and exchange.
+///
+/// Supported platforms:
+/// - Metal (with MSL 3.0+ and Apple7+/Mac2)
+/// - Vulkan (with [VK_EXT_shader_atomic_float])
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_ShaderFloat32Atomic: types::WGPUNativeFeature = 0x00030027;
+/// Enables image atomic fetch add, and, xor, or, min, and max for R32Uint and R32Sint textures.
+///
+/// Supported platforms:
+/// - Vulkan
+/// - DX12
+/// - Metal (with MSL 3.1+)
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_TextureAtomic: types::WGPUNativeFeature = 0x00030028;
+/// Allows for creation of textures of format
+/// WGPUNativeTextureFormat_P010.
+///
+/// Supported platforms:
+/// - DX12
+/// - Vulkan
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_TextureFormatP010: types::WGPUNativeFeature = 0x00030029;
+/// Allows the use of pipeline cache objects
+///
+/// Supported platforms:
+/// - Vulkan
+///
+/// Unimplemented Platforms:
+/// - DX12
+/// - Metal
+pub const WGPUNativeFeature_PipelineCache: types::WGPUNativeFeature = 0x0003002b;
+/// Allows shaders to use i64 and u64 atomic min and max.
+///
+/// Supported platforms:
+/// - Vulkan (with VK_KHR_shader_atomic_int64)
+/// - DX12 (with SM 6.6+)
+/// - Metal (with MSL 2.4+)
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_ShaderInt64AtomicMinMax: types::WGPUNativeFeature = 0x0003002c;
+/// Allows shaders to use all i64 and u64 atomic operations.
+///
+/// Supported platforms:
+/// - Vulkan (with VK_KHR_shader_atomic_int64)
+/// - DX12 (with SM 6.6+)
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_ShaderInt64AtomicAllOps: types::WGPUNativeFeature = 0x0003002d;
+/// Enables R64Uint image atomic min and max.
+///
+/// Supported platforms:
+/// - Vulkan (with VK_EXT_shader_image_atomic_int64)
+/// - DX12 (with SM 6.6+)
+/// - Metal (with MSL 3.1+)
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_TextureInt64Atomic: types::WGPUNativeFeature = 0x00030030;
+/// Enables shader barycentric coordinates.
+///
+/// Supported platforms:
+/// - Vulkan (with VK_KHR_fragment_shader_barycentric)
+/// - DX12 (with SM 6.1+)
+/// - Metal (with MSL 2.2+)
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_ShaderBarycentrics: types::WGPUNativeFeature = 0x00030037;
+/// Enables using multiview where not all texture array layers are rendered to in a single render pass/render pipeline. Making
+/// use of this feature also requires enabling `Features::MULTIVIEW`.
+///
+/// Supported platforms
+/// - Vulkan
+/// - DX12
+///
+/// While metal supports this in theory, the behavior of `view_index` differs from vulkan and dx12 so the feature isn't exposed.
+pub const WGPUNativeFeature_SelectiveMultiview: types::WGPUNativeFeature = 0x00030038;
+/// `WGPUNativeFeature_MultisampleArray` value from `WGPUNativeFeature`.
+pub const WGPUNativeFeature_MultisampleArray: types::WGPUNativeFeature = 0x0003003a;
+/// Enables cooperative matrix operations (also known as tensor cores on NVIDIA GPUs
+/// or simdgroup matrix operations on Apple GPUs).
+///
+/// Cooperative matrices allow a workgroup to collectively load, store, and perform
+/// matrix multiply-accumulate operations on small tiles of data, enabling
+/// hardware-accelerated matrix math.
+///
+/// @b EXPERIMENTAL: Features enabled by this may have major bugs and are
+/// expected to be subject to breaking changes.
+///
+/// **Current limitations:** The implementation currently only supports 8x8 f32 matrices.
+/// On Vulkan, support is determined by querying `vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR`
+/// for configurations matching 8x8x8 f32. Most Vulkan implementations (NVIDIA, AMD) primarily
+/// support f16 inputs at larger sizes (e.g., 16x16), so Vulkan support may be limited.
+///
+/// Supported platforms:
+/// - Metal (with MSL 2.3+ and Apple7+/Mac2+, using simdgroup matrix operations)
+/// - Vulkan (with [VK_KHR_cooperative_matrix](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_cooperative_matrix.html), if 8x8 f32 is supported)
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_CooperativeMatrix: types::WGPUNativeFeature = 0x0003003b;
+/// Enables shader per-vertex attributes.
+///
+/// Supported platforms:
+/// - Vulkan (with VK_KHR_fragment_shader_barycentric)
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_ShaderPerVertex: types::WGPUNativeFeature = 0x0003003c;
+/// Enables shader `draw_index` builtin.
+///
+/// Supported platforms:
+/// - GLES
+/// - Vulkan
+///
+/// Potential platforms:
+/// - DX12
+/// - Metal
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_ShaderDrawIndex: types::WGPUNativeFeature = 0x0003003d;
+/// Allows the user to create arrays of acceleration structures in shaders:
+///
+/// ex.
+/// - `var tlas: binding_array<acceleration_structure, 10>` (WGSL)
+///
+/// This capability allows them to exist and to be indexed by dynamically uniform values.
+///
+/// Supported platforms:
+/// - DX12
+/// - Vulkan
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_AccelerationStructureBindingArray: types::WGPUNativeFeature = 0x0003003e;
+/// Enables the `@coherent` memory decoration on storage buffer variables.
+///
+/// Backend mapping:
+/// - Vulkan
+/// - DX12
+/// - Metal (3.2+)
+/// - GLES (ES 3.1+ / GL 4.3+)
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_MemoryDecorationCoherent: types::WGPUNativeFeature = 0x0003003f;
+/// Enables the `@volatile` memory decoration on storage buffer variables.
+///
+/// Backend mapping:
+/// - Vulkan
+/// - GLES (ES 3.1+ / GL 4.3+)
+///
+/// This is a native only feature.
+pub const WGPUNativeFeature_MemoryDecorationVolatile: types::WGPUNativeFeature = 0x00030040;
+/// `WGPUNativeFeature_Force32` value from `WGPUNativeFeature`.
+pub const WGPUNativeFeature_Force32: types::WGPUNativeFeature = 0x7fffffff;
+
+/// `WGPULogLevel_Off` value from `WGPULogLevel`.
+pub const WGPULogLevel_Off: types::WGPULogLevel = 0x00000000;
+/// Only error messages.
+pub const WGPULogLevel_Error: types::WGPULogLevel = 0x00000001;
+/// Errors and warnings.
+pub const WGPULogLevel_Warn: types::WGPULogLevel = 0x00000002;
+/// Errors, warnings, and informational messages.
+pub const WGPULogLevel_Info: types::WGPULogLevel = 0x00000003;
+/// Errors, warnings, informational, and debug messages.
+pub const WGPULogLevel_Debug: types::WGPULogLevel = 0x00000004;
+/// All messages, including very verbose trace-level output.
+pub const WGPULogLevel_Trace: types::WGPULogLevel = 0x00000005;
+/// `WGPULogLevel_Force32` value from `WGPULogLevel`.
+pub const WGPULogLevel_Force32: types::WGPULogLevel = 0x7fffffff;
+
+/// `WGPUDx12Compiler_Undefined` value from `WGPUDx12Compiler`.
+pub const WGPUDx12Compiler_Undefined: types::WGPUDx12Compiler = 0x00000000;
+/// Use the FXC (D3DCompile) shader compiler.
+///
+/// The FXC compiler is old, slow, and unmaintained. However, it doesn't
+/// require any additional DLLs to be shipped with the application.
+pub const WGPUDx12Compiler_Fxc: types::WGPUDx12Compiler = 0x00000001;
+/// Use the DXC (DirectX Shader Compiler).
+///
+/// The DXC compiler is new, fast, and maintained. However, it requires
+/// dxcompiler.dll to be available. The path to this DLL can be
+/// specified via WGPUInstanceExtras::dxcPath.
+///
+/// Minimum supported version: v1.8.2502.
+/// Requires WDDM 2.1 (Windows 10 version 1607).
+pub const WGPUDx12Compiler_Dxc: types::WGPUDx12Compiler = 0x00000002;
+/// `WGPUDx12Compiler_Force32` value from `WGPUDx12Compiler`.
+pub const WGPUDx12Compiler_Force32: types::WGPUDx12Compiler = 0x7fffffff;
+
+/// `WGPUGles3MinorVersion_Automatic` value from `WGPUGles3MinorVersion`.
+pub const WGPUGles3MinorVersion_Automatic: types::WGPUGles3MinorVersion = 0x00000000;
+/// Request an ES 3.0 context.
+pub const WGPUGles3MinorVersion_Version0: types::WGPUGles3MinorVersion = 0x00000001;
+/// Request an ES 3.1 context.
+pub const WGPUGles3MinorVersion_Version1: types::WGPUGles3MinorVersion = 0x00000002;
+/// Request an ES 3.2 context.
+pub const WGPUGles3MinorVersion_Version2: types::WGPUGles3MinorVersion = 0x00000003;
+/// `WGPUGles3MinorVersion_Force32` value from `WGPUGles3MinorVersion`.
+pub const WGPUGles3MinorVersion_Force32: types::WGPUGles3MinorVersion = 0x7fffffff;
+
+/// `WGPUPipelineStatisticName_VertexShaderInvocations` value from `WGPUPipelineStatisticName`.
+pub const WGPUPipelineStatisticName_VertexShaderInvocations: types::WGPUPipelineStatisticName = 0x00000000;
+/// Number of times the clipper is invoked. This is also the number of
+/// triangles output by the vertex shader.
+pub const WGPUPipelineStatisticName_ClipperInvocations: types::WGPUPipelineStatisticName = 0x00000001;
+/// Number of primitives that are not culled by the clipper. This is the
+/// number of triangles that are actually on screen and will be rasterized
+/// and rendered.
+pub const WGPUPipelineStatisticName_ClipperPrimitivesOut: types::WGPUPipelineStatisticName = 0x00000002;
+/// Number of times the fragment shader is invoked. Accounts for fragment
+/// shaders running in 2x2 blocks in order to get derivatives.
+pub const WGPUPipelineStatisticName_FragmentShaderInvocations: types::WGPUPipelineStatisticName = 0x00000003;
+/// Number of times a compute shader is invoked. This will be equivalent
+/// to the dispatch count times the workgroup size.
+pub const WGPUPipelineStatisticName_ComputeShaderInvocations: types::WGPUPipelineStatisticName = 0x00000004;
+/// `WGPUPipelineStatisticName_Force32` value from `WGPUPipelineStatisticName`.
+pub const WGPUPipelineStatisticName_Force32: types::WGPUPipelineStatisticName = 0x7fffffff;
+
+/// `WGPUNativeQueryType_PipelineStatistics` value from `WGPUNativeQueryType`.
+pub const WGPUNativeQueryType_PipelineStatistics: types::WGPUNativeQueryType = 0x00030000;
+/// `WGPUNativeQueryType_Force32` value from `WGPUNativeQueryType`.
+pub const WGPUNativeQueryType_Force32: types::WGPUNativeQueryType = 0x7fffffff;
+
+/// `WGPUDxcMaxShaderModel_V6_0` value from `WGPUDxcMaxShaderModel`.
+pub const WGPUDxcMaxShaderModel_V6_0: types::WGPUDxcMaxShaderModel = 0x00000000;
+/// Shader Model 6.1
+pub const WGPUDxcMaxShaderModel_V6_1: types::WGPUDxcMaxShaderModel = 0x00000001;
+/// Shader Model 6.2
+pub const WGPUDxcMaxShaderModel_V6_2: types::WGPUDxcMaxShaderModel = 0x00000002;
+/// Shader Model 6.3
+pub const WGPUDxcMaxShaderModel_V6_3: types::WGPUDxcMaxShaderModel = 0x00000003;
+/// Shader Model 6.4
+pub const WGPUDxcMaxShaderModel_V6_4: types::WGPUDxcMaxShaderModel = 0x00000004;
+/// Shader Model 6.5
+pub const WGPUDxcMaxShaderModel_V6_5: types::WGPUDxcMaxShaderModel = 0x00000005;
+/// Shader Model 6.6
+pub const WGPUDxcMaxShaderModel_V6_6: types::WGPUDxcMaxShaderModel = 0x00000006;
+/// Shader Model 6.7
+pub const WGPUDxcMaxShaderModel_V6_7: types::WGPUDxcMaxShaderModel = 0x00000007;
+/// `WGPUDxcMaxShaderModel_Force32` value from `WGPUDxcMaxShaderModel`.
+pub const WGPUDxcMaxShaderModel_Force32: types::WGPUDxcMaxShaderModel = 0x7fffffff;
+
+/// `WGPUGLFenceBehaviour_Normal` value from `WGPUGLFenceBehaviour`.
+pub const WGPUGLFenceBehaviour_Normal: types::WGPUGLFenceBehaviour = 0x00000000;
+/// Fences are short-circuited to always report completion immediately.
+///
+/// This solves a specific issue that arose due to a bug in wgpu-core that
+/// made many WebGL programs work when they shouldn't have. If you have
+/// code that calls wgpuDevicePoll with wait=true on WebGL, you
+/// may need to enable this option for "wait" to behave how you expect.
+///
+/// When this is set, wgpuQueueOnCompletedWorkDone callbacks will fire
+/// the next time the device is polled, not when work is actually done on
+/// the GPU.
+pub const WGPUGLFenceBehaviour_AutoFinish: types::WGPUGLFenceBehaviour = 0x00000001;
+/// `WGPUGLFenceBehaviour_Force32` value from `WGPUGLFenceBehaviour`.
+pub const WGPUGLFenceBehaviour_Force32: types::WGPUGLFenceBehaviour = 0x7fffffff;
+
+/// `WGPUDx12SwapchainKind_Undefined` value from `WGPUDx12SwapchainKind`.
+pub const WGPUDx12SwapchainKind_Undefined: types::WGPUDx12SwapchainKind = 0x00000000;
+/// Use a DXGI swapchain created directly from the window's HWND.
+///
+/// This does not support transparency but has better support from
+/// developer tooling such as RenderDoc.
+pub const WGPUDx12SwapchainKind_DxgiFromHwnd: types::WGPUDx12SwapchainKind = 0x00000001;
+/// Use a DXGI swapchain created from a DirectComposition visual made
+/// automatically from the window's HWND.
+///
+/// This creates a single IDCompositionVisual over the entire window.
+/// Supports transparency. If you want to manage the composition tree
+/// yourself, create your own device and composition and pass the relevant
+/// visual via the surface target.
+pub const WGPUDx12SwapchainKind_DxgiFromVisual: types::WGPUDx12SwapchainKind = 0x00000002;
+/// `WGPUDx12SwapchainKind_Force32` value from `WGPUDx12SwapchainKind`.
+pub const WGPUDx12SwapchainKind_Force32: types::WGPUDx12SwapchainKind = 0x7fffffff;
+
+/// No display handle provided.
+pub const WGPUNativeDisplayHandleType_None: types::WGPUNativeDisplayHandleType = 0x00000000;
+/// X11 display connection via Xlib. See WGPUXlibDisplayHandle.
+pub const WGPUNativeDisplayHandleType_Xlib: types::WGPUNativeDisplayHandleType = 0x00000001;
+/// X11 display connection via XCB. See WGPUXcbDisplayHandle.
+pub const WGPUNativeDisplayHandleType_Xcb: types::WGPUNativeDisplayHandleType = 0x00000002;
+/// Wayland display connection. See WGPUWaylandDisplayHandle.
+pub const WGPUNativeDisplayHandleType_Wayland: types::WGPUNativeDisplayHandleType = 0x00000003;
+/// `WGPUNativeDisplayHandleType_Force32` value from `WGPUNativeDisplayHandleType`.
+pub const WGPUNativeDisplayHandleType_Force32: types::WGPUNativeDisplayHandleType = 0x7fffffff;
+
+/// `WGPUPolygonMode_Fill` value from `WGPUPolygonMode`.
+pub const WGPUPolygonMode_Fill: types::WGPUPolygonMode = 0x00000000;
+/// Polygons are drawn as line segments (wireframe).
+/// Requires WGPUNativeFeature_PolygonModeLine.
+pub const WGPUPolygonMode_Line: types::WGPUPolygonMode = 0x00000001;
+/// Polygons are drawn as points (vertices only).
+/// Requires WGPUNativeFeature_PolygonModePoint.
+pub const WGPUPolygonMode_Point: types::WGPUPolygonMode = 0x00000002;
+
+/// YUV 4:2:0 chroma subsampled format (NV12).
+/// Plane 0 contains R8Unorm luminance (Y), Plane 1 contains Rg8Unorm
+/// chrominance (UV) at half width and half height.
+/// Requires WGPUNativeFeature_TextureFormatNv12.
+pub const WGPUNativeTextureFormat_NV12: types::WGPUNativeTextureFormat = 0x00030007;
+/// YUV 4:2:0 with 10 bits used from 16-bit channels (P010).
+/// Plane 0 contains R16Unorm luminance (Y), Plane 1 contains Rg16Unorm
+/// chrominance (UV) at half width and half height.
+pub const WGPUNativeTextureFormat_P010: types::WGPUNativeTextureFormat = 0x00030008;
+
+/// `WGPUNativeAddressMode_ClampToBorder` value from `WGPUNativeAddressMode`.
+pub const WGPUNativeAddressMode_ClampToBorder: types::WGPUNativeAddressMode = 0x00000004;
+/// `WGPUNativeAddressMode_Force32` value from `WGPUNativeAddressMode`.
+pub const WGPUNativeAddressMode_Force32: types::WGPUNativeAddressMode = 0x7fffffff;
+
+/// `WGPUSamplerBorderColor_Undefined` value from `WGPUSamplerBorderColor`.
+pub const WGPUSamplerBorderColor_Undefined: types::WGPUSamplerBorderColor = 0x00000000;
+/// `WGPUSamplerBorderColor_TransparentBlack` value from `WGPUSamplerBorderColor`.
+pub const WGPUSamplerBorderColor_TransparentBlack: types::WGPUSamplerBorderColor = 0x00000001;
+/// `WGPUSamplerBorderColor_OpaqueBlack` value from `WGPUSamplerBorderColor`.
+pub const WGPUSamplerBorderColor_OpaqueBlack: types::WGPUSamplerBorderColor = 0x00000002;
+/// `WGPUSamplerBorderColor_OpaqueWhite` value from `WGPUSamplerBorderColor`.
+pub const WGPUSamplerBorderColor_OpaqueWhite: types::WGPUSamplerBorderColor = 0x00000003;
+/// `WGPUSamplerBorderColor_Zero` value from `WGPUSamplerBorderColor`.
+pub const WGPUSamplerBorderColor_Zero: types::WGPUSamplerBorderColor = 0x00000004;
+/// `WGPUSamplerBorderColor_Force32` value from `WGPUSamplerBorderColor`.
+pub const WGPUSamplerBorderColor_Force32: types::WGPUSamplerBorderColor = 0x7fffffff;
+
+/// `0`.
+pub const WGPUBufferUsage_None: types::WGPUBufferUsage = 0x00000000;
+
+/// The buffer can be *mapped* on the CPU side in *read* mode (using WGPUMapMode_Read).
+pub const WGPUBufferUsage_MapRead: types::WGPUBufferUsage = 0x00000001;
+
+/// The buffer can be *mapped* on the CPU side in *write* mode (using WGPUMapMode_Write).
+///
+/// Note: This usage is **not** required to set `mappedAtCreation` to `true` in WGPUBufferDescriptor.
+pub const WGPUBufferUsage_MapWrite: types::WGPUBufferUsage = 0x00000002;
+
+/// The buffer can be used as the *source* of a GPU-side copy operation.
+pub const WGPUBufferUsage_CopySrc: types::WGPUBufferUsage = 0x00000004;
+
+/// The buffer can be used as the *destination* of a GPU-side copy operation.
+pub const WGPUBufferUsage_CopyDst: types::WGPUBufferUsage = 0x00000008;
+
+/// The buffer can be used as an Index buffer when doing indexed drawing in a render pipeline.
+pub const WGPUBufferUsage_Index: types::WGPUBufferUsage = 0x00000010;
+
+/// The buffer can be used as a Vertex buffer when using a render pipeline.
+pub const WGPUBufferUsage_Vertex: types::WGPUBufferUsage = 0x00000020;
+
+/// The buffer can be bound to a shader as a uniform buffer.
+pub const WGPUBufferUsage_Uniform: types::WGPUBufferUsage = 0x00000040;
+
+/// The buffer can be bound to a shader as a storage buffer.
+pub const WGPUBufferUsage_Storage: types::WGPUBufferUsage = 0x00000080;
+
+/// The buffer can store arguments for an indirect draw call.
+pub const WGPUBufferUsage_Indirect: types::WGPUBufferUsage = 0x00000100;
+
+/// The buffer can store the result of a timestamp or occlusion query.
+pub const WGPUBufferUsage_QueryResolve: types::WGPUBufferUsage = 0x00000200;
+
+/// `0`.
+pub const WGPUColorWriteMask_None: types::WGPUColorWriteMask = 0x00000000;
+
+/// WebGPU constant `WGPUColorWriteMask_Red`.
+pub const WGPUColorWriteMask_Red: types::WGPUColorWriteMask = 0x00000001;
+
+/// WebGPU constant `WGPUColorWriteMask_Green`.
+pub const WGPUColorWriteMask_Green: types::WGPUColorWriteMask = 0x00000002;
+
+/// WebGPU constant `WGPUColorWriteMask_Blue`.
+pub const WGPUColorWriteMask_Blue: types::WGPUColorWriteMask = 0x00000004;
+
+/// WebGPU constant `WGPUColorWriteMask_Alpha`.
+pub const WGPUColorWriteMask_Alpha: types::WGPUColorWriteMask = 0x00000008;
+
+/// `Red | Green | Blue | Alpha`.
+pub const WGPUColorWriteMask_All: types::WGPUColorWriteMask = 0x0000000f;
+
+/// `0`.
+pub const WGPUMapMode_None: types::WGPUMapMode = 0x00000000;
+
+/// WebGPU constant `WGPUMapMode_Read`.
+pub const WGPUMapMode_Read: types::WGPUMapMode = 0x00000001;
+
+/// WebGPU constant `WGPUMapMode_Write`.
+pub const WGPUMapMode_Write: types::WGPUMapMode = 0x00000002;
+
+/// `0`.
+pub const WGPUShaderStage_None: types::WGPUShaderStage = 0x00000000;
+
+/// WebGPU constant `WGPUShaderStage_Vertex`.
+pub const WGPUShaderStage_Vertex: types::WGPUShaderStage = 0x00000001;
+
+/// WebGPU constant `WGPUShaderStage_Fragment`.
+pub const WGPUShaderStage_Fragment: types::WGPUShaderStage = 0x00000002;
+
+/// WebGPU constant `WGPUShaderStage_Compute`.
+pub const WGPUShaderStage_Compute: types::WGPUShaderStage = 0x00000004;
+
+/// `0`.
+pub const WGPUTextureUsage_None: types::WGPUTextureUsage = 0x00000000;
+
+/// WebGPU constant `WGPUTextureUsage_CopySrc`.
+pub const WGPUTextureUsage_CopySrc: types::WGPUTextureUsage = 0x00000001;
+
+/// WebGPU constant `WGPUTextureUsage_CopyDst`.
+pub const WGPUTextureUsage_CopyDst: types::WGPUTextureUsage = 0x00000002;
+
+/// WebGPU constant `WGPUTextureUsage_TextureBinding`.
+pub const WGPUTextureUsage_TextureBinding: types::WGPUTextureUsage = 0x00000004;
+
+/// WebGPU constant `WGPUTextureUsage_StorageBinding`.
+pub const WGPUTextureUsage_StorageBinding: types::WGPUTextureUsage = 0x00000008;
+
+/// WebGPU constant `WGPUTextureUsage_RenderAttachment`.
+pub const WGPUTextureUsage_RenderAttachment: types::WGPUTextureUsage = 0x00000010;
+
+/// WebGPU constant `WGPUTextureUsage_TransientAttachment`.
+pub const WGPUTextureUsage_TransientAttachment: types::WGPUTextureUsage = 0x00000020;
+
+/// All backends (the default when zero-initialized).
+pub const WGPUInstanceBackend_All: types::WGPUInstanceBackend = 0x00000000;
+
+/// Vulkan backend.
+/// Supported on Windows, Linux/Android, and macOS/iOS via Vulkan Portability.
+pub const WGPUInstanceBackend_Vulkan: types::WGPUInstanceBackend = 0x00000001;
+
+/// OpenGL / OpenGL ES backend.
+/// Supported on Linux/Android, the web via WebGL, and Windows/macOS via ANGLE.
+pub const WGPUInstanceBackend_GL: types::WGPUInstanceBackend = 0x00000002;
+
+/// Metal backend.
+/// Supported on macOS and iOS.
+pub const WGPUInstanceBackend_Metal: types::WGPUInstanceBackend = 0x00000004;
+
+/// Direct3D 12 backend.
+/// Supported on Windows 10 and later.
+pub const WGPUInstanceBackend_DX12: types::WGPUInstanceBackend = 0x00000008;
+
+/// Browser WebGPU backend.
+/// Supported when targeting the web through WebAssembly.
+pub const WGPUInstanceBackend_BrowserWebGPU: types::WGPUInstanceBackend = 0x00000020;
+
+/// Primary (first-tier) backends: Vulkan, Metal, DX12, and BrowserWebGPU.
+pub const WGPUInstanceBackend_Primary: types::WGPUInstanceBackend = 0x0000002d;
+
+/// Secondary (second-tier) backends: GL.
+pub const WGPUInstanceBackend_Secondary: types::WGPUInstanceBackend = 0x00000002;
+
+/// WebGPU constant `WGPUInstanceBackend_Force32`.
+pub const WGPUInstanceBackend_Force32: types::WGPUInstanceBackend = 0x7fffffff;
+
+/// No flags set.
+pub const WGPUInstanceFlag_Empty: types::WGPUInstanceFlag = 0x00000000;
+
+/// Generate debug information in shaders and objects.
+///
+/// When using WGPUInstanceFlag_WithEnv, takes value from the
+/// WGPU_DEBUG environment variable.
+pub const WGPUInstanceFlag_Debug: types::WGPUInstanceFlag = 0x00000001;
+
+/// Enable validation in the backend API, if possible:
+///
+/// - On the DX12 backend, this calls ID3D12Debug::EnableDebugLayer.
+/// - On the Vulkan backend, this enables the Vulkan Validation Layers.
+/// - On the GLES backend (Windows), this enables debug output.
+/// - On the GLES backend (non-Windows), this calls eglDebugMessageControlKHR.
+///
+/// When using WGPUInstanceFlag_WithEnv, takes value from the
+/// WGPU_VALIDATION environment variable.
+pub const WGPUInstanceFlag_Validation: types::WGPUInstanceFlag = 0x00000002;
+
+/// Don't pass labels to the backend API (wgpu-hal).
+///
+/// When using WGPUInstanceFlag_WithEnv, takes value from the
+/// WGPU_DISCARD_HAL_LABELS environment variable.
+pub const WGPUInstanceFlag_DiscardHalLabels: types::WGPUInstanceFlag = 0x00000004;
+
+/// Whether wgpu should expose adapters that run on top of non-compliant
+/// adapters.
+///
+/// Turning this on might mean that some of the functionality provided by the
+/// wgpu adapter/device is not working or broken. This mainly applies to a
+/// Vulkan driver's compliance version. If the major compliance version is 0,
+/// then the driver is ignored unless this flag is set.
+///
+/// When using WGPUInstanceFlag_WithEnv, takes value from the
+/// WGPU_ALLOW_UNDERLYING_NONCOMPLIANT_ADAPTER environment variable.
+pub const WGPUInstanceFlag_AllowUnderlyingNoncompliantAdapter: types::WGPUInstanceFlag = 0x00000008;
+
+/// Enable GPU-based validation. Implies WGPUInstanceFlag_Validation.
+/// Currently only changes behavior on the DX12 and Vulkan backends.
+///
+/// - D3D12: Called "GPU-based validation" (GBV).
+/// - Vulkan: Called "GPU-Assisted Validation" via VK_LAYER_KHRONOS_validation.
+///
+/// When using WGPUInstanceFlag_WithEnv, takes value from the
+/// WGPU_GPU_BASED_VALIDATION environment variable.
+pub const WGPUInstanceFlag_GPUBasedValidation: types::WGPUInstanceFlag = 0x00000010;
+
+/// Validate indirect buffer content prior to issuing indirect draws/dispatches.
+///
+/// This validation will transform indirect calls into no-ops if they are not
+/// valid. For example, dispatch_workgroups_indirect arguments must be less
+/// than the max_compute_workgroups_per_dimension device limit.
+///
+/// When using WGPUInstanceFlag_WithEnv, takes value from the
+/// WGPU_VALIDATION_INDIRECT_CALL environment variable.
+pub const WGPUInstanceFlag_ValidationIndirectCall: types::WGPUInstanceFlag = 0x00000020;
+
+/// Enable automatic timestamp normalization. When enabled,
+/// wgpuCommandEncoderResolveQuerySet will automatically normalize timestamps
+/// to nanoseconds instead of returning raw timestamp values.
+///
+/// This introduces a compute shader into the resolution of query sets. When
+/// enabled, the timestamp period returned by wgpuQueueGetTimestampPeriod
+/// will always be 1.0.
+pub const WGPUInstanceFlag_AutomaticTimestampNormalization: types::WGPUInstanceFlag = 0x00000040;
+
+/// Use the default flags for the current build configuration.
+/// In debug builds, this typically enables WGPUInstanceFlag_Debug and
+/// WGPUInstanceFlag_Validation.
+pub const WGPUInstanceFlag_Default: types::WGPUInstanceFlag = 0x01000000;
+
+/// Convenience alias that enables WGPUInstanceFlag_Debug and
+/// WGPUInstanceFlag_Validation.
+pub const WGPUInstanceFlag_Debugging: types::WGPUInstanceFlag = 0x02000000;
+
+/// Convenience alias that enables WGPUInstanceFlag_Debug,
+/// WGPUInstanceFlag_Validation, and
+/// WGPUInstanceFlag_GPUBasedValidation.
+pub const WGPUInstanceFlag_AdvancedDebugging: types::WGPUInstanceFlag = 0x04000000;
+
+/// Modify the flags based on environment variables. Flags with environment
+/// variable support (e.g. WGPU_DEBUG, WGPU_VALIDATION) will be read
+/// from the process environment and applied on top of the explicitly set flags.
+pub const WGPUInstanceFlag_WithEnv: types::WGPUInstanceFlag = 0x08000000;
+
+/// WebGPU constant `WGPUInstanceFlag_Force32`.
+pub const WGPUInstanceFlag_Force32: types::WGPUInstanceFlag = 0x7fffffff;
+
+/// WebGPU constant `WGPUShaderRuntimeChecks_None`.
+pub const WGPUShaderRuntimeChecks_None: types::WGPUShaderRuntimeChecks = 0x00000000;
+
+/// Enforce bounds checks in shaders, even if the underlying driver doesn’t support doing so natively.
+pub const WGPUShaderRuntimeChecks_BoundsChecks: types::WGPUShaderRuntimeChecks = 0x00000001;
+
+/// If not set, the caller MUST ensure that all passed shaders do not contain any infinite loops.
+pub const WGPUShaderRuntimeChecks_ForceLoopBounding: types::WGPUShaderRuntimeChecks = 0x00000002;
+
+/// If not set, the caller MUST ensure that in all passed shaders every function operating on a ray
+/// query must obey these rules (functions using wgsl naming).
+pub const WGPUShaderRuntimeChecks_RayQueryInitializationTracking: types::WGPUShaderRuntimeChecks = 0x00000004;
+
+/// If not set, task shaders will not validate that the mesh shader grid they dispatch is within legal limits.
+pub const WGPUShaderRuntimeChecks_TaskShaderDispatchTracking: types::WGPUShaderRuntimeChecks = 0x00000008;
+
+/// If not set, mesh shaders won’t clamp the output primitives’ vertex indices, which can lead to
+/// undefined behavior and arbitrary memory access.
+pub const WGPUShaderRuntimeChecks_MeshShaderPrimitiveIndicesClamp: types::WGPUShaderRuntimeChecks = 0x00000010;
+

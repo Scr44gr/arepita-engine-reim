@@ -1,0 +1,1000 @@
+from std::alloc import Allocator;
+from std::binary import from_f32_bits, read_f32_le, read_u16_le, read_u32_le, read_u64_le;
+from std::checksum import crc32;
+from std::fs import FileBuffer, open;
+from std::slice import byte_range, len;
+
+from super::render import AtlasRegion, BatchError, SpriteBatch, SpriteColor, SpriteInstance;
+
+const HEADER_SIZE: usize = 64;
+const ENTRY_SIZE: usize = 96;
+const MAX_ENTRIES: u32 = 1_000_000;
+const DEFAULT_PACK_BYTES: usize = 1_073_741_824;
+
+/// Recoverable failures while opening or validating a cooked asset pack.
+@derive(Copy, Clone, Debug, Eq)
+pub enum PackError {
+    FileOpenFailed,
+    FileReadFailed,
+    PackTooLarge,
+    InvalidHeader,
+    UnsupportedVersion,
+    TooManyEntries,
+    InvalidEntry,
+    CorruptPayload,
+    MissingAsset,
+    WrongAssetKind,
+    OutOfMemory,
+}
+
+/// The storage representation of one cooked asset.
+@derive(Copy, Clone, Debug, Eq)
+pub enum PackedAssetKind {
+    Atlas,
+    Region,
+    Audio,
+    Font,
+}
+
+/// Prehashed immutable asset identity used for allocation-free lookups.
+@derive(Copy, Clone, Debug, Eq, Hash)
+pub struct AssetId {
+    hash: u64,
+}
+
+impl AssetId {
+    /// Hashes a portable manifest ID once so it can be reused every frame.
+    pub fn from(value: str) -> AssetId {
+        AssetId { hash: hash_id(value.bytes()) }
+    }
+
+    pub fn hash(&self) -> u64 { self.hash }
+}
+
+/// Borrowed RGBA8 sRGB atlas pixels ready for one renderer upload.
+pub struct PackedAtlas {
+    pixels: &[u8],
+    width: u32,
+    height: u32,
+}
+
+impl PackedAtlas {
+    pub fn pixels(&self) -> &[u8] { self.pixels }
+    pub fn width(&self) -> u32 { self.width }
+    pub fn height(&self) -> u32 { self.height }
+}
+
+/// Borrowed stereo F32 little-endian audio prepared at a fixed sample rate.
+pub struct PackedAudio {
+    bytes: &[u8],
+    sample_rate: u32,
+    frames: u64,
+}
+
+impl PackedAudio {
+    pub fn bytes(&self) -> &[u8] { self.bytes }
+    pub fn sample_rate(&self) -> u32 { self.sample_rate }
+    pub fn frame_count(&self) -> u64 { self.frames }
+    pub fn channels(&self) -> u32 { 2 }
+
+}
+
+/// One immutable glyph layout resolved from a cooked font.
+@derive(Copy, Clone, Debug)
+pub struct PackedGlyph {
+    pub codepoint: u32,
+    pub region: AtlasRegion,
+    pub width: u32,
+    pub height: u32,
+    pub xmin: i32,
+    pub ymin: i32,
+    pub advance_width: f32,
+    pub advance_height: f32,
+}
+
+/// Borrowed sorted glyph table and vertical metrics for one cooked font size.
+pub struct PackedFont {
+    glyphs: &[u8],
+    atlas_width: u32,
+    atlas_height: u32,
+    pixel_size: f32,
+    ascent: f32,
+    descent: f32,
+    line_gap: f32,
+    new_line_size: f32,
+}
+
+/// Bounds and work emitted by one allocation-free text layout.
+@derive(Copy, Clone, Debug)
+pub struct TextLayout {
+    pub width: f32,
+    pub height: f32,
+    pub lines: u32,
+    pub instances: u32,
+}
+
+impl PackedFont {
+    pub fn pixel_size(&self) -> f32 { self.pixel_size }
+    pub fn ascent(&self) -> f32 { self.ascent }
+    pub fn descent(&self) -> f32 { self.descent }
+    pub fn line_gap(&self) -> f32 { self.line_gap }
+    pub fn new_line_size(&self) -> f32 { self.new_line_size }
+    pub fn glyph_count(&self) -> usize { len(self.glyphs) / 40 }
+
+    /// Finds one Unicode scalar with allocation-free binary search.
+    pub fn glyph(&self, character: char) -> Option<PackedGlyph> {
+        let target = character as u32;
+        let mut low: usize = 0;
+        let mut high = self.glyph_count();
+        while low < high {
+            let middle = low + (high - low) / 2;
+            let codepoint = match read_u32_le(self.glyphs, middle * 40) {
+                Some(value) => value,
+                None => { return None; },
+            };
+            if codepoint < target {
+                low = middle + 1;
+            } else if codepoint > target {
+                high = middle;
+            } else {
+                return decode_glyph(
+                    self.glyphs,
+                    middle,
+                    self.atlas_width,
+                    self.atlas_height,
+                );
+            }
+        }
+        None
+    }
+
+    /// Finds a glyph, falling back to `?` when it was included in the pack.
+    pub fn glyph_or_fallback(&self, character: char) -> Option<PackedGlyph> {
+        resolved_glyph(self, character)
+    }
+
+    /// Returns the cooked space advance or a conservative half-em fallback.
+    pub fn space_advance(&self) -> f32 { space_advance(self) }
+
+    /// Measures UTF-8 text without allocating or modifying a sprite batch.
+    pub fn measure_text(&self, text: str) -> TextLayout {
+        measure_text_layout(self, text)
+    }
+
+    /// Appends UTF-8 text to a prepared sprite batch without partial writes.
+    ///
+    /// `x` is the left edge and `baseline_y` is the first-line baseline in the
+    /// same coordinate system as ordinary sprite instances.
+    pub fn push_text(
+        &self,
+        batch: &mut SpriteBatch,
+        text: str,
+        x: f32,
+        baseline_y: f32,
+        color: SpriteColor,
+        depth: f32,
+    ) -> Result<TextLayout, BatchError> {
+        let required = self.measure_text(text).instances as usize;
+        let current = batch.len();
+        let capacity = batch.capacity();
+        if current > capacity || required > capacity - current {
+            return Err(BatchError::CapacityExceeded);
+        }
+        let mut pen_x = x;
+        let mut pen_y = baseline_y;
+        let mut maximum_width: f32 = 0.0;
+        let mut lines: u32 = 1;
+        let mut instances: u32 = 0;
+        for character in text.chars() {
+            if character == '\n' {
+                let width = pen_x - x;
+                if width > maximum_width { maximum_width = width; }
+                pen_x = x;
+                pen_y -= self.new_line_size;
+                lines += 1;
+            } else if character == '\t' {
+                pen_x += space_advance(self) * 4.0;
+            } else {
+                match resolved_glyph(self, character) {
+                    Some(glyph) => {
+                        if glyph.width > 0 && glyph.height > 0 {
+                            let center_x = pen_x
+                                + glyph.xmin as f32
+                                + glyph.width as f32 * 0.5;
+                            let center_y = pen_y
+                                + glyph.ymin as f32
+                                + glyph.height as f32 * 0.5;
+                            let instance = SpriteInstance::new(
+                                center_x,
+                                center_y,
+                                glyph.width as f32,
+                                glyph.height as f32,
+                            ).with_region(glyph.region)
+                                .with_color(color)
+                                .with_depth(depth);
+                            match batch.push_prepared(instance) {
+                                Ok(_) => {},
+                                Err(error) => { return Err(error); },
+                            }
+                            instances += 1;
+                        }
+                        pen_x += glyph.advance_width;
+                    },
+                    None => {},
+                }
+            }
+        }
+        let final_width = pen_x - x;
+        if final_width > maximum_width { maximum_width = final_width; }
+        Ok(TextLayout {
+            width: maximum_width,
+            height: self.ascent - self.descent
+                + (lines - 1) as f32 * self.new_line_size,
+            lines: lines,
+            instances: instances,
+        })
+    }
+}
+
+/// Validated, allocator-owned asset pack with zero-copy atlas and audio views.
+pub struct AssetPack {
+    buffer: FileBuffer,
+    entry_count: u32,
+    table_offset: usize,
+    names_offset: usize,
+    data_offset: usize,
+    released: bool,
+}
+
+@derive(Copy, Clone)
+struct PackLayout {
+    entry_count: u32,
+    table_offset: usize,
+    names_offset: usize,
+    data_offset: usize,
+}
+
+@derive(Copy, Clone)
+struct PackRecord {
+    kind: PackedAssetKind,
+    id_hash: u64,
+    name_offset: usize,
+    name_len: usize,
+    data_offset: usize,
+    data_len: usize,
+    checksum: u32,
+    metadata: [u32; 10],
+}
+
+impl AssetPack {
+    /// Opens and fully validates a pack with a 1 GiB allocation ceiling.
+    pub fn load(
+        allocator: &Allocator,
+        path: str,
+    ) -> Result<AssetPack, PackError> {
+        AssetPack::load_bounded(allocator, path, DEFAULT_PACK_BYTES)
+    }
+
+    /// Opens and validates a pack without allocating beyond `max_bytes`.
+    pub fn load_bounded(
+        allocator: &Allocator,
+        path: str,
+        max_bytes: usize,
+    ) -> Result<AssetPack, PackError> {
+        let mut file = match open(path) {
+            Ok(value) => value,
+            Err(_) => { return Err(PackError::FileOpenFailed); },
+        };
+        defer file.deinit();
+        let file_len = match file.remaining_len() {
+            Ok(value) => value,
+            Err(_) => { return Err(PackError::FileReadFailed); },
+        };
+        if file_len > max_bytes {
+            return Err(PackError::PackTooLarge);
+        }
+        let mut buffer = match file.read_to_end(allocator) {
+            Ok(value) => value,
+            Err(_) => { return Err(PackError::FileReadFailed); },
+        };
+        let layout = match validate_buffer(&buffer) {
+            Ok(value) => value,
+            Err(error) => {
+                buffer.release();
+                return Err(error);
+            },
+        };
+        Ok(AssetPack {
+            buffer: buffer,
+            entry_count: layout.entry_count,
+            table_offset: layout.table_offset,
+            names_offset: layout.names_offset,
+            data_offset: layout.data_offset,
+            released: false,
+        })
+    }
+
+    pub fn len(&self) -> usize { self.entry_count as usize }
+    pub fn is_empty(&self) -> bool { self.entry_count == 0 }
+    pub fn allocated_bytes(&self) -> usize { self.buffer.capacity() }
+
+    /// Returns the validated kind of a named asset.
+    pub fn kind(&self, id: AssetId) -> Result<PackedAssetKind, PackError> {
+        let record = find_id(self, id)?;
+        Ok(record.kind)
+    }
+
+    /// Borrows one atlas payload without copying it.
+    pub fn atlas(&self, id: AssetId) -> Result<PackedAtlas, PackError> {
+        let record = find_id(self, id)?;
+        if record.kind != PackedAssetKind::Atlas {
+            return Err(PackError::WrongAssetKind);
+        }
+        let pixels = payload(self, record)?;
+        Ok(PackedAtlas {
+            pixels: pixels,
+            width: record.metadata[0],
+            height: record.metadata[1],
+        })
+    }
+
+    /// Resolves one sprite ID to normalized atlas coordinates.
+    pub fn region(&self, id: AssetId) -> Result<AtlasRegion, PackError> {
+        let record = find_id(self, id)?;
+        if record.kind != PackedAssetKind::Region {
+            return Err(PackError::WrongAssetKind);
+        }
+        let atlas_hash = record.metadata[0] as u64
+            | ((record.metadata[1] as u64) << 32);
+        let layout = pack_layout(self);
+        let atlas = match find_hash(self.buffer.as_bytes(), layout, atlas_hash) {
+            Some(value) => value,
+            None => { return Err(PackError::InvalidEntry); },
+        };
+        match AtlasRegion::from_pixels(
+            atlas.metadata[0],
+            atlas.metadata[1],
+            record.metadata[2],
+            record.metadata[3],
+            record.metadata[4],
+            record.metadata[5],
+        ) {
+            Some(value) => Ok(value),
+            None => Err(PackError::InvalidEntry),
+        }
+    }
+
+    /// Borrows one cooked audio payload without copying it.
+    pub fn audio(&self, id: AssetId) -> Result<PackedAudio, PackError> {
+        let record = find_id(self, id)?;
+        if record.kind != PackedAssetKind::Audio {
+            return Err(PackError::WrongAssetKind);
+        }
+        let bytes = payload(self, record)?;
+        let frames = record.metadata[2] as u64
+            | ((record.metadata[3] as u64) << 32);
+        Ok(PackedAudio {
+            bytes: bytes,
+            sample_rate: record.metadata[0],
+            frames: frames,
+        })
+    }
+
+    /// Borrows one cooked font table and its referenced atlas dimensions.
+    pub fn font(&self, id: AssetId) -> Result<PackedFont, PackError> {
+        let record = find_id(self, id)?;
+        if record.kind != PackedAssetKind::Font {
+            return Err(PackError::WrongAssetKind);
+        }
+        let atlas_hash = record.metadata[0] as u64
+            | ((record.metadata[1] as u64) << 32);
+        let atlas = match find_hash(self.buffer.as_bytes(), pack_layout(self), atlas_hash) {
+            Some(value) => value,
+            None => { return Err(PackError::InvalidEntry); },
+        };
+        let glyphs = payload(self, record)?;
+        Ok(PackedFont {
+            glyphs: glyphs,
+            atlas_width: atlas.metadata[0],
+            atlas_height: atlas.metadata[1],
+            pixel_size: from_f32_bits(record.metadata[2]),
+            ascent: from_f32_bits(record.metadata[4]),
+            descent: from_f32_bits(record.metadata[5]),
+            line_gap: from_f32_bits(record.metadata[6]),
+            new_line_size: from_f32_bits(record.metadata[7]),
+        })
+    }
+
+    /// Releases the pack allocation once. Outstanding borrowed views prevent this call.
+    pub fn release(&mut self) {
+        if self.released {
+            return;
+        }
+        self.buffer.release();
+        self.entry_count = 0;
+        self.released = true;
+    }
+
+}
+
+fn validate_buffer(buffer: &FileBuffer) -> Result<PackLayout, PackError> {
+    validate_pack(buffer.as_bytes())
+}
+
+fn pack_layout(pack: &AssetPack) -> PackLayout {
+    PackLayout {
+        entry_count: pack.entry_count,
+        table_offset: pack.table_offset,
+        names_offset: pack.names_offset,
+        data_offset: pack.data_offset,
+    }
+}
+
+fn find_id(pack: &AssetPack, id: AssetId) -> Result<PackRecord, PackError> {
+    match find_hash(pack.buffer.as_bytes(), pack_layout(pack), id.hash) {
+        Some(value) => Ok(value),
+        None => Err(PackError::MissingAsset),
+    }
+}
+
+fn payload(pack: &AssetPack, record: PackRecord) -> Result<&[u8], PackError> {
+    match byte_range(pack.buffer.as_bytes(), record.data_offset, record.data_len) {
+        Some(value) => Ok(value),
+        None => Err(PackError::InvalidEntry),
+    }
+}
+
+fn validate_pack(bytes: &[u8]) -> Result<PackLayout, PackError> {
+    if len(bytes) < HEADER_SIZE || !has_magic(bytes) {
+        return Err(PackError::InvalidHeader);
+    }
+    let major = required_u16(bytes, 8)?;
+    let minor = required_u16(bytes, 10)?;
+    if major != 1 || minor != 0 {
+        return Err(PackError::UnsupportedVersion);
+    }
+    if required_u32(bytes, 12)? != HEADER_SIZE as u32 {
+        return Err(PackError::InvalidHeader);
+    }
+    let entry_count = required_u32(bytes, 16)?;
+    if entry_count > MAX_ENTRIES {
+        return Err(PackError::TooManyEntries);
+    }
+    let table_offset = required_offset(bytes, 24)?;
+    let table_len = required_u64(bytes, 32)?;
+    let names_offset = required_offset(bytes, 40)?;
+    let data_offset = required_offset(bytes, 48)?;
+    let declared_len = required_u64(bytes, 56)?;
+    let expected_table_len = entry_count as u64 * ENTRY_SIZE as u64;
+    if declared_len != len(bytes) as u64
+        || table_offset != HEADER_SIZE
+        || table_len != expected_table_len
+        || names_offset as u64 != table_offset as u64 + table_len
+        || data_offset < names_offset
+        || data_offset > len(bytes)
+        || data_offset % 16 != 0
+    {
+        return Err(PackError::InvalidHeader);
+    }
+    let layout = PackLayout {
+        entry_count: entry_count,
+        table_offset: table_offset,
+        names_offset: names_offset,
+        data_offset: data_offset,
+    };
+    validate_entries(bytes, layout)?;
+    validate_references(bytes, layout)?;
+    Ok(layout)
+}
+
+fn validate_entries(bytes: &[u8], layout: PackLayout) -> Result<(), PackError> {
+    let mut previous_hash: u64 = 0;
+    let mut has_previous = false;
+    let mut index: u32 = 0;
+    while index < layout.entry_count {
+        let record = read_record(bytes, layout, index)?;
+        if has_previous && record.id_hash <= previous_hash {
+            return Err(PackError::InvalidEntry);
+        }
+        let name = match byte_range(bytes, record.name_offset, record.name_len) {
+            Some(value) => value,
+            None => { return Err(PackError::InvalidEntry); },
+        };
+        let data_view = match byte_range(bytes, record.data_offset, record.data_len) {
+            Some(value) => value,
+            None => { return Err(PackError::InvalidEntry); },
+        };
+        if !valid_id(name)
+            || hash_id(name) != record.id_hash
+            || crc32(data_view) != record.checksum
+            || !valid_kind_payload(record)
+            || (record.kind == PackedAssetKind::Audio
+                && !valid_audio_samples(data_view))
+        {
+            return Err(PackError::CorruptPayload);
+        }
+        previous_hash = record.id_hash;
+        has_previous = true;
+        index += 1;
+    }
+    Ok(())
+}
+
+fn valid_audio_samples(bytes: &[u8]) -> bool {
+    let sample_count = len(bytes) / 4;
+    let mut index: usize = 0;
+    while index < sample_count {
+        let bits = match read_u32_le(bytes, index * 4) {
+            Some(value) => value,
+            None => { return false; },
+        };
+        if !finite_f32_bits(bits) {
+            return false;
+        }
+        index += 1;
+    }
+    true
+}
+
+fn validate_references(bytes: &[u8], layout: PackLayout) -> Result<(), PackError> {
+    let mut index: u32 = 0;
+    while index < layout.entry_count {
+        let record = read_record(bytes, layout, index)?;
+        if record.kind == PackedAssetKind::Region
+            || record.kind == PackedAssetKind::Font
+        {
+            let atlas_hash = record.metadata[0] as u64
+                | ((record.metadata[1] as u64) << 32);
+            let atlas = match find_hash(bytes, layout, atlas_hash) {
+                Some(value) => value,
+                None => { return Err(PackError::InvalidEntry); },
+            };
+            if atlas.kind != PackedAssetKind::Atlas {
+                return Err(PackError::InvalidEntry);
+            }
+            if record.kind == PackedAssetKind::Region
+                && !pixel_region_fits(record, atlas.metadata[0], atlas.metadata[1])
+            {
+                return Err(PackError::InvalidEntry);
+            }
+            if record.kind == PackedAssetKind::Font
+                && !valid_font_glyphs(
+                    bytes,
+                    record,
+                    atlas.metadata[0],
+                    atlas.metadata[1],
+                )
+            {
+                return Err(PackError::InvalidEntry);
+            }
+        }
+        index += 1;
+    }
+    Ok(())
+}
+
+fn read_record(
+    bytes: &[u8],
+    layout: PackLayout,
+    index: u32,
+) -> Result<PackRecord, PackError> {
+    if index >= layout.entry_count {
+        return Err(PackError::InvalidEntry);
+    }
+    let offset = layout.table_offset + index as usize * ENTRY_SIZE;
+    let kind = match required_u32(bytes, offset)? {
+        1 => PackedAssetKind::Atlas,
+        2 => PackedAssetKind::Region,
+        3 => PackedAssetKind::Audio,
+        4 => PackedAssetKind::Font,
+        _ => { return Err(PackError::InvalidEntry); },
+    };
+    if required_u32(bytes, offset + 4)? != 0
+        || required_u32(bytes, offset + 28)? != 0
+        || required_u32(bytes, offset + 52)? != 0
+    {
+        return Err(PackError::InvalidEntry);
+    }
+    let name_relative = required_offset(bytes, offset + 16)?;
+    let name_len = required_u32(bytes, offset + 24)? as usize;
+    let name_offset = match layout.names_offset.checked_add(name_relative) {
+        Some(value) => value,
+        None => { return Err(PackError::InvalidEntry); },
+    };
+    if name_offset > layout.data_offset
+        || name_len > layout.data_offset - name_offset
+    {
+        return Err(PackError::InvalidEntry);
+    }
+    let data_offset = required_offset(bytes, offset + 32)?;
+    let data_len = required_offset(bytes, offset + 40)?;
+    if data_offset < layout.data_offset
+        || data_offset % 16 != 0
+        || data_offset > len(bytes)
+        || data_len > len(bytes) - data_offset
+    {
+        return Err(PackError::InvalidEntry);
+    }
+    let mut metadata: [u32; 10] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    let mut metadata_index: usize = 0;
+    while metadata_index < 10 {
+        metadata[metadata_index] = required_u32(
+            bytes,
+            offset + 56 + metadata_index * 4,
+        )?;
+        metadata_index += 1;
+    }
+    Ok(PackRecord {
+        kind: kind,
+        id_hash: required_u64(bytes, offset + 8)?,
+        name_offset: name_offset,
+        name_len: name_len,
+        data_offset: data_offset,
+        data_len: data_len,
+        checksum: required_u32(bytes, offset + 48)?,
+        metadata: metadata,
+    })
+}
+
+fn valid_kind_payload(record: PackRecord) -> bool {
+    match record.kind {
+        PackedAssetKind::Atlas => {
+            let width = record.metadata[0] as u64;
+            let height = record.metadata[1] as u64;
+            match rgba8_byte_length(width, height) {
+                Some(byte_length) => {
+                    record.metadata[2] == 1
+                        && byte_length == record.data_len as u64
+                },
+                None => false,
+            }
+        },
+        PackedAssetKind::Region => record.data_len == 0,
+        PackedAssetKind::Audio => {
+            let frames = record.metadata[2] as u64
+                | ((record.metadata[3] as u64) << 32);
+            record.metadata[0] >= 8_000
+                && record.metadata[0] <= 192_000
+                && record.metadata[1] == 2
+                && record.metadata[4] == 1
+                && frames > 0
+                && frames <= 0x1fff_ffff_ffff_ffff
+                && frames * 8 == record.data_len as u64
+        },
+        PackedAssetKind::Font => {
+            let count = record.metadata[3] as u64;
+            let pixel_size = from_f32_bits(record.metadata[2]);
+            let new_line_size = from_f32_bits(record.metadata[7]);
+            count > 0
+                && record.metadata[8] == 40
+                && count * 40 == record.data_len as u64
+                && finite_f32_bits(record.metadata[2])
+                && pixel_size >= 1.0
+                && pixel_size <= 512.0
+                && finite_f32_bits(record.metadata[4])
+                && finite_f32_bits(record.metadata[5])
+                && finite_f32_bits(record.metadata[6])
+                && finite_f32_bits(record.metadata[7])
+                && new_line_size > 0.0
+        },
+    }
+}
+
+fn rgba8_byte_length(width: u64, height: u64) -> Option<u64> {
+    let maximum: u64 = 18_446_744_073_709_551_615;
+    if width == 0 || height == 0 || width > maximum / height {
+        return None;
+    }
+    let pixels = width * height;
+    if pixels > maximum / 4 {
+        None
+    } else {
+        Some(pixels * 4)
+    }
+}
+
+fn pixel_region_fits(region: PackRecord, width: u32, height: u32) -> bool {
+    let x = region.metadata[2];
+    let y = region.metadata[3];
+    let region_width = region.metadata[4];
+    let region_height = region.metadata[5];
+    region_width > 0
+        && region_height > 0
+        && x <= width
+        && y <= height
+        && region_width <= width - x
+        && region_height <= height - y
+}
+
+fn valid_font_glyphs(
+    bytes: &[u8],
+    font: PackRecord,
+    atlas_width: u32,
+    atlas_height: u32,
+) -> bool {
+    let glyphs = match byte_range(bytes, font.data_offset, font.data_len) {
+        Some(value) => value,
+        None => { return false; },
+    };
+    let count = font.metadata[3] as usize;
+    let mut previous: u32 = 0;
+    let mut has_previous = false;
+    let mut index: usize = 0;
+    while index < count {
+        let offset = index * 40;
+        let codepoint = match read_u32_le(glyphs, offset) {
+            Some(value) => value,
+            None => { return false; },
+        };
+        let width = match read_u32_le(glyphs, offset + 12) {
+            Some(value) => value,
+            None => { return false; },
+        };
+        let height = match read_u32_le(glyphs, offset + 16) {
+            Some(value) => value,
+            None => { return false; },
+        };
+        if (has_previous && codepoint <= previous)
+            || !valid_codepoint(codepoint)
+            || !finite_glyph_metrics(glyphs, offset)
+            || match read_u32_le(glyphs, offset + 36) {
+                Some(value) => value != 0,
+                None => true,
+            }
+        {
+            return false;
+        }
+        if width > 0 && height > 0 {
+            let x = match read_u32_le(glyphs, offset + 4) {
+                Some(value) => value,
+                None => { return false; },
+            };
+            let y = match read_u32_le(glyphs, offset + 8) {
+                Some(value) => value,
+                None => { return false; },
+            };
+            if x > atlas_width
+                || y > atlas_height
+                || width > atlas_width - x
+                || height > atlas_height - y
+            {
+                return false;
+            }
+        }
+        previous = codepoint;
+        has_previous = true;
+        index += 1;
+    }
+    true
+}
+
+fn finite_glyph_metrics(glyphs: &[u8], offset: usize) -> bool {
+    let advance_width = match read_u32_le(glyphs, offset + 28) {
+        Some(value) => value,
+        None => { return false; },
+    };
+    let advance_height = match read_u32_le(glyphs, offset + 32) {
+        Some(value) => value,
+        None => { return false; },
+    };
+    finite_f32_bits(advance_width) && finite_f32_bits(advance_height)
+}
+
+fn finite_f32_bits(bits: u32) -> bool {
+    bits & 0x7f80_0000 != 0x7f80_0000
+}
+
+fn valid_codepoint(value: u32) -> bool {
+    value <= 0x10_ffff && (value < 0xd800 || value > 0xdfff)
+}
+
+fn resolved_glyph(font: &PackedFont, character: char) -> Option<PackedGlyph> {
+    match font.glyph(character) {
+        Some(value) => Some(value),
+        None => font.glyph('?'),
+    }
+}
+
+fn measure_text_layout(font: &PackedFont, text: str) -> TextLayout {
+    let mut pen_x: f32 = 0.0;
+    let mut maximum_width: f32 = 0.0;
+    let mut lines: u32 = 1;
+    let mut instances: u32 = 0;
+    for character in text.chars() {
+        if character == '\n' {
+            if pen_x > maximum_width { maximum_width = pen_x; }
+            pen_x = 0.0;
+            lines += 1;
+        } else if character == '\t' {
+            pen_x += space_advance(font) * 4.0;
+        } else {
+            match resolved_glyph(font, character) {
+                Some(glyph) => {
+                    if glyph.width > 0 && glyph.height > 0 {
+                        instances += 1;
+                    }
+                    pen_x += glyph.advance_width;
+                },
+                None => {},
+            }
+        }
+    }
+    if pen_x > maximum_width { maximum_width = pen_x; }
+    TextLayout {
+        width: maximum_width,
+        height: font.ascent - font.descent
+            + (lines - 1) as f32 * font.new_line_size,
+        lines: lines,
+        instances: instances,
+    }
+}
+
+fn space_advance(font: &PackedFont) -> f32 {
+    match font.glyph(' ') {
+        Some(value) => value.advance_width,
+        None => font.pixel_size * 0.5,
+    }
+}
+
+fn decode_glyph(
+    glyphs: &[u8],
+    index: usize,
+    atlas_width: u32,
+    atlas_height: u32,
+) -> Option<PackedGlyph> {
+    let offset = index * 40;
+    let codepoint = read_u32_le(glyphs, offset)?;
+    let x = read_u32_le(glyphs, offset + 4)?;
+    let y = read_u32_le(glyphs, offset + 8)?;
+    let width = read_u32_le(glyphs, offset + 12)?;
+    let height = read_u32_le(glyphs, offset + 16)?;
+    let xmin = read_u32_le(glyphs, offset + 20)? as i32;
+    let ymin = read_u32_le(glyphs, offset + 24)? as i32;
+    let advance_width = read_f32_le(glyphs, offset + 28)?;
+    let advance_height = read_f32_le(glyphs, offset + 32)?;
+    let region = match AtlasRegion::from_pixels(
+        atlas_width,
+        atlas_height,
+        x,
+        y,
+        width,
+        height,
+    ) {
+        Some(value) => value,
+        None => { return None; },
+    };
+    Some(PackedGlyph {
+        codepoint: codepoint,
+        region: region,
+        width: width,
+        height: height,
+        xmin: xmin,
+        ymin: ymin,
+        advance_width: advance_width,
+        advance_height: advance_height,
+    })
+}
+
+fn find_hash(bytes: &[u8], layout: PackLayout, hash: u64) -> Option<PackRecord> {
+    let mut low: u32 = 0;
+    let mut high = layout.entry_count;
+    while low < high {
+        let middle = low + (high - low) / 2;
+        let record = match read_record(bytes, layout, middle) {
+            Ok(value) => value,
+            Err(_) => { return None; },
+        };
+        if record.id_hash < hash {
+            low = middle + 1;
+        } else if record.id_hash > hash {
+            high = middle;
+        } else {
+            return Some(record);
+        }
+    }
+    None
+}
+
+fn required_u16(bytes: &[u8], offset: usize) -> Result<u16, PackError> {
+    match read_u16_le(bytes, offset) {
+        Some(value) => Ok(value),
+        None => Err(PackError::InvalidHeader),
+    }
+}
+
+fn required_u32(bytes: &[u8], offset: usize) -> Result<u32, PackError> {
+    match read_u32_le(bytes, offset) {
+        Some(value) => Ok(value),
+        None => Err(PackError::InvalidEntry),
+    }
+}
+
+fn required_u64(bytes: &[u8], offset: usize) -> Result<u64, PackError> {
+    match read_u64_le(bytes, offset) {
+        Some(value) => Ok(value),
+        None => Err(PackError::InvalidEntry),
+    }
+}
+
+fn required_offset(bytes: &[u8], offset: usize) -> Result<usize, PackError> {
+    let value = required_u64(bytes, offset)?;
+    if value > len(bytes) as u64 {
+        Err(PackError::InvalidEntry)
+    } else {
+        Ok(value as usize)
+    }
+}
+
+fn has_magic(bytes: &[u8]) -> bool {
+    bytes[0] == 0x41
+        && bytes[1] == 0x52
+        && bytes[2] == 0x45
+        && bytes[3] == 0x50
+        && bytes[4] == 0x41
+        && bytes[5] == 0x43
+        && bytes[6] == 0x4b
+        && bytes[7] == 0
+}
+
+fn valid_id(bytes: &[u8]) -> bool {
+    let count = len(bytes);
+    if count == 0 || count > 128 || !is_id_start(bytes[0]) {
+        return false;
+    }
+    let mut index: usize = 0;
+    let mut previous: u8 = 0;
+    while index < count {
+        let byte = bytes[index];
+        if !is_id_byte(byte)
+            || (byte == 0x2e && previous == 0x2e)
+            || (byte == 0x2f && (previous == 0x2f || index + 1 == count))
+        {
+            return false;
+        }
+        previous = byte;
+        index += 1;
+    }
+    true
+}
+
+fn is_id_start(byte: u8) -> bool {
+    (byte >= 0x61 && byte <= 0x7a) || (byte >= 0x30 && byte <= 0x39)
+}
+
+fn is_id_byte(byte: u8) -> bool {
+    is_id_start(byte)
+        || byte == 0x2e
+        || byte == 0x5f
+        || byte == 0x2d
+        || byte == 0x2f
+}
+
+fn hash_id(bytes: &[u8]) -> u64 {
+    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+    let mut index: usize = 0;
+    while index < len(bytes) {
+        let mixed: u64 = hash ^ bytes[index] as u64;
+        hash = fnv_multiply(mixed);
+        index += 1;
+    }
+    hash
+}
+
+fn fnv_multiply(value: u64) -> u64 {
+    let mask: u64 = 0xffff_ffff;
+    let factor: u64 = 435;
+    let low = value & mask;
+    let high = value >> 32;
+    let low_product = low * factor;
+    let high_product = (high * factor) & mask;
+    let shifted_high = high_product << 32;
+    let shifted_prime = value << 40;
+    let partial = low_product.wrapping_add(shifted_high);
+    partial.wrapping_add(shifted_prime)
+}
+
+@test
+fn asset_ids_should_match_the_offline_cooker() {
+    let id = AssetId::from("world/grass");
+    assert(id.hash() == 0x9357_1c7e_fd81_d16e);
+}

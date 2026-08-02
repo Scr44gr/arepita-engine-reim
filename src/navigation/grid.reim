@@ -1,0 +1,792 @@
+from std::alloc import AllocError, Allocator, ArenaAllocator, general_allocator;
+from std::binary import to_f32_bits;
+from std::collections import Vec;
+
+from super::app import Resource;
+
+const NO_PARENT: u32 = 0xffff_ffff;
+
+/// Integer tile coordinate inside a navigation grid.
+@derive(Copy, Clone, Debug, Eq, Hash)
+pub struct GridPoint {
+    pub x: u32,
+    pub y: u32,
+}
+
+impl GridPoint {
+    pub fn new(x: u32, y: u32) -> GridPoint { GridPoint { x: x, y: y } }
+}
+
+@derive(Copy, Clone, Debug, Eq)
+pub enum NavigationError {
+    InvalidConfiguration,
+    OutOfBounds,
+    BlockedEndpoint,
+    SearchCapacityExceeded,
+    NumericOverflow,
+    NoPath,
+}
+
+/// Summary of one completed path search.
+@derive(Copy, Clone, Debug)
+pub struct PathReport {
+    /// Number of points, including both endpoints.
+    pub length: usize,
+    /// Number of cells removed from the frontier.
+    pub visited: usize,
+    /// Sum of destination-cell traversal costs along the path.
+    pub cost: f32,
+}
+
+/// Owned row-major traversal costs for a rectangular tile map.
+///
+/// Zero marks a blocked tile. Walkable costs are finite values greater than or
+/// equal to one, keeping the Manhattan heuristic admissible.
+@derive(Resource)
+pub struct NavigationGrid {
+    arena: ArenaAllocator,
+    columns: usize,
+    rows: usize,
+    costs: Vec<f32>,
+    revision: u64,
+    released: bool,
+}
+
+impl NavigationGrid {
+    pub fn filled(
+        allocator: &Allocator,
+        columns: u32,
+        rows: u32,
+        cost: f32,
+    ) -> Result<NavigationGrid, NavigationError> {
+        if columns == 0 || rows == 0 || !valid_cost(cost) || cost == 0.0 {
+            return Err(NavigationError::InvalidConfiguration);
+        }
+        let width = columns as usize;
+        let height = rows as usize;
+        if width > usize_max() / height {
+            return Err(NavigationError::InvalidConfiguration);
+        }
+        let cell_count = width * height;
+        if cell_count > 0xffff_ffff {
+            return Err(NavigationError::InvalidConfiguration);
+        }
+        let mut arena = match ArenaAllocator::init(allocator) {
+            Ok(value) => value,
+            Err(_) => {
+                return Err(NavigationError::SearchCapacityExceeded);
+            },
+        };
+        let storage_allocator = arena.allocator_value();
+        let created: Result<Vec<f32>, AllocError> =
+            Vec::with_capacity(&storage_allocator, cell_count);
+        let mut costs = match created {
+            Ok(value) => value,
+            Err(_) => {
+                arena.release();
+                return Err(NavigationError::SearchCapacityExceeded);
+            },
+        };
+        while costs.len() < cell_count {
+            if !costs.push_within_capacity(cost) {
+                panic("prepared navigation cost capacity became inconsistent")
+            }
+        }
+        Ok(NavigationGrid {
+            arena: arena,
+            columns: width,
+            rows: height,
+            costs: costs,
+            revision: 0,
+            released: false,
+        })
+    }
+
+    pub fn columns(&self) -> usize { self.columns }
+    pub fn rows(&self) -> usize { self.rows }
+    pub fn len(&self) -> usize { self.costs.len() }
+    pub fn revision(&self) -> u64 { self.revision }
+
+    pub fn contains(&self, point: GridPoint) -> bool {
+        !self.released
+            && (point.x as usize) < self.columns
+            && (point.y as usize) < self.rows
+    }
+
+    pub fn cost(&self, point: GridPoint) -> Option<f32> {
+        if !self.contains(point) {
+            return None;
+        }
+        self.costs.get(point_index(self.columns, point))
+    }
+
+    /// Sets zero for blocked or a finite traversal cost of at least one.
+    pub fn set_cost(&mut self, point: GridPoint, cost: f32) -> bool {
+        if !self.contains(point) || !valid_cost(cost) {
+            return false;
+        }
+        let index = point_index(self.columns, point);
+        let previous = match self.costs.get(index) {
+            Some(value) => value,
+            None => {
+                return false;
+            },
+        };
+        if previous == cost {
+            return true;
+        }
+        let changed = self.costs.set(index, cost);
+        if changed {
+            self.revision = self.revision.wrapping_add(1);
+        }
+        changed
+    }
+
+    pub fn set_blocked(&mut self, point: GridPoint, blocked: bool) -> bool {
+        if blocked {
+            self.set_cost(point, 0.0)
+        } else {
+            self.set_cost(point, 1.0)
+        }
+    }
+
+    pub fn allocated_bytes(&self) -> usize { self.costs.allocated_bytes() }
+    pub fn release(&mut self) {
+        if self.released {
+            return;
+        }
+        self.costs.release();
+        self.columns = 0;
+        self.rows = 0;
+        self.arena.release();
+        self.released = true;
+    }
+}
+
+struct SearchStorage {
+    costs: Vec<f32>,
+    priorities: Vec<f32>,
+    parents: Vec<u32>,
+    seen_generations: Vec<u32>,
+    closed_generations: Vec<u32>,
+    heap_positions: Vec<usize>,
+    heap: Vec<u32>,
+    path: Vec<GridPoint>,
+}
+
+fn allocate_search_storage(
+    allocator: &Allocator,
+    capacity: usize,
+) -> Result<SearchStorage, AllocError> {
+    let costs_result: Result<Vec<f32>, AllocError> =
+        Vec::with_capacity(allocator, capacity);
+    let mut costs = costs_result?;
+    let priorities_result: Result<Vec<f32>, AllocError> =
+        Vec::with_capacity(allocator, capacity);
+    let mut priorities = priorities_result?;
+    let parents_result: Result<Vec<u32>, AllocError> =
+        Vec::with_capacity(allocator, capacity);
+    let mut parents = parents_result?;
+    let seen_result: Result<Vec<u32>, AllocError> =
+        Vec::with_capacity(allocator, capacity);
+    let mut seen_generations = seen_result?;
+    let closed_result: Result<Vec<u32>, AllocError> =
+        Vec::with_capacity(allocator, capacity);
+    let mut closed_generations = closed_result?;
+    let positions_result: Result<Vec<usize>, AllocError> =
+        Vec::with_capacity(allocator, capacity);
+    let mut heap_positions = positions_result?;
+    let heap_result: Result<Vec<u32>, AllocError> =
+        Vec::with_capacity(allocator, capacity);
+    let heap = heap_result?;
+    let path_result: Result<Vec<GridPoint>, AllocError> =
+        Vec::with_capacity(allocator, capacity);
+    let path = path_result?;
+    while costs.len() < capacity {
+        let _ = costs.push_within_capacity(0.0);
+        let _ = priorities.push_within_capacity(0.0);
+        let _ = parents.push_within_capacity(NO_PARENT);
+        let _ = seen_generations.push_within_capacity(0);
+        let _ = closed_generations.push_within_capacity(0);
+        let _ = heap_positions.push_within_capacity(0 as usize);
+    }
+    Ok(SearchStorage {
+        costs: costs,
+        priorities: priorities,
+        parents: parents,
+        seen_generations: seen_generations,
+        closed_generations: closed_generations,
+        heap_positions: heap_positions,
+        heap: heap,
+        path: path,
+    })
+}
+
+impl SearchStorage {
+    pub fn reset_heap(&mut self) {
+        let mut index: usize = 0;
+        while index < self.heap.len() {
+            let cell = match self.heap.get(index) {
+                Some(value) => value,
+                None => panic("navigation heap became inconsistent"),
+            };
+            let _ = self.heap_positions.set(cell as usize, 0 as usize);
+            index += 1;
+        }
+        self.heap.clear();
+        self.path.clear();
+    }
+
+    pub fn push_or_decrease(&mut self, cell: u32) -> bool {
+        let position = match self.heap_positions.get(cell as usize) {
+            Some(value) => value,
+            None => {
+                return false;
+            },
+        };
+        if position == 0 {
+            if !self.heap.push_within_capacity(cell) {
+                return false;
+            }
+            let heap_index = self.heap.len() - 1;
+            let _ = self.heap_positions.set(cell as usize, heap_index + 1);
+            self.sift_up(heap_index);
+        } else {
+            self.sift_up(position - 1);
+        }
+        true
+    }
+
+    pub fn pop_min(&mut self) -> Option<u32> {
+        let root = self.heap.get(0)?;
+        let last = self.heap.pop()?;
+        let _ = self.heap_positions.set(root as usize, 0 as usize);
+        if !self.heap.is_empty() {
+            let _ = self.heap.set(0, last);
+            let _ = self.heap_positions.set(last as usize, 1);
+            self.sift_down(0);
+        }
+        Some(root)
+    }
+
+    pub fn sift_up(&mut self, start: usize) {
+        let mut index = start;
+        while index > 0 {
+            let parent = (index - 1) / 2;
+            if !self.less_at(index, parent) {
+                return;
+            }
+            self.swap_heap(index, parent);
+            index = parent;
+        }
+    }
+
+    pub fn sift_down(&mut self, start: usize) {
+        let mut index = start;
+        let length = self.heap.len();
+        while index < length {
+            let left = index * 2 + 1;
+            if left >= length {
+                return;
+            }
+            let right = left + 1;
+            let best = if right < length && self.less_at(right, left) {
+                right
+            } else {
+                left
+            };
+            if !self.less_at(best, index) {
+                return;
+            }
+            self.swap_heap(index, best);
+            index = best;
+        }
+    }
+
+    pub fn less_at(&self, left_index: usize, right_index: usize) -> bool {
+        let left = match self.heap.get(left_index) {
+            Some(value) => value,
+            None => panic("navigation heap left index became inconsistent"),
+        };
+        let right = match self.heap.get(right_index) {
+            Some(value) => value,
+            None => panic("navigation heap right index became inconsistent"),
+        };
+        let left_priority = match self.priorities.get(left as usize) {
+            Some(value) => value,
+            None => panic("navigation priority became inconsistent"),
+        };
+        let right_priority = match self.priorities.get(right as usize) {
+            Some(value) => value,
+            None => panic("navigation priority became inconsistent"),
+        };
+        left_priority < right_priority
+            || (left_priority == right_priority && left < right)
+    }
+
+    pub fn swap_heap(&mut self, left_index: usize, right_index: usize) {
+        let left = match self.heap.get(left_index) {
+            Some(value) => value,
+            None => panic("navigation heap swap index became inconsistent"),
+        };
+        let right = match self.heap.get(right_index) {
+            Some(value) => value,
+            None => panic("navigation heap swap index became inconsistent"),
+        };
+        let _ = self.heap.set(left_index, right);
+        let _ = self.heap.set(right_index, left);
+        let _ = self.heap_positions.set(left as usize, right_index + 1);
+        let _ = self.heap_positions.set(right as usize, left_index + 1);
+    }
+
+    pub fn allocated_bytes(&self) -> usize {
+        self.costs.allocated_bytes()
+            + self.priorities.allocated_bytes()
+            + self.parents.allocated_bytes()
+            + self.seen_generations.allocated_bytes()
+            + self.closed_generations.allocated_bytes()
+            + self.heap_positions.allocated_bytes()
+            + self.heap.allocated_bytes()
+            + self.path.allocated_bytes()
+    }
+
+    pub fn release(&mut self) {
+        self.costs.release();
+        self.priorities.release();
+        self.parents.release();
+        self.seen_generations.release();
+        self.closed_generations.release();
+        self.heap_positions.release();
+        self.heap.release();
+        self.path.release();
+    }
+}
+
+/// Reusable A* buffers prepared for a maximum grid cell count.
+@derive(Resource)
+pub struct PathFinder {
+    arena: ArenaAllocator,
+    storage: SearchStorage,
+    generation: u32,
+    capacity: usize,
+    released: bool,
+}
+
+impl PathFinder {
+    pub fn with_capacity(
+        allocator: &Allocator,
+        cell_capacity: usize,
+    ) -> Result<PathFinder, AllocError> {
+        let mut arena = ArenaAllocator::init(allocator)?;
+        let storage_allocator = arena.allocator_value();
+        let storage = match allocate_search_storage(
+            &storage_allocator,
+            cell_capacity,
+        ) {
+            Ok(value) => value,
+            Err(error) => {
+                arena.release();
+                return Err(error);
+            },
+        };
+        Ok(PathFinder {
+            arena: arena,
+            storage: storage,
+            generation: 0,
+            capacity: cell_capacity,
+            released: false,
+        })
+    }
+
+    /// Finds the lowest-cost cardinal path without allocating.
+    pub fn find_path(
+        &mut self,
+        grid: &NavigationGrid,
+        start: GridPoint,
+        goal: GridPoint,
+    ) -> Result<PathReport, NavigationError> {
+        if self.released {
+            return Err(NavigationError::SearchCapacityExceeded);
+        }
+        self.storage.path.clear();
+        if grid.len() > self.capacity {
+            return Err(NavigationError::SearchCapacityExceeded);
+        }
+        if !grid.contains(start) || !grid.contains(goal) {
+            return Err(NavigationError::OutOfBounds);
+        }
+        let start_cost = match grid.cost(start) {
+            Some(value) => value,
+            None => {
+                return Err(NavigationError::OutOfBounds);
+            },
+        };
+        let goal_cost = match grid.cost(goal) {
+            Some(value) => value,
+            None => {
+                return Err(NavigationError::OutOfBounds);
+            },
+        };
+        if start_cost == 0.0 || goal_cost == 0.0 {
+            return Err(NavigationError::BlockedEndpoint);
+        }
+        self.storage.reset_heap();
+        self.generation = self.generation.wrapping_add(1);
+        if self.generation == 0 {
+            let mut index: usize = 0;
+            while index < self.capacity {
+                let _ = self.storage.seen_generations.set(index, 0);
+                let _ = self.storage.closed_generations.set(index, 0);
+                index += 1;
+            }
+            self.generation = 1;
+        }
+        let start_index = point_index(grid.columns, start);
+        let goal_index = point_index(grid.columns, goal);
+        let _ = self.storage.costs.set(start_index, 0.0);
+        let _ = self.storage.priorities.set(
+            start_index,
+            manhattan(start, goal),
+        );
+        let _ = self.storage.parents.set(start_index, NO_PARENT);
+        let _ = self.storage.seen_generations.set(start_index, self.generation);
+        if !self.storage.push_or_decrease(start_index as u32) {
+            return Err(NavigationError::SearchCapacityExceeded);
+        }
+        let mut visited: usize = 0;
+        while !self.storage.heap.is_empty() {
+            let current_index = match self.storage.pop_min() {
+                Some(value) => value as usize,
+                None => panic("non-empty navigation heap returned no root"),
+            };
+            visited += 1;
+            if current_index == goal_index {
+                let total_cost = match self.storage.costs.get(goal_index) {
+                    Some(value) => value,
+                    None => {
+                        return Err(NavigationError::SearchCapacityExceeded);
+                    },
+                };
+                let length = reconstruct_path(
+                    &mut self.storage,
+                    grid.columns,
+                    goal_index,
+                )?;
+                return Ok(PathReport {
+                    length: length,
+                    visited: visited,
+                    cost: total_cost,
+                });
+            }
+            let _ = self.storage.closed_generations.set(
+                current_index,
+                self.generation,
+            );
+            let current_cost = match self.storage.costs.get(current_index) {
+                Some(value) => value,
+                None => panic("navigation current cost became inconsistent"),
+            };
+            let current = index_point(grid.columns, current_index);
+            if current.y > 0 {
+                relax_neighbor(
+                    &mut self.storage,
+                    grid,
+                    current_index,
+                    current_index - grid.columns,
+                    current_cost,
+                    goal,
+                    self.generation,
+                )?;
+            }
+            if current.x as usize + 1 < grid.columns {
+                relax_neighbor(
+                    &mut self.storage,
+                    grid,
+                    current_index,
+                    current_index + 1,
+                    current_cost,
+                    goal,
+                    self.generation,
+                )?;
+            }
+            if current.y as usize + 1 < grid.rows {
+                relax_neighbor(
+                    &mut self.storage,
+                    grid,
+                    current_index,
+                    current_index + grid.columns,
+                    current_cost,
+                    goal,
+                    self.generation,
+                )?;
+            }
+            if current.x > 0 {
+                relax_neighbor(
+                    &mut self.storage,
+                    grid,
+                    current_index,
+                    current_index - 1,
+                    current_cost,
+                    goal,
+                    self.generation,
+                )?;
+            }
+        }
+        Err(NavigationError::NoPath)
+    }
+
+    pub fn path(&self) -> &[GridPoint] { self.storage.path.as_slice() }
+    pub fn capacity(&self) -> usize { self.capacity }
+    pub fn allocated_bytes(&self) -> usize { self.storage.allocated_bytes() }
+    pub fn release(&mut self) {
+        if self.released {
+            return;
+        }
+        self.storage.release();
+        self.capacity = 0;
+        self.generation = 0;
+        self.arena.release();
+        self.released = true;
+    }
+}
+
+fn relax_neighbor(
+    storage: &mut SearchStorage,
+    grid: &NavigationGrid,
+    current_index: usize,
+    neighbor_index: usize,
+    current_cost: f32,
+    goal: GridPoint,
+    generation: u32,
+) -> Result<(), NavigationError> {
+    let closed = match storage.closed_generations.get(neighbor_index) {
+        Some(value) => value == generation,
+        None => {
+            return Err(NavigationError::SearchCapacityExceeded);
+        },
+    };
+    if closed {
+        return Ok(());
+    }
+    let traversal_cost = match grid.costs.get(neighbor_index) {
+        Some(value) => value,
+        None => {
+            return Err(NavigationError::OutOfBounds);
+        },
+    };
+    if traversal_cost == 0.0 {
+        return Ok(());
+    }
+    let candidate = current_cost + traversal_cost;
+    if !finite(candidate) {
+        return Err(NavigationError::NumericOverflow);
+    }
+    let seen = match storage.seen_generations.get(neighbor_index) {
+        Some(value) => value == generation,
+        None => {
+            return Err(NavigationError::SearchCapacityExceeded);
+        },
+    };
+    let improves = if seen {
+        let previous = match storage.costs.get(neighbor_index) {
+            Some(value) => value,
+            None => {
+                return Err(NavigationError::SearchCapacityExceeded);
+            },
+        };
+        candidate < previous
+    } else {
+        true
+    };
+    if !improves {
+        return Ok(());
+    }
+    let point = index_point(grid.columns, neighbor_index);
+    let priority = candidate + manhattan(point, goal);
+    if !finite(priority) {
+        return Err(NavigationError::NumericOverflow);
+    }
+    let _ = storage.costs.set(neighbor_index, candidate);
+    let _ = storage.priorities.set(neighbor_index, priority);
+    let _ = storage.parents.set(neighbor_index, current_index as u32);
+    let _ = storage.seen_generations.set(neighbor_index, generation);
+    if !storage.push_or_decrease(neighbor_index as u32) {
+        return Err(NavigationError::SearchCapacityExceeded);
+    }
+    Ok(())
+}
+
+fn reconstruct_path(
+    storage: &mut SearchStorage,
+    columns: usize,
+    goal_index: usize,
+) -> Result<usize, NavigationError> {
+    storage.path.clear();
+    let mut current = goal_index as u32;
+    while current != NO_PARENT {
+        if !storage.path.push_within_capacity(index_point(columns, current as usize)) {
+            storage.path.clear();
+            return Err(NavigationError::SearchCapacityExceeded);
+        }
+        current = match storage.parents.get(current as usize) {
+            Some(value) => value,
+            None => {
+                storage.path.clear();
+                return Err(NavigationError::SearchCapacityExceeded);
+            },
+        };
+    }
+    let length = storage.path.len();
+    let mut left: usize = 0;
+    while left < length / 2 {
+        let right = length - left - 1;
+        let first = match storage.path.get(left) {
+            Some(value) => value,
+            None => panic("navigation path left index became inconsistent"),
+        };
+        let last = match storage.path.get(right) {
+            Some(value) => value,
+            None => panic("navigation path right index became inconsistent"),
+        };
+        let _ = storage.path.set(left, last);
+        let _ = storage.path.set(right, first);
+        left += 1;
+    }
+    Ok(length)
+}
+
+fn point_index(columns: usize, point: GridPoint) -> usize {
+    point.y as usize * columns + point.x as usize
+}
+
+fn index_point(columns: usize, index: usize) -> GridPoint {
+    let y = index / columns;
+    GridPoint { x: (index - y * columns) as u32, y: y as u32 }
+}
+
+fn manhattan(first: GridPoint, second: GridPoint) -> f32 {
+    let x = if first.x > second.x {
+        first.x - second.x
+    } else {
+        second.x - first.x
+    };
+    let y = if first.y > second.y {
+        first.y - second.y
+    } else {
+        second.y - first.y
+    };
+    (x as u64 + y as u64) as f32
+}
+
+fn valid_cost(cost: f32) -> bool {
+    finite(cost) && (cost == 0.0 || cost >= 1.0)
+}
+
+fn finite(value: f32) -> bool {
+    to_f32_bits(value) & 0x7f80_0000 != 0x7f80_0000
+}
+
+fn usize_max() -> usize {
+    let maximum: u64 = 18_446_744_073_709_551_615;
+    maximum as usize
+}
+
+@test
+fn pathfinder_should_find_deterministic_route_around_obstacles() {
+    let allocator = general_allocator();
+    let mut grid = match NavigationGrid::filled(&allocator, 5, 5, 1.0) {
+        Ok(value) => value,
+        Err(_) => panic("navigation grid allocation failed"),
+    };
+    defer grid.release();
+    let mut y: u32 = 0;
+    while y < 4 {
+        assert(grid.set_blocked(GridPoint::new(2, y), true));
+        y += 1;
+    }
+    let mut finder = match PathFinder::with_capacity(&allocator, grid.len()) {
+        Ok(value) => value,
+        Err(_) => panic("pathfinder allocation failed"),
+    };
+    defer finder.release();
+    let reserved = finder.allocated_bytes();
+    let report = match finder.find_path(
+        &grid,
+        GridPoint::new(0, 0),
+        GridPoint::new(4, 0),
+    ) {
+        Ok(value) => value,
+        Err(_) => panic("reachable navigation path was not found"),
+    };
+    assert(report.length == 13);
+    assert(report.cost == 12.0);
+    {
+        let path = finder.path();
+        assert(path[0] == GridPoint::new(0, 0));
+        assert(path[12] == GridPoint::new(4, 0));
+    }
+    assert(finder.allocated_bytes() == reserved);
+}
+
+@test
+fn pathfinder_should_report_unreachable_and_blocked_endpoints() {
+    let allocator = general_allocator();
+    let mut grid = match NavigationGrid::filled(&allocator, 3, 3, 1.0) {
+        Ok(value) => value,
+        Err(_) => panic("navigation grid allocation failed"),
+    };
+    defer grid.release();
+    let mut finder = match PathFinder::with_capacity(&allocator, grid.len()) {
+        Ok(value) => value,
+        Err(_) => panic("pathfinder allocation failed"),
+    };
+    defer finder.release();
+    assert(grid.set_blocked(GridPoint::new(1, 0), true));
+    assert(grid.set_blocked(GridPoint::new(1, 1), true));
+    assert(grid.set_blocked(GridPoint::new(1, 2), true));
+    assert(match finder.find_path(
+        &grid,
+        GridPoint::new(0, 1),
+        GridPoint::new(2, 1),
+    ) {
+        Err(NavigationError::NoPath) => true,
+        _ => false,
+    });
+    assert(grid.set_blocked(GridPoint::new(0, 1), true));
+    assert(match finder.find_path(
+        &grid,
+        GridPoint::new(0, 1),
+        GridPoint::new(0, 2),
+    ) {
+        Err(NavigationError::BlockedEndpoint) => true,
+        _ => false,
+    });
+}
+
+@test
+fn released_navigation_storage_should_be_empty_and_inert() {
+    let allocator = general_allocator();
+    let mut grid = match NavigationGrid::filled(&allocator, 2, 2, 1.0) {
+        Ok(value) => value,
+        Err(_) => panic("navigation grid allocation failed"),
+    };
+    let mut finder = match PathFinder::with_capacity(&allocator, grid.len()) {
+        Ok(value) => value,
+        Err(_) => panic("pathfinder allocation failed"),
+    };
+    grid.release();
+    finder.release();
+    grid.release();
+    finder.release();
+    assert(grid.len() == 0);
+    assert(grid.allocated_bytes() == 0);
+    assert(finder.allocated_bytes() == 0);
+    assert(match finder.find_path(
+        &grid,
+        GridPoint::new(0, 0),
+        GridPoint::new(1, 1),
+    ) {
+        Err(NavigationError::SearchCapacityExceeded) => true,
+        _ => false,
+    });
+}

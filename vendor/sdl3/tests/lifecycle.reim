@@ -1,0 +1,14 @@
+from self::init import EVENTS, Subsystems, initialized;
+
+fn main() -> i32 {
+    let started = Subsystems::init(EVENTS);
+    let subsystems = match started {
+        Ok(value) => value,
+        Err(_) => {
+            return 1;
+        },
+    };
+    let valid = subsystems.flags() == EVENTS && initialized(EVENTS) == EVENTS;
+    subsystems.deinit();
+    if valid { 0 } else { 2 }
+}

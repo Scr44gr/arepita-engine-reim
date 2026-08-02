@@ -1,0 +1,41 @@
+from std::alloc import general_allocator;
+
+from self::facade import CodecLimits, DecodedAudio, is_compatible;
+
+fn main() -> i32 {
+    if !is_compatible() {
+        return 1;
+    }
+
+    // Two signed 16-bit mono PCM frames at 8 kHz. The native boundary must
+    // decode them and normalize the result to interleaved stereo samples.
+    let wave: [u8; 48] = [
+        82, 73, 70, 70, 40, 0, 0, 0,
+        87, 65, 86, 69, 102, 109, 116, 32,
+        16, 0, 0, 0, 1, 0, 1, 0,
+        64, 31, 0, 0, 128, 62, 0, 0,
+        2, 0, 16, 0, 100, 97, 116, 97,
+        4, 0, 0, 0, 0, 128, 255, 127,
+    ];
+    let decoded = DecodedAudio::decode(&wave, 8_000, CodecLimits::standard());
+    let audio = match decoded {
+        Ok(value) => value,
+        Err(_) => { return 2; },
+    };
+    defer audio.deinit();
+    if audio.sample_rate() != 8_000
+        || audio.channels() != 2
+        || audio.frames() != 2
+        || audio.sample_count() != 4 {
+        return 3;
+    }
+
+    let allocator = general_allocator();
+    let copied = audio.samples(&allocator);
+    let samples = match copied {
+        Ok(value) => value,
+        Err(_) => { return 4; },
+    };
+    defer samples.deinit();
+    if samples.len() == 4 { 0 } else { 5 }
+}

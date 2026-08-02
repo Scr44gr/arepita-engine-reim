@@ -1,0 +1,512 @@
+from std::alloc import AllocError, Allocator, ArenaAllocator;
+from std::binary import to_f32_bits;
+from std::collections import Vec;
+from std::math import clamp;
+
+from sdl3 import AudioOutput;
+from self::clip import AudioClip;
+from super::app import LocalResource;
+from super::asset import AssetHandle, AssetStore;
+
+/// Recoverable audio mixer failures.
+@derive(Copy, Clone, Debug, Eq)
+pub enum MixerError {
+    InvalidConfiguration,
+    OutputUnavailable,
+    OutOfMemory,
+    VoiceCapacityExceeded,
+    ClipUnavailable,
+    ClipFormatMismatch,
+    BlockCapacityExceeded,
+    QueueTargetTooLarge,
+    Released,
+    OutputFailed,
+}
+
+/// Stable identifier for one mixer voice.
+///
+/// Handles remain valid while their voice is active and become inert after
+/// that voice finishes, is stopped, or the mixer is released.
+@derive(Copy, Clone, Debug, Eq, Hash)
+pub struct VoiceHandle {
+    identifier: u64,
+}
+
+impl VoiceHandle {
+    fn create(identifier: u64) -> VoiceHandle {
+        VoiceHandle { identifier: identifier }
+    }
+
+    /// Returns the nonzero identifier carried by this handle.
+    pub fn identifier(&self) -> u64 { self.identifier }
+}
+
+/// Allocation-free playback configuration for one voice.
+@derive(Copy, Clone, Debug)
+pub struct VoiceSettings {
+    pub volume: f32,
+    pub playback_rate: f32,
+    pub looping: bool,
+}
+
+impl VoiceSettings {
+    /// Builds settings where `1.0` preserves the authored pitch and duration.
+    pub fn new(
+        volume: f32,
+        playback_rate: f32,
+        looping: bool,
+    ) -> VoiceSettings {
+        VoiceSettings {
+            volume: volume,
+            playback_rate: playback_rate,
+            looping: looping,
+        }
+    }
+}
+
+@derive(Copy)
+struct Voice {
+    handle: VoiceHandle,
+    clip: AssetHandle<AudioClip>,
+    cursor: f64,
+    volume: f32,
+    playback_rate: f64,
+    looping: bool,
+}
+
+@derive(Copy)
+struct SourceCursor {
+    frame: usize,
+    next_frame: usize,
+    fraction: f32,
+}
+
+/// Main-thread software mixer with fixed frame and voice capacities.
+///
+/// All clips use the output sample rate and channel count. SDL performs only
+/// the final device conversion, while this mixer combines voices predictably
+/// in reusable Reimer-owned memory.
+@derive(LocalResource)
+pub struct AudioMixer {
+    arena: ArenaAllocator,
+    output: AudioOutput,
+    scratch: Vec<f32>,
+    voices: Vec<Voice>,
+    block_frames: usize,
+    channels: u32,
+    sample_rate: u32,
+    maximum_queued_frames: u64,
+    next_voice_identifier: u64,
+    released: bool,
+}
+
+impl AudioMixer {
+    /// Opens output and preallocates the maximum mix block and voice count.
+    pub fn create(
+        allocator: &Allocator,
+        sample_rate: u32,
+        channels: u32,
+        block_frames: usize,
+        voice_capacity: usize,
+    ) -> Result<AudioMixer, MixerError> {
+        if sample_rate < 8_000
+            || sample_rate > 384_000
+            || channels == 0
+            || channels > 8
+            || block_frames == 0
+            || block_frames > 0x1fff_ffff
+            || voice_capacity == 0
+        {
+            return Err(MixerError::InvalidConfiguration);
+        }
+        let channel_count = channels as usize;
+        if block_frames > usize_max() / channel_count {
+            return Err(MixerError::InvalidConfiguration);
+        }
+        let sample_capacity = block_frames * channel_count;
+        let mut output = match AudioOutput::create(sample_rate, channels) {
+            Ok(value) => value,
+            Err(_) => {
+                return Err(MixerError::OutputUnavailable);
+            },
+        };
+        let mut arena = match ArenaAllocator::init(allocator) {
+            Ok(value) => value,
+            Err(_) => {
+                output.release();
+                return Err(MixerError::OutOfMemory);
+            },
+        };
+        let storage = arena.allocator_value();
+        let scratch_result: Result<Vec<f32>, AllocError> =
+            Vec::with_capacity(&storage, sample_capacity);
+        let scratch = match scratch_result {
+            Ok(value) => value,
+            Err(_) => {
+                arena.release();
+                output.release();
+                return Err(MixerError::OutOfMemory);
+            },
+        };
+        let voices_result: Result<Vec<Voice>, AllocError> =
+            Vec::with_capacity(&storage, voice_capacity);
+        let voices = match voices_result {
+            Ok(value) => value,
+            Err(_) => {
+                arena.release();
+                output.release();
+                return Err(MixerError::OutOfMemory);
+            },
+        };
+        Ok(AudioMixer {
+            arena: arena,
+            output: output,
+            scratch: scratch,
+            voices: voices,
+            block_frames: block_frames,
+            channels: channels,
+            sample_rate: sample_rate,
+            maximum_queued_frames: block_frames as u64 * 8,
+            next_voice_identifier: 1,
+            released: false,
+        })
+    }
+
+    /// Starts a voice without allocating.
+    pub fn play(
+        &mut self,
+        clips: &AssetStore<AudioClip>,
+        clip: AssetHandle<AudioClip>,
+        volume: f32,
+        looping: bool,
+    ) -> Result<(), MixerError> {
+        match self.play_tracked(clips, clip, volume, looping) {
+            Ok(_) => Ok(()),
+            Err(error) => Err(error),
+        }
+    }
+
+    /// Starts a controllable voice without allocating.
+    pub fn play_tracked(
+        &mut self,
+        clips: &AssetStore<AudioClip>,
+        clip: AssetHandle<AudioClip>,
+        volume: f32,
+        looping: bool,
+    ) -> Result<VoiceHandle, MixerError> {
+        self.play_with_settings(
+            clips,
+            clip,
+            VoiceSettings::new(volume, 1.0, looping),
+        )
+    }
+
+    /// Starts a controllable voice with volume, pitch, and loop settings.
+    pub fn play_with_settings(
+        &mut self,
+        clips: &AssetStore<AudioClip>,
+        clip: AssetHandle<AudioClip>,
+        settings: VoiceSettings,
+    ) -> Result<VoiceHandle, MixerError> {
+        if self.released {
+            return Err(MixerError::Released);
+        }
+        if !valid_voice_settings(settings) {
+            return Err(MixerError::InvalidConfiguration);
+        }
+        let asset = match clips.get(clip) {
+            Some(value) => value,
+            None => {
+                return Err(MixerError::ClipUnavailable);
+            },
+        };
+        if asset.sample_rate() != self.sample_rate
+            || asset.channels() != self.channels
+        {
+            return Err(MixerError::ClipFormatMismatch);
+        }
+        let handle = VoiceHandle::create(self.next_voice_identifier);
+        let voice = Voice {
+            handle: handle,
+            clip: clip,
+            cursor: 0.0,
+            volume: settings.volume,
+            playback_rate: settings.playback_rate as f64,
+            looping: settings.looping,
+        };
+        if self.voices.push_within_capacity(voice) {
+            self.next_voice_identifier = following_voice_identifier(
+                self.next_voice_identifier,
+            );
+            Ok(handle)
+        } else {
+            Err(MixerError::VoiceCapacityExceeded)
+        }
+    }
+
+    /// Returns whether a tracked voice is still active.
+    pub fn is_playing(&self, handle: VoiceHandle) -> bool {
+        if self.released { return false; }
+        let mut index: usize = 0;
+        while index < self.voices.len() {
+            let voice = match self.voices.get(index) {
+                Some(value) => value,
+                None => { return false; },
+            };
+            if voice.handle == handle { return true; }
+            index += 1;
+        }
+        false
+    }
+
+    /// Stops one tracked voice without affecting any other queued voice.
+    pub fn stop(&mut self, handle: VoiceHandle) -> Result<bool, MixerError> {
+        if self.released {
+            return Err(MixerError::Released);
+        }
+        let mut index: usize = 0;
+        while index < self.voices.len() {
+            let voice = match self.voices.get(index) {
+                Some(value) => value,
+                None => { return Ok(false); },
+            };
+            if voice.handle == handle {
+                return Ok(match self.voices.remove(index) {
+                    Some(_) => true,
+                    None => false,
+                });
+            }
+            index += 1;
+        }
+        Ok(false)
+    }
+
+    /// Mixes and queues one block without allocation.
+    pub fn mix_and_queue(
+        &mut self,
+        clips: &AssetStore<AudioClip>,
+        frames: usize,
+    ) -> Result<(), MixerError> {
+        if self.released {
+            return Err(MixerError::Released);
+        }
+        if frames == 0 || frames > self.block_frames {
+            return Err(MixerError::BlockCapacityExceeded);
+        }
+        let sample_count = frames * self.channels as usize;
+        self.scratch.clear();
+        let mut index: usize = 0;
+        while index < sample_count {
+            if !self.scratch.push_within_capacity(0.0) {
+                panic("audio scratch reservation became inconsistent")
+            }
+            index += 1;
+        }
+
+        let voice_count = self.voices.len();
+        let mut read: usize = 0;
+        let mut write: usize = 0;
+        while read < voice_count {
+            let mut voice = match self.voices.get(read) {
+                Some(value) => value,
+                None => panic("audio voice storage became inconsistent"),
+            };
+            let clip = match clips.get(voice.clip) {
+                Some(value) => value,
+                None => {
+                    read += 1;
+                    continue;
+                },
+            };
+            let clip_frames = clip.frame_count();
+            let source = clip.samples();
+            let mut destination_frame: usize = 0;
+            let mut active = true;
+            while destination_frame < frames && active {
+                if voice.cursor >= clip_frames as f64 {
+                    if voice.looping {
+                        while voice.cursor >= clip_frames as f64 {
+                            voice.cursor -= clip_frames as f64;
+                        }
+                    } else {
+                        active = false;
+                        continue;
+                    }
+                }
+                let source_cursor = source_cursor_at(
+                    voice.cursor,
+                    clip_frames,
+                    voice.looping,
+                );
+                let mut channel: usize = 0;
+                while channel < self.channels as usize {
+                    let destination = destination_frame * self.channels as usize + channel;
+                    let source_index = source_cursor.frame
+                        * self.channels as usize + channel;
+                    let next_source_index = source_cursor.next_frame
+                        * self.channels as usize + channel;
+                    let previous = match self.scratch.get(destination) {
+                        Some(value) => value,
+                        None => panic("audio scratch index became inconsistent"),
+                    };
+                    let sample = if source_cursor.fraction == 0.0 {
+                        source[source_index]
+                    } else {
+                        source[source_index]
+                            + (source[next_source_index] - source[source_index])
+                                * source_cursor.fraction
+                    };
+                    let mixed = previous + sample * voice.volume;
+                    let _ = self.scratch.set(destination, mixed);
+                    channel += 1;
+                }
+                voice.cursor += voice.playback_rate;
+                destination_frame += 1;
+            }
+            if active {
+                let _ = self.voices.set(write, voice);
+                write += 1;
+            }
+            read += 1;
+        }
+        while self.voices.len() > write {
+            let _ = self.voices.pop();
+        }
+
+        index = 0;
+        while index < self.scratch.len() {
+            let sample = match self.scratch.get(index) {
+                Some(value) => value,
+                None => panic("audio scratch index became inconsistent"),
+            };
+            let limited = clamp(sample, -1.0, 1.0);
+            let _ = self.scratch.set(index, limited);
+            index += 1;
+        }
+        match self.output.queue_f32(self.scratch.as_slice()) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(MixerError::OutputFailed),
+        }
+    }
+
+    /// Queues blocks until at least `target_frames` are buffered.
+    pub fn maintain(
+        &mut self,
+        clips: &AssetStore<AudioClip>,
+        target_frames: u64,
+    ) -> Result<(), MixerError> {
+        if self.released {
+            return Err(MixerError::Released);
+        }
+        if target_frames > self.maximum_queued_frames {
+            return Err(MixerError::QueueTargetTooLarge);
+        }
+        let mut queued = match self.output.queued_frames() {
+            Ok(value) => value,
+            Err(_) => {
+                return Err(MixerError::OutputFailed);
+            },
+        };
+        while queued < target_frames {
+            self.mix_and_queue(clips, self.block_frames)?;
+            queued += self.block_frames as u64;
+        }
+        Ok(())
+    }
+
+    pub fn active_voices(&self) -> usize { self.voices.len() }
+
+    pub fn allocated_bytes(&self) -> usize {
+        self.scratch.allocated_bytes() + self.voices.allocated_bytes()
+    }
+
+    pub fn stop_all(&mut self) -> Result<(), MixerError> {
+        if self.released {
+            return Err(MixerError::Released);
+        }
+        self.voices.clear();
+        match self.output.clear() {
+            Ok(_) => Ok(()),
+            Err(_) => Err(MixerError::OutputFailed),
+        }
+    }
+
+    /// Releases native output and mixer storage exactly once.
+    pub fn release(&mut self) {
+        if self.released {
+            return;
+        }
+        self.output.release();
+        self.scratch.release();
+        self.voices.release();
+        self.arena.release();
+        self.block_frames = 0;
+        self.channels = 0;
+        self.sample_rate = 0;
+        self.maximum_queued_frames = 0;
+        self.next_voice_identifier = 0;
+        self.released = true;
+    }
+}
+
+fn finite(value: f32) -> bool {
+    to_f32_bits(value) & 0x7f80_0000 != 0x7f80_0000
+}
+
+fn valid_voice_settings(settings: VoiceSettings) -> bool {
+    finite(settings.volume)
+        && settings.volume >= 0.0
+        && finite(settings.playback_rate)
+        && settings.playback_rate >= 0.01
+        && settings.playback_rate <= 8.0
+}
+
+fn source_cursor_at(
+    cursor: f64,
+    frame_count: usize,
+    looping: bool,
+) -> SourceCursor {
+    let frame = cursor as usize;
+    let mut next_frame = frame;
+    if frame + 1 < frame_count {
+        next_frame = frame + 1;
+    } else if looping {
+        next_frame = 0;
+    }
+    SourceCursor {
+        frame: frame,
+        next_frame: next_frame,
+        fraction: (cursor - frame as f64) as f32,
+    }
+}
+
+fn usize_max() -> usize {
+    let maximum: u64 = 18_446_744_073_709_551_615;
+    maximum as usize
+}
+
+fn following_voice_identifier(identifier: u64) -> u64 {
+    let next = identifier.wrapping_add(1);
+    if next == 0 { 1 } else { next }
+}
+
+@test
+fn voice_identifiers_should_skip_zero_after_wrapping() {
+    assert(following_voice_identifier(1) == 2);
+    assert(following_voice_identifier(18_446_744_073_709_551_615) == 1);
+}
+
+@test
+fn voice_settings_and_sampling_should_bound_pitch_safely() {
+    assert(valid_voice_settings(VoiceSettings::new(0.72, 0.84, false)));
+    assert(!valid_voice_settings(VoiceSettings::new(-0.1, 1.0, false)));
+    assert(!valid_voice_settings(VoiceSettings::new(1.0, 0.0, false)));
+    let middle = source_cursor_at(2.25, 4, false);
+    assert(middle.frame == 2);
+    assert(middle.next_frame == 3);
+    assert(middle.fraction == 0.25);
+    let wrapped = source_cursor_at(3.5, 4, true);
+    assert(wrapped.frame == 3);
+    assert(wrapped.next_frame == 0);
+    assert(wrapped.fraction == 0.5);
+}

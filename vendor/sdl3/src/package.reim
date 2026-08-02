@@ -1,0 +1,27 @@
+/// Safe SDL3 lifecycle, event, input, file, clipboard, timing, surface, rendering, and window APIs.
+pub from self::audio import AudioError, AudioOutput;
+pub import self::audio as audio;
+pub from self::clipboard import ClipboardError, ClipboardText;
+pub import self::clipboard as clipboard;
+pub from self::events import Event, EventError, GamepadDeviceChange,
+    KeyboardChange, MouseButtonChange;
+pub import self::events as events;
+pub from self::files import FileBytes, FileLoadError, load_file;
+pub import self::files as files;
+pub from self::gl import GlContext, GlError;
+pub import self::gl as gl;
+pub from self::gamepad import Gamepad, GamepadAxis, GamepadButton, GamepadError, GamepadId, GamepadIds, GamepadKind;
+pub import self::gamepad as gamepad;
+pub from self::init import InitError, Subsystems;
+pub import self::init as init;
+pub from self::input import KeyboardState, MouseButton, MouseState, Scancode;
+pub import self::input as input;
+pub from self::render import RenderError, Renderer, SoftwareRenderer;
+pub import self::render as render;
+pub from self::surface import Surface, SurfaceError;
+pub import self::surface as surface;
+pub import self::time as time;
+pub from self::video import Window, WindowError, WindowSize;
+pub import self::video as video;
+/// Complete generated and low-level SDL ABI surface.
+pub import self::raw as raw;

@@ -1,0 +1,580 @@
+from std::alloc import AllocError, Allocator;
+from std::collections import Vec;
+from std::math import Vec2, clamp, minimum, square_root;
+from std::string import String;
+
+from sdl3 import Event, Gamepad, GamepadAxis, GamepadButton, GamepadDeviceChange, GamepadId, GamepadKind;
+import sdl3::gamepad as native_gamepad;
+from self::window import WindowHost;
+from super::app import LocalResource;
+
+const AXIS_COUNT: usize = 6;
+const BUTTON_COUNT: usize = 26;
+
+/// A stable engine handle protected against disconnected-slot reuse.
+@derive(Copy, Clone, Debug, Eq, Hash)
+pub struct GamepadHandle {
+    slot: u32,
+    generation: u32,
+}
+
+impl GamepadHandle {
+    /// Returns the compact slot index carried by this handle.
+    pub fn slot(&self) -> u32 { self.slot }
+
+    /// Returns the generation used to reject handles from disconnected pads.
+    pub fn generation(&self) -> u32 { self.generation }
+}
+
+/// A gamepad lifecycle result produced while consuming an SDL event.
+@derive(Copy, Clone, Debug, Eq)
+pub enum GamepadChange {
+    Ignored,
+    Connected(GamepadHandle),
+    Disconnected(GamepadHandle),
+    Remapped(GamepadHandle),
+    ConnectionFailed,
+    CapacityReached,
+}
+
+/// Recoverable gamepad-manager creation failures.
+@derive(Copy, Clone, Debug, Eq)
+pub enum GamepadsError {
+    InvalidCapacity,
+    OutOfMemory,
+    HostReleased,
+    EnumerationFailed,
+}
+
+struct GamepadSlot {
+    device: Gamepad,
+    name: String,
+    id: GamepadId,
+    generation: u32,
+    active: bool,
+    previous_buttons: u32,
+    current_buttons: u32,
+    axes: [f32; 6],
+}
+
+impl GamepadSlot {
+    pub fn create(
+        device: Gamepad,
+        name: String,
+        id: GamepadId,
+        generation: u32,
+    ) -> GamepadSlot {
+        GamepadSlot {
+            device: device,
+            name: name,
+            id: id,
+            generation: generation,
+            active: true,
+            previous_buttons: 0,
+            current_buttons: 0,
+            axes: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        }
+    }
+
+    pub fn handle(&self, slot: usize) -> GamepadHandle {
+        GamepadHandle { slot: slot as u32, generation: self.generation }
+    }
+
+    pub fn name(&self) -> str { self.name.as_str() }
+
+    pub fn sample(&mut self) {
+        self.previous_buttons = self.current_buttons;
+        let mut buttons: u32 = 0;
+        let mut button_index: usize = 0;
+        while button_index < BUTTON_COUNT {
+            let button = match GamepadButton::from_raw(button_index as i32) {
+                Some(value) => value,
+                None => panic("gamepad button catalog became inconsistent"),
+            };
+            if self.device.is_down(button) {
+                buttons = buttons | (1 as u32 << button_index as u32);
+            }
+            button_index += 1;
+        }
+        self.current_buttons = buttons;
+
+        let mut axis_index: usize = 0;
+        while axis_index < AXIS_COUNT {
+            let axis = match GamepadAxis::from_raw(axis_index as i32) {
+                Some(value) => value,
+                None => panic("gamepad axis catalog became inconsistent"),
+            };
+            let raw = self.device.axis(axis);
+            self.axes[axis_index] = normalize_axis(raw, axis_index >= 4);
+            axis_index += 1;
+        }
+    }
+
+    pub fn retire(&mut self) {
+        self.device.release();
+        self.name.release();
+        self.active = false;
+        self.previous_buttons = 0;
+        self.current_buttons = 0;
+        self.axes = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+        self.generation = self.generation.wrapping_add(1);
+        if self.generation == 0 {
+            self.generation = 1;
+        }
+    }
+}
+
+/// Fixed-capacity, allocation-free-per-frame gamepad state.
+///
+/// The manager borrows `WindowHost` because the host owns SDL's gamepad
+/// subsystem reference. Feed every polled event through `handle_event`, then
+/// call `update` exactly once before gameplay systems run.
+@derive(LocalResource)
+pub struct Gamepads {
+    allocator: Allocator,
+    slots: Vec<GamepadSlot>,
+    capacity: usize,
+    active: usize,
+    released: bool,
+}
+
+impl Gamepads {
+    /// Enumerates existing devices and reserves all session slot storage.
+    pub fn create(
+        host: &WindowHost,
+        allocator: &Allocator,
+        capacity: usize,
+    ) -> Result<Gamepads, GamepadsError> {
+        if capacity == 0 || capacity > 0xffff_ffff {
+            return Err(GamepadsError::InvalidCapacity);
+        }
+        let created: Result<Vec<GamepadSlot>, AllocError> =
+            Vec::with_capacity(allocator, capacity);
+        let slots = match created {
+            Ok(value) => value,
+            Err(_) => {
+                return Err(GamepadsError::OutOfMemory);
+            },
+        };
+        let mut manager = Gamepads {
+            allocator: *allocator,
+            slots: slots,
+            capacity: capacity,
+            active: 0,
+            released: false,
+        };
+        let subsystems = match host.subsystems() {
+            Ok(value) => value,
+            Err(_) => {
+                manager.release();
+                return Err(GamepadsError::HostReleased);
+            },
+        };
+        let identifiers = match native_gamepad::list(subsystems) {
+            Ok(value) => value,
+            Err(_) => {
+                manager.release();
+                return Err(GamepadsError::EnumerationFailed);
+            },
+        };
+        let mut index: usize = 0;
+        while index < identifiers.len() && manager.active < capacity {
+            match identifiers.get(index) {
+                Some(id) => {
+                    let _ = connect_gamepad(&mut manager, id);
+                },
+                None => {},
+            }
+            index += 1;
+        }
+        identifiers.deinit();
+        Ok(manager)
+    }
+
+    /// Returns the number of currently connected gamepads.
+    pub fn len(&self) -> usize { self.active }
+
+    /// Returns whether no gamepads are connected.
+    pub fn is_empty(&self) -> bool { self.active == 0 }
+
+    /// Returns bytes reserved for stable device slots.
+    pub fn allocated_bytes(&self) -> usize { self.slots.allocated_bytes() }
+
+    /// Consumes one already-polled SDL event without allocating.
+    pub fn handle_event(&mut self, event: &Event) -> GamepadChange {
+        match event.gamepad_device_change() {
+            Some(GamepadDeviceChange::Added(id)) => connect_gamepad(self, id),
+            Some(GamepadDeviceChange::Removed(id)) => disconnect_gamepad(self, id),
+            Some(GamepadDeviceChange::Remapped(id)) => remap_gamepad(self, id),
+            _ => GamepadChange::Ignored,
+        }
+    }
+
+    /// Samples buttons and axes for every connected device.
+    pub fn update(&mut self) {
+        let mut index: usize = 0;
+        while index < self.slots.len() {
+            match self.slots.get_mut(index) {
+                Some(slot) => {
+                    if slot.active {
+                        slot.sample();
+                    }
+                },
+                None => {},
+            }
+            index += 1;
+        }
+    }
+
+    /// Returns the first connected handle in stable slot order.
+    pub fn first(&self) -> Option<GamepadHandle> {
+        let mut index: usize = 0;
+        while index < self.slots.len() {
+            match self.slots.get_ref(index) {
+                Some(slot) => {
+                    if slot.active {
+                        return Some(slot.handle(index));
+                    }
+                },
+                None => {},
+            }
+            index += 1;
+        }
+        None
+    }
+
+    /// Returns the connected handle at one physical slot.
+    pub fn handle_at(&self, slot_index: usize) -> Option<GamepadHandle> {
+        match self.slots.get_ref(slot_index) {
+            Some(slot) => {
+                if slot.active { Some(slot.handle(slot_index)) } else { None }
+            },
+            None => None,
+        }
+    }
+
+    /// Returns whether a handle still identifies the same connected device.
+    pub fn contains(&self, handle: GamepadHandle) -> bool {
+        match self.slots.get_ref(handle.slot as usize) {
+            Some(slot) => slot.active && slot.generation == handle.generation,
+            None => false,
+        }
+    }
+
+    /// Returns a normalized axis value, or zero for a stale handle.
+    ///
+    /// Thumbsticks use `-1.0..=1.0`; triggers use `0.0..=1.0`.
+    pub fn axis(&self, handle: GamepadHandle, axis: GamepadAxis) -> f32 {
+        if !self.contains(handle) {
+            return 0.0;
+        }
+        let index = axis.raw() as usize;
+        match self.slots.get_ref(handle.slot as usize) {
+            Some(slot) => slot.axes[index],
+            None => 0.0,
+        }
+    }
+
+    /// Returns a radially dead-zoned stick vector.
+    pub fn stick(
+        &self,
+        handle: GamepadHandle,
+        horizontal: GamepadAxis,
+        vertical: GamepadAxis,
+        deadzone: f32,
+    ) -> Vec2 {
+        radial_deadzone(
+            self.axis(handle, horizontal),
+            self.axis(handle, vertical),
+            deadzone,
+        )
+    }
+
+    /// Returns whether a button is currently held.
+    pub fn button_down(
+        &self,
+        handle: GamepadHandle,
+        button: GamepadButton,
+    ) -> bool {
+        let mask = button_mask(button);
+        if !self.contains(handle) {
+            return false;
+        }
+        match self.slots.get_ref(handle.slot as usize) {
+            Some(slot) => (slot.current_buttons & mask) != 0,
+            None => false,
+        }
+    }
+
+    /// Returns whether a button transitioned to held this frame.
+    pub fn button_pressed(
+        &self,
+        handle: GamepadHandle,
+        button: GamepadButton,
+    ) -> bool {
+        let mask = button_mask(button);
+        if !self.contains(handle) {
+            return false;
+        }
+        match self.slots.get_ref(handle.slot as usize) {
+            Some(slot) => (slot.current_buttons & mask) != 0
+                && (slot.previous_buttons & mask) == 0,
+            None => false,
+        }
+    }
+
+    /// Returns whether a button transitioned to released this frame.
+    pub fn button_released(
+        &self,
+        handle: GamepadHandle,
+        button: GamepadButton,
+    ) -> bool {
+        let mask = button_mask(button);
+        if !self.contains(handle) {
+            return false;
+        }
+        match self.slots.get_ref(handle.slot as usize) {
+            Some(slot) => (slot.current_buttons & mask) == 0
+                && (slot.previous_buttons & mask) != 0,
+            None => false,
+        }
+    }
+
+    /// Returns the controller family for glyph and layout selection.
+    pub fn kind(&self, handle: GamepadHandle) -> GamepadKind {
+        if !self.contains(handle) {
+            return GamepadKind::Unknown;
+        }
+        match self.slots.get_ref(handle.slot as usize) {
+            Some(slot) => slot.device.kind(),
+            None => GamepadKind::Unknown,
+        }
+    }
+
+    /// Borrows the UTF-8 controller name copied when the device connected.
+    pub fn name(&self, handle: GamepadHandle) -> Option<str> {
+        if !self.contains(handle) {
+            return None;
+        }
+        match self.slots.get_ref(handle.slot as usize) {
+            Some(slot) => Some(slot.name()),
+            None => None,
+        }
+    }
+
+    /// Returns whether the controller advertises two-motor rumble.
+    pub fn supports_rumble(&self, handle: GamepadHandle) -> bool {
+        if !self.contains(handle) {
+            return false;
+        }
+        match self.slots.get_ref(handle.slot as usize) {
+            Some(slot) => slot.device.supports_rumble(),
+            None => false,
+        }
+    }
+
+    /// Starts normalized two-motor rumble and returns `false` on failure.
+    pub fn rumble(
+        &self,
+        handle: GamepadHandle,
+        low_frequency: f32,
+        high_frequency: f32,
+        duration_ms: u32,
+    ) -> bool {
+        if !self.contains(handle) {
+            return false;
+        }
+        match self.slots.get_ref(handle.slot as usize) {
+            Some(slot) => match slot.device.rumble(
+                low_frequency,
+                high_frequency,
+                duration_ms,
+            ) {
+                Ok(_) => true,
+                Err(_) => false,
+            },
+            None => false,
+        }
+    }
+
+    /// Closes every device and frees slot storage. Repeated calls are no-ops.
+    pub fn release(&mut self) {
+        if self.released {
+            return;
+        }
+        let mut index: usize = 0;
+        while index < self.slots.len() {
+            match self.slots.get_mut(index) {
+                Some(slot) => {
+                    slot.device.release();
+                    slot.name.release();
+                },
+                None => {},
+            }
+            index += 1;
+        }
+        self.slots.release();
+        self.active = 0;
+        self.released = true;
+    }
+
+}
+
+fn find_gamepad(manager: &Gamepads, id: GamepadId) -> Option<usize> {
+    let mut index: usize = 0;
+    while index < manager.slots.len() {
+        match manager.slots.get_ref(index) {
+            Some(slot) => {
+                if slot.active && slot.id == id {
+                    return Some(index);
+                }
+            },
+            None => {},
+        }
+        index += 1;
+    }
+    None
+}
+
+fn connect_gamepad(manager: &mut Gamepads, id: GamepadId) -> GamepadChange {
+        match find_gamepad(&*manager, id) {
+            Some(_) => {
+                return GamepadChange::Ignored;
+            },
+            None => {},
+        }
+        if manager.active == manager.capacity {
+            return GamepadChange::CapacityReached;
+        }
+        let mut device = match Gamepad::open(id) {
+            Ok(value) => value,
+            Err(_) => {
+                return GamepadChange::ConnectionFailed;
+            },
+        };
+        let allocator = manager.allocator;
+        let name = match device.copy_name(&allocator) {
+            Ok(value) => value,
+            Err(_) => {
+                device.release();
+                return GamepadChange::ConnectionFailed;
+            },
+        };
+
+        let mut reusable: Option<usize> = None;
+        let mut index: usize = 0;
+        while index < manager.slots.len() {
+            match manager.slots.get_ref(index) {
+                Some(slot) => {
+                    if !slot.active {
+                        reusable = Some(index);
+                        break;
+                    }
+                },
+                None => {},
+            }
+            index += 1;
+        }
+
+        let handle = match reusable {
+            Some(slot_index) => {
+                let generation = {
+                    match manager.slots.get_ref(slot_index) {
+                        Some(slot) => slot.generation,
+                        None => panic("gamepad slot became inconsistent"),
+                    }
+                };
+                let replacement = GamepadSlot::create(device, name, id, generation);
+                {
+                    match manager.slots.get_mut(slot_index) {
+                        Some(slot) => {
+                            *slot = replacement;
+                        },
+                        None => panic("gamepad slot became inconsistent"),
+                    }
+                }
+                GamepadHandle { slot: slot_index as u32, generation: generation }
+            },
+            None => {
+                let slot_index = manager.slots.len();
+                let slot = GamepadSlot::create(device, name, id, 1);
+                if !manager.slots.push_within_capacity(slot) {
+                    panic("gamepad capacity reservation became inconsistent")
+                }
+                GamepadHandle { slot: slot_index as u32, generation: 1 }
+            },
+        };
+        manager.active += 1;
+        GamepadChange::Connected(handle)
+}
+
+fn disconnect_gamepad(manager: &mut Gamepads, id: GamepadId) -> GamepadChange {
+        let index = match find_gamepad(&*manager, id) {
+            Some(value) => value,
+            None => {
+                return GamepadChange::Ignored;
+            },
+        };
+        let previous = {
+            match manager.slots.get_ref(index) {
+                Some(slot) => slot.handle(index),
+                None => panic("gamepad slot became inconsistent"),
+            }
+        };
+        {
+            match manager.slots.get_mut(index) {
+                Some(slot) => slot.retire(),
+                None => panic("gamepad slot became inconsistent"),
+            }
+        }
+        manager.active -= 1;
+        GamepadChange::Disconnected(previous)
+}
+
+fn remap_gamepad(manager: &mut Gamepads, id: GamepadId) -> GamepadChange {
+        match find_gamepad(&*manager, id) {
+            Some(index) => match manager.slots.get_ref(index) {
+                Some(slot) => GamepadChange::Remapped(slot.handle(index)),
+                None => GamepadChange::Ignored,
+            },
+            None => connect_gamepad(&mut *manager, id),
+        }
+}
+
+fn button_mask(button: GamepadButton) -> u32 {
+    1 as u32 << button.raw() as u32
+}
+
+fn normalize_axis(raw: i16, trigger: bool) -> f32 {
+    if trigger {
+        clamp(raw as f32 / 32_767.0, 0.0, 1.0)
+    } else if raw < 0 {
+        raw as f32 / 32_768.0
+    } else {
+        raw as f32 / 32_767.0
+    }
+}
+
+/// Applies a circular dead zone and rescales the remaining stick range.
+pub fn radial_deadzone(x: f32, y: f32, deadzone: f32) -> Vec2 {
+    let threshold = clamp(deadzone, 0.0, 0.95);
+    let magnitude = square_root(x * x + y * y);
+    if magnitude <= threshold || magnitude == 0.0 {
+        return Vec2::zero();
+    }
+    let output_magnitude = minimum(
+        (magnitude - threshold) / (1.0 - threshold),
+        1.0,
+    );
+    let scale = output_magnitude / magnitude;
+    Vec2::new(x * scale, y * scale)
+}
+
+@test
+fn radial_deadzone_should_remove_drift_and_preserve_direction() {
+    let drift = radial_deadzone(0.1, 0.0, 0.2);
+    assert(drift.x == 0.0 && drift.y == 0.0);
+    let movement = radial_deadzone(0.6, 0.8, 0.2);
+    assert(movement.x > 0.59 && movement.x < 0.61);
+    assert(movement.y > 0.79 && movement.y < 0.81);
+}

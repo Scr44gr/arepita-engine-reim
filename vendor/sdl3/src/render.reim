@@ -1,0 +1,128 @@
+import std::c;
+
+import self::raw::functions as sdl;
+import self::raw::types as types;
+from self::surface import Surface;
+from self::video import Window;
+
+/// A recoverable SDL renderer operation failure.
+pub enum RenderError {
+    CreationFailed,
+    OperationFailed,
+}
+
+/// One hardware renderer borrowing its window.
+pub struct Renderer {
+    window: &Window,
+    raw: *mut types::SDL_Renderer,
+}
+
+impl Renderer {
+    /// Creates the first renderer supported for `window`.
+    pub fn create(window: &Window) -> Result<Renderer, RenderError> {
+        let raw = unsafe {
+            sdl::SDL_CreateRenderer(
+                window.as_raw(),
+                c::null_const<c::Char>(),
+            )
+        };
+        if c::is_null_mut(raw) {
+            Err(RenderError::CreationFailed)
+        } else {
+            Ok(Renderer { window: window, raw: raw })
+        }
+    }
+
+    /// Selects the color used by subsequent draw operations.
+    pub fn set_draw_color(
+        &mut self,
+        red: u8,
+        green: u8,
+        blue: u8,
+        alpha: u8,
+    ) -> Result<(), RenderError> {
+        operation_result(unsafe {
+            sdl::SDL_SetRenderDrawColor(self.raw, red, green, blue, alpha)
+        })
+    }
+
+    /// Clears the current render target with the selected draw color.
+    pub fn clear(&mut self) -> Result<(), RenderError> {
+        operation_result(unsafe { sdl::SDL_RenderClear(self.raw) })
+    }
+
+    /// Presents the completed back buffer to the borrowed window.
+    pub fn present(&mut self) -> Result<(), RenderError> {
+        operation_result(unsafe { sdl::SDL_RenderPresent(self.raw) })
+    }
+
+    /// Returns the non-null renderer handle for advanced raw calls.
+    pub fn as_raw(&self) -> *mut types::SDL_Renderer {
+        self.raw
+    }
+
+    /// Destroys the renderer and releases its borrow of the window.
+    pub fn deinit(self) {
+        unsafe {
+            sdl::SDL_DestroyRenderer(self.raw);
+        }
+    }
+}
+
+/// One software renderer borrowing writable access to its target surface.
+pub struct SoftwareRenderer {
+    surface: &mut Surface,
+    raw: *mut types::SDL_Renderer,
+}
+
+impl SoftwareRenderer {
+    /// Creates a renderer that writes directly into `surface`.
+    pub fn create(surface: &mut Surface) -> Result<SoftwareRenderer, RenderError> {
+        let raw = unsafe {
+            sdl::SDL_CreateSoftwareRenderer(surface.as_raw_mut())
+        };
+        if c::is_null_mut(raw) {
+            Err(RenderError::CreationFailed)
+        } else {
+            Ok(SoftwareRenderer { surface: surface, raw: raw })
+        }
+    }
+
+    /// Selects the color used by subsequent draw operations.
+    pub fn set_draw_color(
+        &mut self,
+        red: u8,
+        green: u8,
+        blue: u8,
+        alpha: u8,
+    ) -> Result<(), RenderError> {
+        operation_result(unsafe {
+            sdl::SDL_SetRenderDrawColor(self.raw, red, green, blue, alpha)
+        })
+    }
+
+    /// Clears the borrowed surface with the selected draw color.
+    pub fn clear(&mut self) -> Result<(), RenderError> {
+        operation_result(unsafe { sdl::SDL_RenderClear(self.raw) })
+    }
+
+    /// Returns the non-null renderer handle for advanced raw calls.
+    pub fn as_raw(&self) -> *mut types::SDL_Renderer {
+        self.raw
+    }
+
+    /// Destroys the renderer and releases its mutable surface borrow.
+    pub fn deinit(self) {
+        unsafe {
+            sdl::SDL_DestroyRenderer(self.raw);
+        }
+    }
+}
+
+fn operation_result(success: bool) -> Result<(), RenderError> {
+    if success {
+        Ok(())
+    } else {
+        Err(RenderError::OperationFailed)
+    }
+}

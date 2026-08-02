@@ -1,0 +1,380 @@
+import std::c;
+from std::alloc import AllocError, Allocator, allocate_bytes;
+from std::string import String, from_initialized_bytes;
+
+from self::init import GAMEPAD, Subsystems;
+import self::raw::constants as constants;
+import self::raw::functions as sdl;
+import self::raw::types as types;
+
+const JOYSTICK_ID_SIZE: usize = 4;
+
+/// A recoverable gamepad operation failure.
+pub enum GamepadError {
+    SubsystemNotInitialized,
+    EnumerationFailed,
+    OpenFailed,
+    RumbleFailed,
+    OutOfMemory,
+    InvalidName,
+}
+
+/// A stable, platform-neutral family used for controller glyph selection.
+@derive(Copy, Clone, Debug, Eq)
+pub enum GamepadKind {
+    Unknown,
+    Standard,
+    Xbox360,
+    XboxOne,
+    PlayStation3,
+    PlayStation4,
+    PlayStation5,
+    SwitchPro,
+    SwitchJoyConLeft,
+    SwitchJoyConRight,
+    SwitchJoyConPair,
+    GameCube,
+}
+
+/// SDL's stable identifier for one currently connected joystick device.
+@derive(Copy, Clone, Debug, Eq, Hash)
+pub struct GamepadId {
+    value: types::SDL_JoystickID,
+}
+
+impl GamepadId {
+    /// Creates an identifier when `value` is not SDL's invalid zero value.
+    pub fn from_raw(value: types::SDL_JoystickID) -> Option<GamepadId> {
+        if value == 0 {
+            None
+        } else {
+            Some(GamepadId { value: value })
+        }
+    }
+
+    /// Returns SDL's underlying joystick identifier.
+    pub fn raw(&self) -> types::SDL_JoystickID {
+        self.value
+    }
+}
+
+/// An SDL gamepad axis index.
+@derive(Copy, Clone, Debug, Eq, Hash)
+pub struct GamepadAxis {
+    value: types::SDL_GamepadAxis,
+}
+
+impl GamepadAxis {
+    /// Creates an axis when `value` belongs to SDL's current axis catalog.
+    pub fn from_raw(value: types::SDL_GamepadAxis) -> Option<GamepadAxis> {
+        if value >= 0 && value < constants::SDL_GAMEPAD_AXIS_COUNT {
+            Some(GamepadAxis { value: value })
+        } else {
+            None
+        }
+    }
+
+    /// Returns SDL's underlying axis index.
+    pub fn raw(&self) -> types::SDL_GamepadAxis {
+        self.value
+    }
+}
+
+/// An SDL gamepad button index without application action mapping.
+@derive(Copy, Clone, Debug, Eq, Hash)
+pub struct GamepadButton {
+    value: types::SDL_GamepadButton,
+}
+
+impl GamepadButton {
+    /// Creates a button when `value` belongs to SDL's current button catalog.
+    pub fn from_raw(value: types::SDL_GamepadButton) -> Option<GamepadButton> {
+        if value >= 0 && value < constants::SDL_GAMEPAD_BUTTON_COUNT {
+            Some(GamepadButton { value: value })
+        } else {
+            None
+        }
+    }
+
+    /// Returns SDL's underlying button index.
+    pub fn raw(&self) -> types::SDL_GamepadButton {
+        self.value
+    }
+}
+
+/// One owned snapshot of connected gamepad identifiers.
+pub struct GamepadIds {
+    subsystems: &Subsystems,
+    data: *mut types::SDL_JoystickID,
+    len: usize,
+}
+
+impl GamepadIds {
+    /// Returns the number of identifiers captured by this snapshot.
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    /// Returns whether this snapshot contains no connected gamepads.
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
+    /// Returns one captured identifier, or `None` outside the snapshot.
+    pub fn get(&self, index: usize) -> Option<GamepadId> {
+        if index >= self.len {
+            return None;
+        }
+        let address = self.data as usize + index * JOYSTICK_ID_SIZE;
+        let value = unsafe { *(address as *const types::SDL_JoystickID) };
+        GamepadId::from_raw(value)
+    }
+
+    /// Releases the identifier array through SDL's matching allocator.
+    pub fn deinit(self) {
+        unsafe {
+            sdl::SDL_free(self.data as *mut ());
+        }
+    }
+}
+
+/// Captures the currently connected SDL gamepad identifiers.
+pub fn list(subsystems: &Subsystems) -> Result<GamepadIds, GamepadError> {
+    if !subsystems.contains(GAMEPAD) {
+        return Err(GamepadError::SubsystemNotInitialized);
+    }
+    let mut count: c::Int = 0;
+    let data = unsafe { sdl::SDL_GetGamepads(&mut count as *mut c::Int) };
+    if c::is_null_mut(data) || count < 0 {
+        if !c::is_null_mut(data) {
+            unsafe {
+                sdl::SDL_free(data as *mut ());
+            }
+        }
+        Err(GamepadError::EnumerationFailed)
+    } else {
+        Ok(GamepadIds {
+            subsystems: subsystems,
+            data: data,
+            len: count as usize,
+        })
+    }
+}
+
+/// One owned SDL gamepad handle borrowing the initialized subsystem.
+pub struct Gamepad {
+    subsystems: Subsystems,
+    raw: *mut types::SDL_Gamepad,
+}
+
+impl Gamepad {
+    /// Opens one connected gamepad identifier.
+    pub fn open(id: GamepadId) -> Result<Gamepad, GamepadError> {
+        let mut subsystems = match Subsystems::init(GAMEPAD) {
+            Ok(value) => value,
+            Err(_) => {
+                return Err(GamepadError::SubsystemNotInitialized);
+            },
+        };
+        let raw = unsafe { sdl::SDL_OpenGamepad(id.raw()) };
+        if c::is_null_mut(raw) {
+            subsystems.release();
+            Err(GamepadError::OpenFailed)
+        } else {
+            Ok(Gamepad { subsystems: subsystems, raw: raw })
+        }
+    }
+
+    /// Returns whether SDL still reports this gamepad as connected.
+    pub fn is_connected(&self) -> bool {
+        unsafe { sdl::SDL_GamepadConnected(self.raw) }
+    }
+
+    /// Returns the current signed value of one gamepad axis.
+    pub fn axis(&self, axis: GamepadAxis) -> i16 {
+        unsafe { sdl::SDL_GetGamepadAxis(self.raw, axis.raw()) }
+    }
+
+    /// Returns whether one gamepad button is currently pressed.
+    pub fn is_down(&self, button: GamepadButton) -> bool {
+        unsafe { sdl::SDL_GetGamepadButton(self.raw, button.raw()) }
+    }
+
+    /// Returns SDL's stable identifier while the handle remains connected.
+    pub fn id(&self) -> Option<GamepadId> {
+        GamepadId::from_raw(unsafe { sdl::SDL_GetGamepadID(self.raw) })
+    }
+
+    /// Returns SDL's borrowed device name when one is available.
+    pub fn name(&self) -> Option<cstr> {
+        let name = unsafe { sdl::SDL_GetGamepadName(self.raw) };
+        if c::is_null(name) {
+            None
+        } else {
+            Some(unsafe { sdl::SDL_GetGamepadName(self.raw) } as cstr)
+        }
+    }
+
+    /// Copies the current UTF-8 device name into allocator-owned storage.
+    pub fn copy_name(&self, allocator: &Allocator) -> Result<String, GamepadError> {
+        let source = unsafe { sdl::SDL_GetGamepadName(self.raw) };
+        if c::is_null(source) {
+            return match String::from(allocator, "Unknown controller") {
+                Ok(value) => Ok(value),
+                Err(_) => Err(GamepadError::OutOfMemory),
+            };
+        }
+        let len = unsafe { sdl::SDL_strlen(source) };
+        let allocated = allocate_bytes(allocator, len);
+        let mut bytes = match allocated {
+            Ok(value) => value,
+            Err(AllocError::OutOfMemory) => {
+                return Err(GamepadError::OutOfMemory);
+            },
+            _ => {
+                return Err(GamepadError::OutOfMemory);
+            },
+        };
+        unsafe {
+            sdl::SDL_memcpy(
+                bytes.as_mut_ptr() as *mut (),
+                source as *const (),
+                len,
+            );
+        }
+        match from_initialized_bytes(bytes, len) {
+            Ok(value) => Ok(value),
+            Err(_) => Err(GamepadError::InvalidName),
+        }
+    }
+
+    /// Returns the controller family reported by SDL.
+    pub fn kind(&self) -> GamepadKind {
+        let value = unsafe { sdl::SDL_GetGamepadType(self.raw) };
+        if value == constants::SDL_GAMEPAD_TYPE_STANDARD {
+            GamepadKind::Standard
+        } else if value == constants::SDL_GAMEPAD_TYPE_XBOX360 {
+            GamepadKind::Xbox360
+        } else if value == constants::SDL_GAMEPAD_TYPE_XBOXONE {
+            GamepadKind::XboxOne
+        } else if value == constants::SDL_GAMEPAD_TYPE_PS3 {
+            GamepadKind::PlayStation3
+        } else if value == constants::SDL_GAMEPAD_TYPE_PS4 {
+            GamepadKind::PlayStation4
+        } else if value == constants::SDL_GAMEPAD_TYPE_PS5 {
+            GamepadKind::PlayStation5
+        } else if value == constants::SDL_GAMEPAD_TYPE_NINTENDO_SWITCH_PRO {
+            GamepadKind::SwitchPro
+        } else if value == constants::SDL_GAMEPAD_TYPE_NINTENDO_SWITCH_JOYCON_LEFT {
+            GamepadKind::SwitchJoyConLeft
+        } else if value == constants::SDL_GAMEPAD_TYPE_NINTENDO_SWITCH_JOYCON_RIGHT {
+            GamepadKind::SwitchJoyConRight
+        } else if value == constants::SDL_GAMEPAD_TYPE_NINTENDO_SWITCH_JOYCON_PAIR {
+            GamepadKind::SwitchJoyConPair
+        } else if value == constants::SDL_GAMEPAD_TYPE_GAMECUBE {
+            GamepadKind::GameCube
+        } else {
+            GamepadKind::Unknown
+        }
+    }
+
+    /// Returns whether the device advertises two-motor rumble.
+    pub fn supports_rumble(&self) -> bool {
+        let properties = unsafe { sdl::SDL_GetGamepadProperties(self.raw) };
+        properties != 0 && unsafe {
+            sdl::SDL_GetBooleanProperty(
+                properties,
+                constants::SDL_PROP_GAMEPAD_CAP_RUMBLE_BOOLEAN as *const c::Char,
+                false,
+            )
+        }
+    }
+
+    /// Starts two-motor rumble with normalized strengths in `0.0..=1.0`.
+    pub fn rumble(
+        &self,
+        low_frequency: f32,
+        high_frequency: f32,
+        duration_ms: u32,
+    ) -> Result<(), GamepadError> {
+        let mut low: f32 = low_frequency;
+        if low < 0.0 { low = 0.0; }
+        if low > 1.0 { low = 1.0; }
+        let mut high: f32 = high_frequency;
+        if high < 0.0 { high = 0.0; }
+        if high > 1.0 { high = 1.0; }
+        let rumble_scale: f32 = 65_535.0;
+        if unsafe {
+            sdl::SDL_RumbleGamepad(
+                self.raw,
+                (low * rumble_scale) as u16,
+                (high * rumble_scale) as u16,
+                duration_ms,
+            )
+        } {
+            Ok(())
+        } else {
+            Err(GamepadError::RumbleFailed)
+        }
+    }
+
+    /// Returns the non-null native gamepad handle for advanced raw calls.
+    pub fn as_raw(&self) -> *mut types::SDL_Gamepad {
+        self.raw
+    }
+
+    /// Closes the gamepad in place. Repeated calls are no-ops.
+    pub fn release(&mut self) {
+        if !c::is_null_mut(self.raw) {
+            unsafe {
+                sdl::SDL_CloseGamepad(self.raw);
+            }
+            self.raw = 0 as usize as *mut types::SDL_Gamepad;
+            self.subsystems.release();
+        }
+    }
+
+    /// Closes the gamepad and releases its subsystem borrow.
+    pub fn deinit(self) {
+        if !c::is_null_mut(self.raw) {
+            unsafe {
+                sdl::SDL_CloseGamepad(self.raw);
+            }
+        }
+        self.subsystems.deinit();
+    }
+}
+
+pub const AXIS_LEFT_X: GamepadAxis = GamepadAxis { value: constants::SDL_GAMEPAD_AXIS_LEFTX };
+pub const AXIS_LEFT_Y: GamepadAxis = GamepadAxis { value: constants::SDL_GAMEPAD_AXIS_LEFTY };
+pub const AXIS_RIGHT_X: GamepadAxis = GamepadAxis { value: constants::SDL_GAMEPAD_AXIS_RIGHTX };
+pub const AXIS_RIGHT_Y: GamepadAxis = GamepadAxis { value: constants::SDL_GAMEPAD_AXIS_RIGHTY };
+pub const AXIS_LEFT_TRIGGER: GamepadAxis = GamepadAxis { value: constants::SDL_GAMEPAD_AXIS_LEFT_TRIGGER };
+pub const AXIS_RIGHT_TRIGGER: GamepadAxis = GamepadAxis { value: constants::SDL_GAMEPAD_AXIS_RIGHT_TRIGGER };
+
+pub const BUTTON_SOUTH: GamepadButton = GamepadButton { value: constants::SDL_GAMEPAD_BUTTON_SOUTH };
+pub const BUTTON_EAST: GamepadButton = GamepadButton { value: constants::SDL_GAMEPAD_BUTTON_EAST };
+pub const BUTTON_WEST: GamepadButton = GamepadButton { value: constants::SDL_GAMEPAD_BUTTON_WEST };
+pub const BUTTON_NORTH: GamepadButton = GamepadButton { value: constants::SDL_GAMEPAD_BUTTON_NORTH };
+pub const BUTTON_BACK: GamepadButton = GamepadButton { value: constants::SDL_GAMEPAD_BUTTON_BACK };
+pub const BUTTON_GUIDE: GamepadButton = GamepadButton { value: constants::SDL_GAMEPAD_BUTTON_GUIDE };
+pub const BUTTON_START: GamepadButton = GamepadButton { value: constants::SDL_GAMEPAD_BUTTON_START };
+pub const BUTTON_LEFT_STICK: GamepadButton = GamepadButton { value: constants::SDL_GAMEPAD_BUTTON_LEFT_STICK };
+pub const BUTTON_RIGHT_STICK: GamepadButton = GamepadButton { value: constants::SDL_GAMEPAD_BUTTON_RIGHT_STICK };
+pub const BUTTON_LEFT_SHOULDER: GamepadButton = GamepadButton { value: constants::SDL_GAMEPAD_BUTTON_LEFT_SHOULDER };
+pub const BUTTON_RIGHT_SHOULDER: GamepadButton = GamepadButton { value: constants::SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER };
+pub const BUTTON_DPAD_UP: GamepadButton = GamepadButton { value: constants::SDL_GAMEPAD_BUTTON_DPAD_UP };
+pub const BUTTON_DPAD_DOWN: GamepadButton = GamepadButton { value: constants::SDL_GAMEPAD_BUTTON_DPAD_DOWN };
+pub const BUTTON_DPAD_LEFT: GamepadButton = GamepadButton { value: constants::SDL_GAMEPAD_BUTTON_DPAD_LEFT };
+pub const BUTTON_DPAD_RIGHT: GamepadButton = GamepadButton { value: constants::SDL_GAMEPAD_BUTTON_DPAD_RIGHT };
+pub const BUTTON_MISC1: GamepadButton = GamepadButton { value: constants::SDL_GAMEPAD_BUTTON_MISC1 };
+pub const BUTTON_RIGHT_PADDLE1: GamepadButton = GamepadButton { value: constants::SDL_GAMEPAD_BUTTON_RIGHT_PADDLE1 };
+pub const BUTTON_LEFT_PADDLE1: GamepadButton = GamepadButton { value: constants::SDL_GAMEPAD_BUTTON_LEFT_PADDLE1 };
+pub const BUTTON_RIGHT_PADDLE2: GamepadButton = GamepadButton { value: constants::SDL_GAMEPAD_BUTTON_RIGHT_PADDLE2 };
+pub const BUTTON_LEFT_PADDLE2: GamepadButton = GamepadButton { value: constants::SDL_GAMEPAD_BUTTON_LEFT_PADDLE2 };
+pub const BUTTON_TOUCHPAD: GamepadButton = GamepadButton { value: constants::SDL_GAMEPAD_BUTTON_TOUCHPAD };
+pub const BUTTON_MISC2: GamepadButton = GamepadButton { value: constants::SDL_GAMEPAD_BUTTON_MISC2 };
+pub const BUTTON_MISC3: GamepadButton = GamepadButton { value: constants::SDL_GAMEPAD_BUTTON_MISC3 };
+pub const BUTTON_MISC4: GamepadButton = GamepadButton { value: constants::SDL_GAMEPAD_BUTTON_MISC4 };
+pub const BUTTON_MISC5: GamepadButton = GamepadButton { value: constants::SDL_GAMEPAD_BUTTON_MISC5 };
+pub const BUTTON_MISC6: GamepadButton = GamepadButton { value: constants::SDL_GAMEPAD_BUTTON_MISC6 };

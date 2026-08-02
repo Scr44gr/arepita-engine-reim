@@ -1,0 +1,288 @@
+from std::alloc import AllocError, Allocator, ArenaAllocator, general_allocator;
+from std::collections import Vec;
+from std::job import JobError, chunk_len, parallel_for_array_mut;
+
+from self::parallel import WorkerPool;
+
+/// A deterministic sequence of ordinary system functions.
+///
+/// `State` is the application's explicit resource/component registry. This
+/// schedule is intended for startup, UI, and small games. Use
+/// `DataParallelSchedule` when systems process packed component slices on a
+/// shared `WorkerPool`.
+pub struct Schedule<State> {
+    arena: ArenaAllocator,
+    systems: Vec<fn(&mut State) -> ()>,
+    released: bool,
+}
+
+impl<State> Schedule<State> {
+    /// Creates an empty system schedule.
+    pub fn new(allocator: &Allocator) -> Result<Schedule<State>, AllocError> {
+        let mut arena = ArenaAllocator::init(allocator)?;
+        let storage_allocator = arena.allocator_value();
+        let created: Result<Vec<fn(&mut State) -> ()>, AllocError> =
+            Vec::new(&storage_allocator);
+        let systems = match created {
+            Ok(value) => value,
+            Err(error) => {
+                arena.release();
+                return Err(error);
+            },
+        };
+        Ok(Schedule { arena: arena, systems: systems, released: false })
+    }
+
+    /// Appends one plain function system.
+    pub fn add(&mut self, system: fn(&mut State) -> ()) -> Result<(), AllocError> {
+        if self.released {
+            return Err(AllocError::OutOfMemory);
+        }
+        self.systems.push(system)
+    }
+
+    /// Runs every system in insertion order without allocating.
+    pub fn run(&self, state: &mut State) {
+        if self.released {
+            return;
+        }
+        let mut index: usize = 0;
+        while index < self.systems.len() {
+            match self.systems.get(index) {
+                Some(system) => system(state),
+                None => panic("schedule storage became inconsistent"),
+            }
+            index += 1;
+        }
+    }
+
+    /// Returns the number of registered systems.
+    pub fn len(&self) -> usize {
+        self.systems.len()
+    }
+
+    /// Releases schedule storage.
+    pub fn deinit(&mut self) {
+        if self.released {
+            return;
+        }
+        self.systems.release();
+        self.arena.release();
+        self.released = true;
+    }
+}
+
+/// A deterministic sequence of systems that may parallelize packed work.
+///
+/// Each system receives the shared worker pool and must join all submitted
+/// work before returning. The next system therefore starts at an explicit
+/// barrier, preserving deterministic system order without allowing mutable
+/// state to escape to a worker.
+pub struct DataParallelSchedule<State> {
+    arena: ArenaAllocator,
+    systems: Vec<
+        fn(&mut State, &WorkerPool) -> Result<(), JobError>
+    >,
+    released: bool,
+}
+
+impl<State> DataParallelSchedule<State> {
+    /// Creates an empty data-parallel schedule.
+    pub fn new(
+        allocator: &Allocator,
+    ) -> Result<DataParallelSchedule<State>, AllocError> {
+        let mut arena = ArenaAllocator::init(allocator)?;
+        let storage_allocator = arena.allocator_value();
+        let created: Result<
+            Vec<fn(&mut State, &WorkerPool) -> Result<(), JobError>>,
+            AllocError,
+        > = Vec::new(&storage_allocator);
+        let systems = match created {
+            Ok(value) => value,
+            Err(error) => {
+                arena.release();
+                return Err(error);
+            },
+        };
+        Ok(DataParallelSchedule {
+            arena: arena,
+            systems: systems,
+            released: false,
+        })
+    }
+
+    /// Appends one system. Systems execute in insertion order.
+    pub fn add(
+        &mut self,
+        system: fn(&mut State, &WorkerPool) -> Result<(), JobError>,
+    ) -> Result<(), AllocError> {
+        if self.released {
+            return Err(AllocError::OutOfMemory);
+        }
+        self.systems.push(system)
+    }
+
+    /// Runs every system, joining its jobs before starting the next one.
+    pub fn run(
+        &self,
+        state: &mut State,
+        workers: &WorkerPool,
+    ) -> Result<(), JobError> {
+        if self.released {
+            return Err(JobError::InvalidHandle);
+        }
+        let mut index: usize = 0;
+        while index < self.systems.len() {
+            let system = match self.systems.get(index) {
+                Some(value) => value,
+                None => panic("data-parallel schedule storage became inconsistent"),
+            };
+            system(state, workers)?;
+            index += 1;
+        }
+        Ok(())
+    }
+
+    /// Returns the number of registered data-parallel systems.
+    pub fn len(&self) -> usize { self.systems.len() }
+
+    /// Releases schedule storage after the final system barrier.
+    pub fn deinit(&mut self) {
+        if self.released {
+            return;
+        }
+        self.systems.release();
+        self.arena.release();
+        self.released = true;
+    }
+}
+
+struct TestState {
+    value: i32,
+}
+
+fn add_one(state: &mut TestState) {
+    state.value += 1;
+}
+
+fn double(state: &mut TestState) {
+    state.value *= 2;
+}
+
+@test
+fn schedule_should_run_plain_functions_in_order() {
+    let allocator = general_allocator();
+    let created: Result<Schedule<TestState>, AllocError> = Schedule::new(&allocator);
+    let mut schedule = match created {
+        Ok(value) => value,
+        Err(_) => panic("schedule allocation failed"),
+    };
+    defer schedule.deinit();
+    match schedule.add(add_one) {
+        Ok(_) => {},
+        Err(_) => panic("first system registration failed"),
+    }
+    match schedule.add(double) {
+        Ok(_) => {},
+        Err(_) => panic("second system registration failed"),
+    }
+
+    let mut state = TestState { value: 20 };
+    schedule.run(&mut state);
+    assert(state.value == 42);
+}
+
+struct ParallelTestState {
+    values: [i32; 128],
+}
+
+fn increment_chunk(values: &mut [i32]) {
+    let mut index: usize = 0;
+    let length = chunk_len(values);
+    while index < length {
+        values[index] += 1;
+        index += 1;
+    }
+}
+
+fn increment_parallel(
+    state: &mut ParallelTestState,
+    workers: &WorkerPool,
+) -> Result<(), JobError> {
+    parallel_for_array_mut(
+        workers.job_pool(),
+        &mut state.values,
+        increment_chunk,
+        16,
+    )
+}
+
+fn fail_parallel(
+    state: &mut ParallelTestState,
+    workers: &WorkerPool,
+) -> Result<(), JobError> {
+    let _ = state;
+    let _ = workers;
+    Err(JobError::SubmitFailed)
+}
+
+@test
+fn data_parallel_schedule_should_join_at_each_system_barrier() {
+    let allocator = general_allocator();
+    let mut workers = match WorkerPool::fixed(&allocator, 2) {
+        Ok(value) => value,
+        Err(_) => panic("worker pool creation failed"),
+    };
+    defer workers.release();
+    let created: Result<DataParallelSchedule<ParallelTestState>, AllocError> =
+        DataParallelSchedule::new(&allocator);
+    let mut schedule = match created {
+        Ok(value) => value,
+        Err(_) => panic("data-parallel schedule allocation failed"),
+    };
+    defer schedule.deinit();
+    match schedule.add(increment_parallel) {
+        Ok(_) => {},
+        Err(_) => panic("first system registration failed"),
+    }
+    match schedule.add(increment_parallel) {
+        Ok(_) => {},
+        Err(_) => panic("second system registration failed"),
+    }
+
+    let mut state = ParallelTestState { values: [0; 128] };
+    match schedule.run(&mut state, &workers) {
+        Ok(_) => {},
+        Err(_) => panic("data-parallel schedule failed"),
+    }
+    assert(state.values[0] == 2);
+    assert(state.values[63] == 2);
+    assert(state.values[127] == 2);
+
+    let failed: Result<DataParallelSchedule<ParallelTestState>, AllocError> =
+        DataParallelSchedule::new(&allocator);
+    let mut failed_schedule = match failed {
+        Ok(value) => value,
+        Err(_) => panic("failure schedule allocation failed"),
+    };
+    defer failed_schedule.deinit();
+    match failed_schedule.add(fail_parallel) {
+        Ok(_) => {},
+        Err(_) => panic("failure system registration failed"),
+    }
+    match failed_schedule.add(increment_parallel) {
+        Ok(_) => {},
+        Err(_) => panic("trailing system registration failed"),
+    }
+    match failed_schedule.run(&mut state, &workers) {
+        Err(JobError::SubmitFailed) => {},
+        _ => panic("system error was not preserved"),
+    }
+    assert(state.values[0] == 2);
+
+    schedule.deinit();
+    match schedule.run(&mut state, &workers) {
+        Err(JobError::InvalidHandle) => {},
+        _ => panic("released schedule accepted a run"),
+    }
+}
