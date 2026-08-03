@@ -2,7 +2,7 @@ from std::alloc import AllocError, Allocator, ArenaAllocator, general_allocator;
 from std::binary import to_f32_bits;
 from std::collections import Vec;
 
-from super::app import Resource;
+from super::app import ManagedResource, Resource;
 
 const NO_PARENT: u32 = 0xffff_ffff;
 
@@ -50,6 +50,12 @@ pub struct NavigationGrid {
     costs: Vec<f32>,
     revision: u64,
     released: bool,
+}
+
+impl ManagedResource for NavigationGrid {
+    fn release_resource(&mut self) {
+        self.release();
+    }
 }
 
 impl NavigationGrid {
@@ -370,6 +376,12 @@ pub struct PathFinder {
     generation: u32,
     capacity: usize,
     released: bool,
+}
+
+impl ManagedResource for PathFinder {
+    fn release_resource(&mut self) {
+        self.release();
+    }
 }
 
 impl PathFinder {

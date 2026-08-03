@@ -4,7 +4,7 @@ from std::thread import available_parallelism;
 
 from self::entity import Entities;
 from self::store import Component, ComponentStore;
-from super::app import Resource;
+from super::app import ManagedResource, Resource;
 
 /// Owned worker pool for data-parallel component systems.
 ///
@@ -71,6 +71,12 @@ impl WorkerPool {
         self.pool.deinit();
         self.workers = 0;
         self.released = true;
+    }
+}
+
+impl ManagedResource for WorkerPool {
+    fn release_resource(&mut self) {
+        self.release();
     }
 }
 

@@ -15,7 +15,8 @@ The project is under active development. The current usable slice provides:
 - allocation-free queries with compiler-checked disjoint store access;
 - `World::add_system` query injection with static dispatch and no registry
   plumbing in gameplay systems;
-- explicit typed resources without string lookup;
+- `World::add_resource` ownership and typed resource access without string
+  lookup or per-resource allocation;
 - direct mutable component slices for allocation-free iteration and parallel
   chunk processing;
 - allocation-free two-component joins for ordinary function systems;
@@ -92,13 +93,43 @@ internal storage detail. Additional systems use the same fluent API:
 
 ```reimer
 let mut world = world
+    .add_resource(GameSettings { movement_speed: 96.0 })
     .add_system(movement_system)
     .add_system(collision_system);
 ```
 
+Value resources implement `ManagedResource` with a no-op cleanup method.
+Resources that own allocations, worker threads, or native handles delegate the
+method to their idempotent `release` operation. The world releases resources in
+reverse registration order:
+
+```reimer
+from arepita_engine::app import ManagedResource, Resource;
+
+@derive(Copy, Resource)
+struct GameSettings {
+    movement_speed: f32,
+}
+
+impl ManagedResource for GameSettings {
+    fn release_resource(&mut self) {
+        let _ = self;
+    }
+}
+
+let mut world = world
+    .add_resource(GameSettings { movement_speed: 96.0 })
+    .add_system(movement_system);
+
+match world.resource_mut<GameSettings>() {
+    Some(settings) => settings.movement_speed = 104.0,
+    None => {},
+}
+```
+
 Direct `Registry` and `World::query` access remain available for advanced
 custom runners and isolated storage code. Normal gameplay does not need to
-touch the registry.
+touch either registry.
 
 The renderer follows the same ownership model. `WindowHost` owns SDL, while a
 single `Renderer` owns the surface, device, queue, pipeline, and buffers in a

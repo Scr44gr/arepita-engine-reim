@@ -14,9 +14,9 @@ into independent layers so the ECS can be benchmarked without SDL3 or wgpu.
    lookup; dense arrays provide cache-friendly iteration and parallel chunks.
 4. Structural mutations occur outside active iteration. The command buffer
    will apply them at explicit schedule barriers.
-5. Components live in a monomorphized heterogeneous `Registry`; resources
-   remain typed fields in application state. Both avoid Arepy's class-name
-   lookup and let ordinary function signatures document access.
+5. Components and resources live in separate monomorphized heterogeneous
+   registries owned by `World`. Both avoid Arepy's class-name lookup and retain
+   exact types through fluent builder calls.
 6. Frame-stable paths allocate nothing. Growth is explicit during loading or
    command application, and capacity can be prepared before gameplay.
 7. Rendering uses persistent GPU resources and packed instance batches. One
@@ -32,9 +32,11 @@ into independent layers so the ECS can be benchmarked without SDL3 or wgpu.
 Arepy resolves injected resources through Python annotations and class-name
 strings every time a system is prepared. Reimer monomorphizes variadic type
 packs and can split unique tuple fields by concrete type, so component registry
-lookups become constant field addresses. Application resources remain ordinary
-typed state fields. Misspellings, absent components, duplicate store types, and
-conflicting query access are compile-time errors.
+lookups become constant field addresses. `World::add_resource` moves each owner
+into the static resource tuple exactly once, and typed lookup selects the tuple
+field directly. Misspellings, absent values, duplicate types, and conflicting
+query access are compile-time errors. World cleanup visits resources in reverse
+registration order before releasing component and entity storage.
 
 A dynamic resource map may be added for editor plugins, but it is not the
 default gameplay path.

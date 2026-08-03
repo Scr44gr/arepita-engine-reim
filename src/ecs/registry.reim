@@ -20,6 +20,31 @@ pub struct Registry<...Components: Component> {
     released: bool,
 }
 
+/// Static component-storage interface consumed by worlds and systems.
+///
+/// The concrete `Registry` remains monomorphized, so these calls preserve
+/// compile-time type validation and direct tuple-field access.
+pub trait ComponentSet {
+    fn insert_component<T: Component>(
+        &mut self,
+        entity: Entity,
+        value: T,
+    ) -> Result<Option<T>, AllocError>;
+    fn component<T: Component>(&self, entity: Entity) -> Option<T>;
+    fn component_ref<T: Component>(&self, entity: Entity) -> Option<&T>;
+    fn component_mut<T: Component>(&mut self, entity: Entity) -> Option<&mut T>;
+    fn contains_component<T: Component>(&self, entity: Entity) -> bool;
+    fn remove_component<T: Component>(&mut self, entity: Entity) -> Option<T>;
+    fn remove_entity_components(&mut self, entity: Entity);
+    fn component_query<Write: Component, ...Read: Component>(
+        &mut self,
+    ) -> Option<Query<Write, ...Read>>;
+    fn component_store<T: Component>(&self) -> Option<&ComponentStore<T>>;
+    fn component_store_mut<T: Component>(&mut self) -> Option<&mut ComponentStore<T>>;
+    fn component_allocated_bytes(&self) -> usize;
+    fn release_components(&mut self);
+}
+
 /// Creates an empty heterogeneous component registry.
 pub fn create_registry<...Components: Component>(
     allocator: &Allocator,
@@ -187,6 +212,62 @@ impl<...Components: Component> Registry<...Components> {
         }
         self.arena.release();
         self.released = true;
+    }
+}
+
+impl<...Components: Component> ComponentSet for Registry<...Components> {
+    fn insert_component<T: Component>(
+        &mut self,
+        entity: Entity,
+        value: T,
+    ) -> Result<Option<T>, AllocError> {
+        self.insert<T>(entity, value)
+    }
+
+    fn component<T: Component>(&self, entity: Entity) -> Option<T> {
+        self.get<T>(entity)
+    }
+
+    fn component_ref<T: Component>(&self, entity: Entity) -> Option<&T> {
+        self.get_ref<T>(entity)
+    }
+
+    fn component_mut<T: Component>(&mut self, entity: Entity) -> Option<&mut T> {
+        self.get_mut<T>(entity)
+    }
+
+    fn contains_component<T: Component>(&self, entity: Entity) -> bool {
+        self.contains<T>(entity)
+    }
+
+    fn remove_component<T: Component>(&mut self, entity: Entity) -> Option<T> {
+        self.remove<T>(entity)
+    }
+
+    fn remove_entity_components(&mut self, entity: Entity) {
+        let _ = (...Components => self.remove<Components>(entity),);
+    }
+
+    fn component_query<Write: Component, ...Read: Component>(
+        &mut self,
+    ) -> Option<Query<Write, ...Read>> {
+        self.query<Write, ...Read>()
+    }
+
+    fn component_store<T: Component>(&self) -> Option<&ComponentStore<T>> {
+        self.store<T>()
+    }
+
+    fn component_store_mut<T: Component>(&mut self) -> Option<&mut ComponentStore<T>> {
+        self.store_mut<T>()
+    }
+
+    fn component_allocated_bytes(&self) -> usize {
+        self.allocated_bytes()
+    }
+
+    fn release_components(&mut self) {
+        self.deinit();
     }
 }
 

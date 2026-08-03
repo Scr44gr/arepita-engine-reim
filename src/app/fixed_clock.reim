@@ -1,6 +1,6 @@
 from std::time import Duration;
 
-from self::resource import Resource;
+from self::resource import ManagedResource, Resource;
 
 const MAX_U64: u64 = 18_446_744_073_709_551_615;
 
@@ -28,6 +28,12 @@ pub struct FixedClock {
     maximum_steps: u32,
     frames: u64,
     simulation_steps: u64,
+}
+
+impl ManagedResource for FixedClock {
+    fn release_resource(&mut self) {
+        let _ = self;
+    }
 }
 
 impl FixedClock {

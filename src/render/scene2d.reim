@@ -1,7 +1,7 @@
 from std::alloc import AllocError, general_allocator;
 
 from self::sprite_batch import AtlasRegion, BatchError, SpriteBatch, SpriteColor, SpriteInstance;
-from super::app import Resource;
+from super::app import ManagedResource, Resource;
 from super::ecs import Component, ComponentStore, Entities, Entity;
 
 /// Camera resource using world units with a top-left-friendly positive Y axis.
@@ -12,6 +12,12 @@ pub struct Camera2D {
     pub viewport_width: f32,
     pub viewport_height: f32,
     pub zoom: f32,
+}
+
+impl ManagedResource for Camera2D {
+    fn release_resource(&mut self) {
+        let _ = self;
+    }
 }
 
 impl Camera2D {

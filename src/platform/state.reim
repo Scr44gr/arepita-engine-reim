@@ -1,6 +1,6 @@
 from sdl3 import Event, KeyboardState, MouseButton, MouseState, Scancode;
 import sdl3::input as sdl_input;
-from super::app import Resource;
+from super::app import ManagedResource, Resource;
 
 /// Frame-to-frame keyboard and mouse resource.
 ///
@@ -21,6 +21,12 @@ pub struct Input {
     pending_mouse_snapshot_released: u32,
     suppressed_mouse_snapshot_pressed: u32,
     suppressed_mouse_snapshot_released: u32,
+}
+
+impl ManagedResource for Input {
+    fn release_resource(&mut self) {
+        let _ = self;
+    }
 }
 
 impl Input {

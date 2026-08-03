@@ -1,5 +1,17 @@
 # Application states and typed events
 
+## World resources
+
+Register shared application state on the world instead of maintaining a
+parallel service locator. `add_resource` changes only the world's compile-time
+type; it does not allocate or hash a type name. `resource<T>` and
+`resource_mut<T>` return `None` only after the world has been released.
+
+Every registered type implements `ManagedResource`. Plain `Copy` values use a
+no-op cleanup implementation, while owners delegate to an idempotent `release`
+method. This makes shutdown explicit and keeps native handles and heap owners
+out of components.
+
 ## Deferred state transitions
 
 `StateMachine<S>` stores a user-defined `Copy + Eq` enum. A request does not

@@ -1,8 +1,83 @@
 /// Marker for explicit application resources.
 pub trait Resource: Send + Sync {}
 
+/// Cleanup contract for resources owned by an ECS `World`.
+///
+/// Resources that own allocations, threads, or native handles release those
+/// values exactly once. Plain value resources provide a no-op implementation.
+pub trait ManagedResource: Resource {
+    /// Releases all state owned by this resource.
+    fn release_resource(&mut self);
+}
+
 /// Marker for main-thread resources such as windows, renderers, and audio.
 pub trait LocalResource {}
+
+/// Internal terminator that keeps `World::add_resource` as one fluent method.
+@derive(Copy, Resource)
+pub struct ResourceSentinel {}
+
+impl ManagedResource for ResourceSentinel {
+    fn release_resource(&mut self) {
+        let _ = self;
+    }
+}
+
+/// Internal static-dispatch contract implemented by typed resource sets.
+pub trait ResourceSet {
+    /// Releases every owned resource in reverse registration order.
+    fn release_resources(&mut self);
+}
+
+/// A statically typed heterogeneous collection of world resources.
+///
+/// Resource lookup is a compile-time tuple-field selection. No type IDs,
+/// hashing, virtual dispatch, or per-resource allocation is used.
+pub struct ResourceRegistry<...Resources: ManagedResource> {
+    values: (...Resources),
+}
+
+/// Creates a typed registry containing one owned resource.
+pub fn resource_registry<T: ManagedResource>(value: T) -> ResourceRegistry<T> {
+    ResourceRegistry { values: (value,) }
+}
+
+impl<...Resources: ManagedResource> ResourceRegistry<...Resources> {
+    /// Prepends a resource while moving all existing owners exactly once.
+    pub fn prepend<T: ManagedResource>(
+        self,
+        value: T,
+    ) -> ResourceRegistry<T, ...Resources> {
+        let values: (T, ...Resources) = (
+            value,
+            ...Resources => self.values.take_type<Resources>(),
+        );
+        values.assert_unique_types();
+        ResourceRegistry { values: values }
+    }
+
+    /// Borrows a registered resource by type.
+    pub fn get<T: ManagedResource>(&self) -> &T {
+        self.values.get_type<T>()
+    }
+
+    /// Exclusively borrows a registered resource by type.
+    pub fn get_mut<T: ManagedResource>(&mut self) -> &mut T {
+        self.values.get_type_mut<T>()
+    }
+}
+
+impl<...Resources: ManagedResource> ResourceSet for ResourceRegistry<...Resources> {
+    fn release_resources(&mut self) {
+        let _ = (
+            ...Resources => {
+                let resource: &mut Resources =
+                    self.values.get_type_mut<Resources>();
+                resource.release_resource()
+            },
+        );
+    }
+}
 
 /// A typed resource owner with no runtime name lookup.
 pub struct ResourceCell<T> {

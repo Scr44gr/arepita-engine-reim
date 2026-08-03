@@ -1,22 +1,22 @@
 from self::query import Query;
-from self::registry import Registry;
+from self::registry import ComponentSet;
 from self::store import Component;
 
 /// Internal static-dispatch contract implemented by registered systems.
 pub trait System {
     /// Runs the system against a compatible component registry.
-    fn run<...Components: Component>(
+    fn run<Storage: ComponentSet>(
         &mut self,
-        registry: &mut Registry<...Components>,
+        storage: &mut Storage,
     );
 }
 
 /// Internal static-dispatch contract implemented by system chains.
 pub trait SystemList {
     /// Runs every linked system in registration order.
-    fn run_all<...Components: Component>(
+    fn run_all<Storage: ComponentSet>(
         &mut self,
-        registry: &mut Registry<...Components>,
+        storage: &mut Storage,
     );
 }
 
@@ -24,12 +24,12 @@ pub trait SystemList {
 pub struct EmptySystems {}
 
 impl SystemList for EmptySystems {
-    fn run_all<...Components: Component>(
+    fn run_all<Storage: ComponentSet>(
         &mut self,
-        registry: &mut Registry<...Components>,
+        storage: &mut Storage,
     ) {
         let _ = self;
-        let _ = registry;
+        let _ = storage;
     }
 }
 
@@ -49,11 +49,11 @@ impl<Write: Component, ...Read: Component> QuerySystem<Write, ...Read> {
 }
 
 impl<Write: Component, ...Read: Component> System for QuerySystem<Write, ...Read> {
-    fn run<...Components: Component>(
+    fn run<Storage: ComponentSet>(
         &mut self,
-        registry: &mut Registry<...Components>,
+        storage: &mut Storage,
     ) {
-        let mut query = match registry.query<Write, ...Read>() {
+        let mut query = match storage.component_query<Write, ...Read>() {
             Some(value) => value,
             None => {
                 return;
@@ -78,11 +78,11 @@ impl<Previous: SystemList, Current: System> SystemChain<Previous, Current> {
 }
 
 impl<Previous: SystemList, Current: System> SystemList for SystemChain<Previous, Current> {
-    fn run_all<...Components: Component>(
+    fn run_all<Storage: ComponentSet>(
         &mut self,
-        registry: &mut Registry<...Components>,
+        storage: &mut Storage,
     ) {
-        self.previous.run_all<...Components>(registry);
-        self.current.run<...Components>(registry);
+        self.previous.run_all<Storage>(storage);
+        self.current.run<Storage>(storage);
     }
 }

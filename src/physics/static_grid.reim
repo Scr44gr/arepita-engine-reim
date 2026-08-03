@@ -4,7 +4,7 @@ from std::collections import Vec;
 from std::math import ceil, floor;
 
 from self::aabb import Aabb;
-from super::app import Resource;
+from super::app import ManagedResource, Resource;
 
 pub const ALL_LAYERS: u64 = 0xffff_ffff_ffff_ffff;
 
@@ -157,6 +157,12 @@ pub struct StaticCollisionWorld {
     revision: u64,
     live_shapes: usize,
     released: bool,
+}
+
+impl ManagedResource for StaticCollisionWorld {
+    fn release_resource(&mut self) {
+        self.release();
+    }
 }
 
 impl StaticCollisionWorld {

@@ -3,7 +3,7 @@ pub from self::commands import CommandReport, ComponentCommands;
 /// Component marker and packed sparse-set storage.
 pub from self::store import Component, ComponentStore, for_each2_mut;
 /// Statically typed heterogeneous component storage.
-pub from self::registry import Registry;
+pub from self::registry import ComponentSet, Registry;
 /// Allocation-free heterogeneous registry queries.
 pub from self::query import Query;
 /// Entity and component ownership without direct registry access.

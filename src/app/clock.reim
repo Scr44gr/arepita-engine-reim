@@ -1,6 +1,6 @@
 from std::time import Duration, Instant;
 
-from self::resource import Resource;
+from self::resource import ManagedResource, Resource;
 
 /// Monotonic frame timing with a bounded simulation delta.
 @derive(Copy, Resource)
@@ -10,6 +10,12 @@ pub struct FrameClock {
     elapsed: Duration,
     frame: u64,
     maximum_delta: Duration,
+}
+
+impl ManagedResource for FrameClock {
+    fn release_resource(&mut self) {
+        let _ = self;
+    }
 }
 
 impl FrameClock {

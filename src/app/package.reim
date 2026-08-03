@@ -5,7 +5,7 @@ pub import self::events as events;
 pub from self::fixed_clock import FixedClock, FixedFrame;
 pub import self::fixed_clock as fixed_clock;
 pub from self::lifecycle import Application, ApplicationState;
-pub from self::resource import LocalResource, Resource, ResourceCell;
+pub from self::resource import LocalResource, ManagedResource, Resource, ResourceCell, ResourceRegistry, ResourceSet;
 pub import self::resource as resource;
 pub from self::state import StateMachine, StateTransition;
 pub import self::state as state;
