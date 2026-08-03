@@ -1,0 +1,88 @@
+from self::query import Query;
+from self::registry import Registry;
+from self::store import Component;
+
+/// Internal static-dispatch contract implemented by registered systems.
+pub trait System {
+    /// Runs the system against a compatible component registry.
+    fn run<...Components: Component>(
+        &mut self,
+        registry: &mut Registry<...Components>,
+    );
+}
+
+/// Internal static-dispatch contract implemented by system chains.
+pub trait SystemList {
+    /// Runs every linked system in registration order.
+    fn run_all<...Components: Component>(
+        &mut self,
+        registry: &mut Registry<...Components>,
+    );
+}
+
+/// Empty system-list terminator used by a newly created world.
+pub struct EmptySystems {}
+
+impl SystemList for EmptySystems {
+    fn run_all<...Components: Component>(
+        &mut self,
+        registry: &mut Registry<...Components>,
+    ) {
+        let _ = self;
+        let _ = registry;
+    }
+}
+
+/// A function system whose query is inferred from its parameter type.
+pub struct QuerySystem<Write: Component, ...Read: Component> {
+    function: fn(&mut Query<Write, ...Read>) -> (),
+}
+
+impl<Write: Component, ...Read: Component> QuerySystem<Write, ...Read> {
+    /// Wraps a typed query function for static dispatch.
+    pub fn new(
+        function: fn(&mut Query<Write, ...Read>) -> (),
+    ) -> QuerySystem<Write, ...Read> {
+        QuerySystem { function: function }
+    }
+
+}
+
+impl<Write: Component, ...Read: Component> System for QuerySystem<Write, ...Read> {
+    fn run<...Components: Component>(
+        &mut self,
+        registry: &mut Registry<...Components>,
+    ) {
+        let mut query = match registry.query<Write, ...Read>() {
+            Some(value) => value,
+            None => {
+                return;
+            },
+        };
+        let function = self.function;
+        function(&mut query);
+    }
+}
+
+/// One statically linked system preceded by an existing system list.
+pub struct SystemChain<Previous: SystemList, Current: System> {
+    previous: Previous,
+    current: Current,
+}
+
+impl<Previous: SystemList, Current: System> SystemChain<Previous, Current> {
+    /// Appends `current` after an existing system list.
+    pub fn new(previous: Previous, current: Current) -> SystemChain<Previous, Current> {
+        SystemChain { previous: previous, current: current }
+    }
+}
+
+impl<Previous: SystemList, Current: System> SystemList for SystemChain<Previous, Current> {
+    fn run_all<...Components: Component>(
+        &mut self,
+        registry: &mut Registry<...Components>,
+    ) {
+        self.previous.run_all<...Components>(registry);
+        self.current.run<...Components>(registry);
+    }
+}

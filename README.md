@@ -13,6 +13,8 @@ The project is under active development. The current usable slice provides:
 - library-defined `@derive(Component)` validation;
 - variadic, statically typed heterogeneous component registries;
 - allocation-free queries with compiler-checked disjoint store access;
+- `World::add_system` query injection with static dispatch and no registry
+  plumbing in gameplay systems;
 - explicit typed resources without string lookup;
 - direct mutable component slices for allocation-free iteration and parallel
   chunk processing;
@@ -41,7 +43,7 @@ The project is under active development. The current usable slice provides:
 ## Component example
 
 ```reimer
-from arepita_engine::ecs import Component, Entity, Registry;
+from arepita_engine::ecs import Component, Entity, Query, world;
 from std::alloc import general_allocator;
 
 @derive(Copy, Component)
@@ -62,25 +64,41 @@ fn movement(entity: Entity, position: &mut Position, reads: (Velocity)) {
     position.x += velocity.x;
     position.y += velocity.y;
 }
+
+fn movement_system(query: &mut Query<Position, Velocity>) {
+    let _ = query.for_each(movement);
+}
 ```
 
-Create the registry once, then request a typed query:
+Create a world, attach data, and register the ordinary function system:
 
 ```reimer
 let allocator = general_allocator();
-let mut registry: Registry<Position, Velocity> = Registry::new(&allocator)?;
-defer registry.deinit();
+let mut world = world<Position, Velocity>(&allocator)?;
+let entity = world.spawn()?;
+let position = Position { x: 0.0, y: 0.0 };
+let velocity = Velocity { x: 1.0, y: 0.0 };
+let _ = world.insert<Position>(entity, position)?;
+let _ = world.insert<Velocity>(entity, velocity)?;
 
-let mut query = match registry.query<Position, Velocity>() {
-    Some(value) => value,
-    None => panic("registry was released"),
-};
-let matched = query.for_each(movement);
+let mut world = world.add_system(movement_system);
+defer world.deinit();
+world.run_systems();
 ```
 
-The registry never performs a name lookup in the frame loop. Reimer expands
-its component pack and query at compile time, while dense values remain
-contiguous and removals use swap-remove semantics.
+The system signature declares its component access. `World` constructs the
+matching `Query` immediately before the call, and the registry remains an
+internal storage detail. Additional systems use the same fluent API:
+
+```reimer
+let mut world = world
+    .add_system(movement_system)
+    .add_system(collision_system);
+```
+
+Direct `Registry` and `World::query` access remain available for advanced
+custom runners and isolated storage code. Normal gameplay does not need to
+touch the registry.
 
 The renderer follows the same ownership model. `WindowHost` owns SDL, while a
 single `Renderer` owns the surface, device, queue, pipeline, and buffers in a

@@ -1,0 +1,336 @@
+from std::alloc import AllocError, Allocator, general_allocator;
+
+from self::entity import Entities, Entity, EntityError;
+from self::query import Query;
+from self::registry import Registry, create_registry;
+from self::store import Component, ComponentStore;
+from self::system import EmptySystems, QuerySystem, SystemChain, SystemList;
+
+/// Recoverable world lifecycle and storage failures.
+@derive(Copy, Clone, Debug, Eq)
+pub enum WorldError {
+    OutOfMemory,
+    EntityCapacityExhausted,
+    InvalidEntity,
+    Released,
+}
+
+/// Owns entity lifecycle and every component store used by an application.
+///
+/// Gameplay code uses `World` to spawn entities and attach components. The
+/// heterogeneous registry remains private, while registered systems borrow
+/// the precise stores required by each typed `Query`.
+pub struct World<Systems: SystemList, ...Components: Component> {
+    entities: Entities,
+    registry: Registry<...Components>,
+    systems: Systems,
+    released: bool,
+}
+
+impl<Systems: SystemList, ...Components: Component> World<Systems, ...Components> {
+    /// Returns whether the world has released all owned storage.
+    pub fn is_released(&self) -> bool {
+        self.released
+    }
+
+    /// Adds a system whose required query is inferred from its function type.
+    ///
+    /// The returned world owns the extended static system chain. Calls may be
+    /// fluently chained before binding the final world.
+    pub fn add_system<Write: Component, ...Read: Component>(
+        self,
+        system: fn(&mut Query<Write, ...Read>) -> (),
+    ) -> World<
+        SystemChain<Systems, QuerySystem<Write, ...Read>>,
+        ...Components
+    > {
+        World {
+            entities: self.entities,
+            registry: self.registry,
+            systems: SystemChain::new(
+                self.systems,
+                QuerySystem::new(system),
+            ),
+            released: self.released,
+        }
+    }
+
+    /// Runs all registered systems in insertion order without allocating.
+    pub fn run_systems(&mut self) {
+        if self.is_released() {
+            return;
+        }
+        self.systems.run_all<...Components>(&mut self.registry);
+    }
+
+    /// Returns the number of live entities.
+    pub fn len(&self) -> usize {
+        if self.released { 0 } else { self.entities.len() }
+    }
+
+    /// Returns whether no entities are alive.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    /// Allocates or recycles one entity handle.
+    pub fn spawn(&mut self) -> Result<Entity, WorldError> {
+        if self.is_released() {
+            return Err(WorldError::Released);
+        }
+        match self.entities.spawn() {
+            Ok(entity) => Ok(entity),
+            Err(EntityError::OutOfMemory) => Err(WorldError::OutOfMemory),
+            Err(EntityError::CapacityExhausted) => {
+                Err(WorldError::EntityCapacityExhausted)
+            },
+            _ => Err(WorldError::EntityCapacityExhausted),
+        }
+    }
+
+    /// Retires an entity and removes every registered component it owns.
+    pub fn despawn(&mut self, entity: Entity) -> Result<bool, WorldError> {
+        if self.is_released() {
+            return Err(WorldError::Released);
+        }
+        let removed = match self.entities.despawn(entity) {
+            Ok(value) => value,
+            Err(EntityError::OutOfMemory) => {
+                return Err(WorldError::OutOfMemory);
+            },
+            Err(EntityError::CapacityExhausted) => {
+                return Err(WorldError::EntityCapacityExhausted);
+            },
+            _ => {
+                return Err(WorldError::EntityCapacityExhausted);
+            },
+        };
+        if removed {
+            let _ = (
+                ...Components => self.registry.remove<Components>(entity),
+            );
+        }
+        Ok(removed)
+    }
+
+    /// Returns whether an entity handle is alive in this world.
+    pub fn contains_entity(&self, entity: Entity) -> bool {
+        !self.released && self.entities.contains(entity)
+    }
+
+    /// Inserts or replaces a component on a live entity.
+    pub fn insert<T: Component>(
+        &mut self,
+        entity: Entity,
+        value: T,
+    ) -> Result<Option<T>, WorldError> {
+        if self.is_released() {
+            return Err(WorldError::Released);
+        }
+        if !self.entities.contains(entity) {
+            return Err(WorldError::InvalidEntity);
+        }
+        match self.registry.insert<T>(entity, value) {
+            Ok(previous) => Ok(previous),
+            Err(_) => Err(WorldError::OutOfMemory),
+        }
+    }
+
+    /// Returns a copied component for a live entity.
+    pub fn get<T: Component>(&self, entity: Entity) -> Option<T> {
+        if !self.contains_entity(entity) {
+            return None;
+        }
+        self.registry.get<T>(entity)
+    }
+
+    /// Borrows a component for a live entity.
+    pub fn get_ref<T: Component>(&self, entity: Entity) -> Option<&T> {
+        if !self.contains_entity(entity) {
+            return None;
+        }
+        self.registry.get_ref<T>(entity)
+    }
+
+    /// Exclusively borrows a component for a live entity.
+    pub fn get_mut<T: Component>(&mut self, entity: Entity) -> Option<&mut T> {
+        if !self.contains_entity(entity) {
+            return None;
+        }
+        self.registry.get_mut<T>(entity)
+    }
+
+    /// Returns whether a live entity owns a component.
+    pub fn contains<T: Component>(&self, entity: Entity) -> bool {
+        self.contains_entity(entity) && self.registry.contains<T>(entity)
+    }
+
+    /// Removes and returns one component from a live entity.
+    pub fn remove<T: Component>(&mut self, entity: Entity) -> Option<T> {
+        if !self.contains_entity(entity) {
+            return None;
+        }
+        self.registry.remove<T>(entity)
+    }
+
+    /// Creates a typed query for an advanced custom runner.
+    ///
+    /// Normal gameplay systems receive this query automatically after being
+    /// registered with `World::add_system`.
+    pub fn query<Write: Component, ...Read: Component>(
+        &mut self,
+    ) -> Option<Query<Write, ...Read>> {
+        if self.is_released() {
+            return None;
+        }
+        self.registry.query<Write, ...Read>()
+    }
+
+    /// Returns a registered component store for packed or parallel work.
+    pub fn store<T: Component>(&self) -> Option<&ComponentStore<T>> {
+        if self.is_released() {
+            return None;
+        }
+        self.registry.store<T>()
+    }
+
+    /// Returns a registered component store for packed or parallel mutation.
+    pub fn store_mut<T: Component>(&mut self) -> Option<&mut ComponentStore<T>> {
+        if self.is_released() {
+            return None;
+        }
+        self.registry.store_mut<T>()
+    }
+
+    /// Returns bytes reserved by entity and component storage.
+    pub fn allocated_bytes(&self) -> usize {
+        if self.is_released() {
+            return 0;
+        }
+        self.entities.allocated_bytes() + self.registry.allocated_bytes()
+    }
+
+    /// Releases entity and component storage exactly once.
+    pub fn deinit(&mut self) {
+        if self.is_released() {
+            return;
+        }
+        self.registry.deinit();
+        self.entities.deinit();
+        self.released = true;
+    }
+}
+
+/// Creates an empty world whose component set is fixed at compile time.
+pub fn world<...Components: Component>(
+    allocator: &Allocator,
+) -> Result<World<EmptySystems, ...Components>, WorldError> {
+    let entities_result: Result<Entities, AllocError> = Entities::new(allocator);
+    let mut entities = match entities_result {
+        Ok(value) => value,
+        Err(_) => {
+            return Err(WorldError::OutOfMemory);
+        },
+    };
+    let registry_result: Result<Registry<...Components>, AllocError> =
+        create_registry<...Components>(allocator);
+    let component_registry = match registry_result {
+        Ok(value) => value,
+        Err(_) => {
+            entities.deinit();
+            return Err(WorldError::OutOfMemory);
+        },
+    };
+    Ok(World {
+        entities: entities,
+        registry: component_registry,
+        systems: EmptySystems {},
+        released: false,
+    })
+}
+
+@derive(Copy, Component)
+struct WorldPosition {
+    x: i32,
+}
+
+@derive(Copy, Component)
+struct WorldVelocity {
+    x: i32,
+}
+
+fn integrate_world_position(
+    entity: Entity,
+    position: &mut WorldPosition,
+    reads: (WorldVelocity),
+) {
+    let _ = entity;
+    position.x += reads.0.x;
+}
+
+fn movement_system(query: &mut Query<WorldPosition, WorldVelocity>) {
+    let _ = query.for_each(integrate_world_position);
+}
+
+@test
+fn world_should_reject_components_for_stale_entities() {
+    let allocator = general_allocator();
+    let created: Result<World<EmptySystems, WorldPosition>, WorldError> =
+        world<WorldPosition>(&allocator);
+    let mut world = match created {
+        Ok(value) => value,
+        Err(_) => panic("world allocation should succeed"),
+    };
+    defer world.deinit();
+    let entity = match world.spawn() {
+        Ok(value) => value,
+        Err(_) => panic("entity spawn should succeed"),
+    };
+    assert(match world.despawn(entity) {
+        Ok(true) => true,
+        _ => false,
+    });
+    let position = WorldPosition { x: 42 };
+    assert(match world.insert<WorldPosition>(entity, position) {
+        Err(WorldError::InvalidEntity) => true,
+        _ => false,
+    });
+}
+
+@test
+fn world_should_inject_queries_into_registered_systems() {
+    let allocator = general_allocator();
+    let created: Result<
+        World<EmptySystems, WorldPosition, WorldVelocity>,
+        WorldError
+    > = world<WorldPosition, WorldVelocity>(&allocator);
+    let mut world = match created {
+        Ok(value) => value,
+        Err(_) => panic("world allocation should succeed"),
+    };
+    let entity = match world.spawn() {
+        Ok(value) => value,
+        Err(_) => panic("entity spawn should succeed"),
+    };
+    let position = WorldPosition { x: 40 };
+    assert(match world.insert<WorldPosition>(entity, position) {
+        Ok(_) => true,
+        _ => false,
+    });
+    let velocity = WorldVelocity { x: 1 };
+    assert(match world.insert<WorldVelocity>(entity, velocity) {
+        Ok(_) => true,
+        _ => false,
+    });
+
+    let mut world = world
+        .add_system(movement_system)
+        .add_system(movement_system);
+    defer world.deinit();
+    world.run_systems();
+
+    assert(match world.get<WorldPosition>(entity) {
+        Some(position) => position.x == 42,
+        None => false,
+    });
+}

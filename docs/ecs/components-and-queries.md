@@ -19,30 +19,32 @@ engine marker's `Copy + Send + Sync` supertraits. Heap allocations, files,
 textures, and other owners belong in typed resources or asset stores;
 components should hold small values or generational handles.
 
-## Heterogeneous registry
+## World storage
 
-`Registry<...Components>` owns one packed store for every listed component
-type. Reimer expands the type pack at compile time, validates that store types
-are unique, and lowers access to constant tuple fields. There is no runtime
-type-name hash, erased pointer, or query allocation.
+`World<...>` owns entity allocation and one packed store for every listed
+component type. Reimer expands the component pack at compile time, validates
+that store types are unique, and lowers access to constant tuple fields. There
+is no runtime type-name hash, erased pointer, or query allocation.
 
 ```reimer
-from arepita_engine::ecs import Registry;
-from std::alloc import AllocError, general_allocator;
+from arepita_engine::ecs import world;
+from std::alloc import general_allocator;
 
 let allocator = general_allocator();
-let created: Result<Registry<Position, Velocity>, AllocError> =
-    Registry::new(&allocator);
-let mut registry = created?;
-defer registry.deinit();
+let mut world = world<Position, Velocity>(&allocator)?;
+defer world.deinit();
 
-registry.insert<Position>(entity, Position { x: 0.0, y: 0.0 })?;
-registry.insert<Velocity>(entity, Velocity { x: 1.0, y: 0.0 })?;
+let entity = world.spawn()?;
+let position = Position { x: 0.0, y: 0.0 };
+let velocity = Velocity { x: 1.0, y: 0.0 };
+let _ = world.insert<Position>(entity, position)?;
+let _ = world.insert<Velocity>(entity, velocity)?;
 ```
 
-All stores share one arena and begin without reserved component storage. The
-first insertion or an explicit reservation grows only the affected packed
-arrays. `Registry::deinit` releases the complete heterogeneous set once.
+Internally, all stores share one arena and begin without reserved component
+storage. The first insertion or an explicit reservation grows only the
+affected packed arrays. `World::deinit` releases entities and the complete
+heterogeneous component set exactly once.
 
 ## Packed storage
 
@@ -64,11 +66,11 @@ locks or per-entity task allocation.
 block. Use `values_mut()` for the hottest single-component loop or to feed
 `std::job::parallel_for_mut` directly.
 
-## Typed queries
+## Systems and typed queries
 
-`Registry::query<Write, Read...>()` creates one exclusive store borrow and any
-number of disjoint shared store borrows. The compiler rejects missing,
-duplicate, or conflicting types before code generation.
+Systems are ordinary functions that receive a typed `Query`. Register them on
+the world; the engine injects the query immediately before each call. Gameplay
+code never needs to pass the registry manually.
 
 ```reimer
 fn integrate(
@@ -82,24 +84,25 @@ fn integrate(
     position.y += velocity.y;
 }
 
-{
-    let mut query = match registry.query<Position, Velocity>() {
-        Some(value) => value,
-        None => panic("registry was released"),
-    };
-    let matched = query.for_each(integrate);
-};
+fn movement_system(query: &mut Query<Position, Velocity>) {
+    let _ = query.for_each(integrate);
+}
+
+let mut world = world.add_system(movement_system);
+world.run_systems();
 ```
 
-The writable store drives dense iteration. Each read store is probed by the
-generational entity handle, so joins stay correct when membership or dense
-order differs. Read values arrive in a tuple matching their generic order.
-Components are intentionally compact `Copy` data, while the writable value is
-borrowed in place.
+The first query type is writable and drives dense iteration. Every remaining
+type is read-only and is probed by generational entity handle, so joins stay
+correct when membership or dense order differs. Read values arrive in a tuple
+matching their signature order. Components are compact `Copy` data, while the
+writable value is borrowed in place.
 
-Query construction and iteration allocate nothing. The generated loop is
+System registration creates a static type chain and allocates nothing. Query
+construction and iteration also allocate nothing. The generated loop is
 specialized for its complete component list, and every store access becomes a
-constant field address.
+constant field address. `World::query` and `Registry` remain available for
+advanced custom runners.
 
 ## Direct two-component joins
 
@@ -117,8 +120,8 @@ let matched = for_each2_mut(&mut positions, &velocities, integrate);
 ```
 
 This lower-level helper remains useful when a subsystem intentionally owns
-standalone stores. New gameplay code should prefer `Registry::query` so adding
-more read components does not require another arity-specific helper.
+standalone stores. New gameplay code should prefer `World::add_system` so the
+function signature remains the single declaration of component access.
 
 ## Structural changes
 

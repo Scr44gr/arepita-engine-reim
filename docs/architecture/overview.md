@@ -41,7 +41,14 @@ default gameplay path.
 
 ## Scheduling model
 
-`Schedule` runs ordinary functions deterministically in insertion order.
+`World::add_system` registers ordinary query functions and `run_systems` runs
+them deterministically in insertion order. The world owns the internal static
+system chain; gameplay code does not construct or call a scheduler directly.
+The query signature declares component access and is injected without runtime
+reflection or allocation.
+
+`Schedule` remains a lower-level runner for explicit application-state
+functions. It is not required for ordinary ECS gameplay.
 `DataParallelSchedule` gives each ordinary system a shared `WorkerPool`; a
 system splits its packed component storage into disjoint mutable slices and
 joins every job before returning. Each system boundary is therefore an

@@ -20,6 +20,23 @@ pub struct Registry<...Components: Component> {
     released: bool,
 }
 
+/// Creates an empty heterogeneous component registry.
+pub fn create_registry<...Components: Component>(
+    allocator: &Allocator,
+) -> Result<Registry<...Components>, AllocError> {
+    let arena = ArenaAllocator::init(allocator)?;
+    let storage_allocator = arena.allocator_value();
+    let stores: (...Components => ComponentStore<Components>) = (
+        ...Components => empty_component_store<Components>(&storage_allocator),
+    );
+    stores.assert_unique_types();
+    Ok(Registry {
+        arena: arena,
+        stores: stores,
+        released: false,
+    })
+}
+
 impl<...Components: Component> Registry<...Components> {
     /// Creates an empty heterogeneous registry without per-store allocation.
     ///

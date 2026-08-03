@@ -1,8 +1,8 @@
-from std::alloc import AllocError, general_allocator;
+from std::alloc import general_allocator;
 from std::io import println;
 from std::string import String;
 
-from arepita_engine::ecs import Component, Entities, Entity, Registry;
+from arepita_engine::ecs import Component, Entity, Query, world;
 
 @derive(Copy, Component)
 struct Position {
@@ -27,75 +27,79 @@ fn movement(
     position.y += velocity.y * 0.5;
 }
 
-fn spawn_mover(
-    entities: &mut Entities,
-    registry: &mut Registry<Position, Velocity>,
-    position: Position,
-    velocity: Velocity,
-) -> Result<Entity, AllocError> {
-    let entity = match entities.spawn() {
-        Ok(value) => value,
-        Err(_) => {
-            return Err(AllocError::OutOfMemory);
-        },
-    };
-    registry.insert<Position>(entity, position)?;
-    registry.insert<Velocity>(entity, velocity)?;
-    Ok(entity)
+fn movement_system(query: &mut Query<Position, Velocity>) {
+    let _ = query.for_each(movement);
 }
 
-fn run() -> Result<i32, AllocError> {
+fn run() -> i32 {
     let allocator = general_allocator();
-    let mut entities = Entities::new(&allocator)?;
-    defer entities.deinit();
-
-    let registry_result: Result<Registry<Position, Velocity>, AllocError> =
-        Registry::new(&allocator);
-    let mut registry = registry_result?;
-    defer registry.deinit();
-
-    let first = spawn_mover(
-        &mut entities,
-        &mut registry,
-        Position { x: 0.0, y: 0.0 },
-        Velocity { x: 3.0, y: -1.0 },
-    )?;
-    {
-        let mut query = match registry.query<Position, Velocity>() {
-            Some(value) => value,
-            None => {
-                return Ok(1);
-            },
-        };
-        let _ = query.for_each(movement);
-    };
-
-    let position = match registry.get<Position>(first) {
-        Some(value) => value,
-        None => {
-            return Ok(1);
+    let mut world = match world<Position, Velocity>(&allocator) {
+        Ok(value) => value,
+        Err(_) => {
+            return 3;
         },
     };
-    let mut message = String::with_capacity(&allocator, 96)?;
+    let first = match world.spawn() {
+        Ok(value) => value,
+        Err(_) => {
+            world.deinit();
+            return 3;
+        },
+    };
+    let position = Position { x: 0.0, y: 0.0 };
+    if match world.insert<Position>(first, position) {
+        Ok(_) => false,
+        _ => true,
+    } {
+        world.deinit();
+        return 3;
+    }
+    let velocity = Velocity { x: 3.0, y: -1.0 };
+    if match world.insert<Velocity>(first, velocity) {
+        Ok(_) => false,
+        _ => true,
+    } {
+        world.deinit();
+        return 3;
+    }
+
+    let mut world = world.add_system(movement_system);
+    defer world.deinit();
+    world.run_systems();
+
+    let position = match world.get<Position>(first) {
+        Some(value) => value,
+        None => {
+            return 1;
+        },
+    };
+    let mut message = match String::with_capacity(&allocator, 96) {
+        Ok(value) => value,
+        Err(_) => {
+            return 3;
+        },
+    };
     defer message.deinit();
-    message.push_format(
-        f"entity={first.index()} position=({position.x}, {position.y}) allocated={registry.allocated_bytes()} bytes",
-    )?;
+    if match message.push_format(
+        f"entity={first.index()} position=({position.x}, {position.y}) allocated={world.allocated_bytes()} bytes",
+    ) {
+        Ok(_) => false,
+        Err(_) => true,
+    } {
+        return 3;
+    }
     match println(message.as_str()) {
         Ok(_) => {},
         Err(_) => {},
     }
 
     if position.x == 1.5 && position.y == -0.5 {
-        Ok(0)
+        0
     } else {
-        Ok(2)
+        2
     }
 }
 
 fn main() -> i32 {
-    match run() {
-        Ok(code) => code,
-        Err(_) => 3,
-    }
+    run()
 }
