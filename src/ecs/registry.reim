@@ -1,0 +1,236 @@
+from std::alloc import AllocError, Allocator, ArenaAllocator, general_allocator;
+
+from self::entity import Entities, Entity;
+from self::query import Query;
+from self::store import Component, ComponentStore;
+
+fn empty_component_store<T: Component>(allocator: &Allocator) -> ComponentStore<T> {
+    ComponentStore::empty(allocator)
+}
+
+/// A statically typed heterogeneous registry of packed component stores.
+///
+/// Every component type has exactly one store. Reimer expands the type pack at
+/// compile time, so lookup is a constant tuple-field selection rather than a
+/// runtime hash or type-ID lookup. All stores share one arena and the registry
+/// releases them together.
+pub struct Registry<...Components: Component> {
+    arena: ArenaAllocator,
+    stores: (...Components => ComponentStore<Components>),
+    released: bool,
+}
+
+impl<...Components: Component> Registry<...Components> {
+    /// Creates an empty heterogeneous registry without per-store allocation.
+    ///
+    /// Only the shared arena handle is created here. Component storage grows
+    /// lazily on insertion or explicit reservation.
+    pub fn new(
+        allocator: &Allocator,
+    ) -> Result<Registry<...Components>, AllocError> {
+        let arena = ArenaAllocator::init(allocator)?;
+        let storage_allocator = arena.allocator_value();
+        let stores: (...Components => ComponentStore<Components>) = (
+            ...Components => empty_component_store<Components>(&storage_allocator),
+        );
+        stores.assert_unique_types();
+        Ok(Registry {
+            arena: arena,
+            stores: stores,
+            released: false,
+        })
+    }
+
+    /// Returns whether this registry has released its shared arena.
+    pub fn is_released(&self) -> bool {
+        self.released
+    }
+
+    /// Returns the packed store for a registered component type.
+    ///
+    /// Requesting an unregistered or duplicate type is a compile-time error.
+    pub fn store<T: Component>(&self) -> Option<&ComponentStore<T>> {
+        if self.released {
+            return None;
+        }
+        Some(self.stores.get_type<ComponentStore<T>>())
+    }
+
+    /// Returns the packed store for exclusive mutation.
+    ///
+    /// Requesting an unregistered or duplicate type is a compile-time error.
+    pub fn store_mut<T: Component>(&mut self) -> Option<&mut ComponentStore<T>> {
+        if self.released {
+            return None;
+        }
+        Some(self.stores.get_type_mut<ComponentStore<T>>())
+    }
+
+    /// Inserts or replaces one component for an entity.
+    pub fn insert<T: Component>(
+        &mut self,
+        entity: Entity,
+        value: T,
+    ) -> Result<Option<T>, AllocError> {
+        if self.released {
+            return Err(AllocError::OutOfMemory);
+        }
+        let store = self.stores.get_type_mut<ComponentStore<T>>();
+        store.insert(entity, value)
+    }
+
+    /// Returns a copied component value for an entity.
+    pub fn get<T: Component>(&self, entity: Entity) -> Option<T> {
+        if self.released {
+            return None;
+        }
+        let store = self.stores.get_type<ComponentStore<T>>();
+        store.get(entity)
+    }
+
+    /// Borrows a component value for an entity.
+    pub fn get_ref<T: Component>(&self, entity: Entity) -> Option<&T> {
+        if self.released {
+            return None;
+        }
+        let store = self.stores.get_type<ComponentStore<T>>();
+        store.get_ref(entity)
+    }
+
+    /// Exclusively borrows a component value for in-place mutation.
+    pub fn get_mut<T: Component>(&mut self, entity: Entity) -> Option<&mut T> {
+        if self.released {
+            return None;
+        }
+        let store = self.stores.get_type_mut<ComponentStore<T>>();
+        store.get_mut(entity)
+    }
+
+    /// Returns whether an entity owns a component of `T`.
+    pub fn contains<T: Component>(&self, entity: Entity) -> bool {
+        if self.released {
+            return false;
+        }
+        let store = self.stores.get_type<ComponentStore<T>>();
+        store.contains(entity)
+    }
+
+    /// Creates an allocation-free typed query over registered stores.
+    ///
+    /// `Write` is borrowed exclusively and drives dense iteration. Every type
+    /// in `Read` is borrowed independently and copied into the system callback.
+    /// Missing, duplicate, or conflicting store types are compile-time errors.
+    pub fn query<Write: Component, ...Read: Component>(
+        &mut self,
+    ) -> Option<Query<Write, ...Read>> {
+        if self.released {
+            return None;
+        }
+        let stores: (
+            &mut ComponentStore<Write>,
+            ...Read => &ComponentStore<Read>
+        ) = self.stores.split_type_mut<
+            ComponentStore<Write>,
+            ...Read => ComponentStore<Read>
+        >();
+        Some(Query::from_stores(stores))
+    }
+
+    /// Removes and returns one component using swap-remove semantics.
+    pub fn remove<T: Component>(&mut self, entity: Entity) -> Option<T> {
+        if self.released {
+            return None;
+        }
+        let store = self.stores.get_type_mut<ComponentStore<T>>();
+        store.remove(entity)
+    }
+
+    /// Returns bytes reserved by every registered component store.
+    pub fn allocated_bytes(&self) -> usize {
+        if self.released {
+            return 0;
+        }
+        let sizes = [
+            ...Components => {
+                let store = self.stores.get_type<ComponentStore<Components>>();
+                store.allocated_bytes()
+            },
+        ];
+        let mut total: usize = 0;
+        for size in sizes {
+            total += size;
+        }
+        total
+    }
+
+    /// Releases every registered store through the shared arena.
+    pub fn deinit(&mut self) {
+        if self.released {
+            return;
+        }
+        self.arena.release();
+        self.released = true;
+    }
+}
+
+@derive(Copy, Component)
+struct QueryPosition {
+    x: i32,
+}
+
+@derive(Copy, Component)
+struct QueryVelocity {
+    x: i32,
+}
+
+fn integrate_query_position(
+    entity: Entity,
+    position: &mut QueryPosition,
+    reads: (QueryVelocity),
+) {
+    let _ = entity;
+    position.x += reads.0.x;
+}
+
+@test
+fn heterogeneous_registry_should_run_a_typed_query() {
+    let allocator = general_allocator();
+    let mut entities = match Entities::new(&allocator) {
+        Ok(value) => value,
+        Err(_) => panic("entity allocation should succeed"),
+    };
+    defer entities.deinit();
+    let created: Result<Registry<QueryPosition, QueryVelocity>, AllocError> =
+        Registry::new(&allocator);
+    let mut registry = match created {
+        Ok(value) => value,
+        Err(_) => panic("registry allocation should succeed"),
+    };
+    defer registry.deinit();
+    let entity = match entities.spawn() {
+        Ok(value) => value,
+        Err(_) => panic("entity spawn should succeed"),
+    };
+    let initial_position = QueryPosition { x: 40 };
+    match registry.insert<QueryPosition>(entity, initial_position) {
+        Ok(_) => {},
+        Err(_) => panic("position insertion should succeed"),
+    }
+    let initial_velocity = QueryVelocity { x: 2 };
+    match registry.insert<QueryVelocity>(entity, initial_velocity) {
+        Ok(_) => {},
+        Err(_) => panic("velocity insertion should succeed"),
+    }
+    {
+        let mut query = match registry.query<QueryPosition, QueryVelocity>() {
+            Some(value) => value,
+            None => panic("query construction should succeed"),
+        };
+        assert(query.for_each(integrate_query_position) == 1, "query should match once");
+    };
+    let position = match registry.get<QueryPosition>(entity) {
+        Some(value) => value,
+        None => panic("position should remain present"),
+    };
+    assert(position.x == 42, "query should update the writable component");
+}

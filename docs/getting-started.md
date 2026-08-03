@@ -44,7 +44,7 @@ arepita_engine = { package = "arepita-engine", path = "../arepita-engine", versi
 Application code can then import only the layer it needs:
 
 ```reimer
-from arepita_engine::ecs import Component, ComponentStore, Entities;
+from arepita_engine::ecs import Component, Entities, Query, Registry;
 from arepita_engine::platform import Gamepads, Input, WindowHost;
 from arepita_engine::render import Renderer, SpriteBatch;
 from arepita_engine::ui import UiRect, UiViewport, button, image, text;

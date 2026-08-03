@@ -11,6 +11,8 @@ The project is under active development. The current usable slice provides:
 - generational entity identifiers that reject stale handles;
 - packed sparse-set component storage with stable O(1) lookup;
 - library-defined `@derive(Component)` validation;
+- variadic, statically typed heterogeneous component registries;
+- allocation-free queries with compiler-checked disjoint store access;
 - explicit typed resources without string lookup;
 - direct mutable component slices for allocation-free iteration and parallel
   chunk processing;
@@ -39,7 +41,7 @@ The project is under active development. The current usable slice provides:
 ## Component example
 
 ```reimer
-from arepita_engine::ecs import Component, ComponentStore, Entities;
+from arepita_engine::ecs import Component, Entity, Registry;
 from std::alloc import general_allocator;
 
 @derive(Copy, Component)
@@ -48,32 +50,37 @@ struct Position {
     y: f32,
 }
 
-fn movement(positions: &mut ComponentStore<Position>, delta: f32) {
-    let values = positions.values_mut();
-    let mut index: usize = 0;
-    while index < values.len() {
-        values[index].x += delta;
-        index += 1;
-    }
+@derive(Copy, Component)
+struct Velocity {
+    x: f32,
+    y: f32,
 }
-```
 
-The component store never performs a name lookup in the frame loop. Dense
-entities and values remain aligned, and removals use swap-remove semantics.
-
-Two-component systems remain ordinary functions:
-
-```reimer
-from arepita_engine::ecs import Entity, for_each2_mut;
-
-fn integrate(entity: Entity, position: &mut Position, velocity: Velocity) {
+fn movement(entity: Entity, position: &mut Position, reads: (Velocity)) {
     let _ = entity;
+    let velocity = reads.0;
     position.x += velocity.x;
     position.y += velocity.y;
 }
-
-let matched = for_each2_mut(&mut positions, &velocities, integrate);
 ```
+
+Create the registry once, then request a typed query:
+
+```reimer
+let allocator = general_allocator();
+let mut registry: Registry<Position, Velocity> = Registry::new(&allocator)?;
+defer registry.deinit();
+
+let mut query = match registry.query<Position, Velocity>() {
+    Some(value) => value,
+    None => panic("registry was released"),
+};
+let matched = query.for_each(movement);
+```
+
+The registry never performs a name lookup in the frame loop. Reimer expands
+its component pack and query at compile time, while dense values remain
+contiguous and removals use swap-remove semantics.
 
 The renderer follows the same ownership model. `WindowHost` owns SDL, while a
 single `Renderer` owns the surface, device, queue, pipeline, and buffers in a

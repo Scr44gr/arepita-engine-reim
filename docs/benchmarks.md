@@ -62,6 +62,25 @@ Five-sample measurements from the same system and release profile:
 The median parallel path was 2.68× faster than the sequential path. Both paths
 reported the same 9,699,328 tracked bytes throughout every measured update.
 
+The variadic-registry verification added on 2026-08-03 also creates 200,000
+entities, but inserts both `QueryPosition` and `QueryVelocity` (400,000 component
+insertions) and runs 120 allocation-free `Registry::query` passes. Three release
+samples produced:
+
+| Measurement | Observed range | Median |
+|---|---:|---:|
+| Heterogeneous registry insert | 26.19–55.58 ms | 28.60 ms |
+| 120 variadic query passes | 1.165–1.654 s | 1.375 s |
+
+The query completed 24 million matched rows and retained exactly 13,893,632
+tracked bytes, including the entity registry and both component stores. The
+callback-oriented query is the ergonomic general join path; systems that only
+need one densely packed component should continue to use `values_mut()` and
+`parallel_for_mut`. In the same samples, the existing packed sequential and
+four-worker medians were 176.83 ms and 62.20 ms respectively, within the
+historical range, so the compiler and registry work did not regress those hot
+paths.
+
 ## Navigation
 
 ```powershell

@@ -1,9 +1,10 @@
-from arepita_engine::ecs import Component, ComponentStore, Entities;
 from std::alloc import AllocError, general_allocator;
 from std::io import println;
 from std::job import JobError, JobPool, JobPoolConfig, chunk_len, parallel_for_mut;
 from std::string import String;
 from std::time import Instant;
+
+from arepita_engine::ecs import Component, ComponentStore, Entities, Entity, Registry;
 
 const ENTITY_COUNT: usize = 200_000;
 const UPDATE_PASSES: usize = 120;
@@ -14,6 +15,29 @@ struct Transform {
     y: f32,
     velocity_x: f32,
     velocity_y: f32,
+}
+
+@derive(Copy, Component)
+struct QueryPosition {
+    x: f32,
+    y: f32,
+}
+
+@derive(Copy, Component)
+struct QueryVelocity {
+    x: f32,
+    y: f32,
+}
+
+fn update_query_position(
+    entity: Entity,
+    position: &mut QueryPosition,
+    reads: (QueryVelocity),
+) {
+    let _ = entity;
+    let velocity = reads.0;
+    position.x += velocity.x;
+    position.y += velocity.y;
 }
 
 fn update_chunk(values: &mut [Transform]) {
@@ -110,6 +134,76 @@ fn run() -> Result<i32, AllocError> {
     let parallel_duration = parallel_start.elapsed();
     let parallel_ns = parallel_duration.as_nanoseconds();
     print_measurement("packed four-worker update", parallel_ns, allocated)?;
+
+    let registry_created: Result<Registry<QueryPosition, QueryVelocity>, AllocError> =
+        Registry::new(&allocator);
+    let mut registry = registry_created?;
+    defer registry.deinit();
+    let registry_creation_start = Instant::now();
+    index = 0;
+    while index < ENTITY_COUNT {
+        let entity = transforms.entities()[index];
+        registry.insert<QueryPosition>(entity, QueryPosition {
+            x: index as f32,
+            y: 0.0,
+        })?;
+        registry.insert<QueryVelocity>(entity, QueryVelocity {
+            x: 1.0,
+            y: -0.25,
+        })?;
+        index += 1;
+    }
+    let registry_creation_duration = registry_creation_start.elapsed();
+    let registry_creation_ns = registry_creation_duration.as_nanoseconds();
+    let registry_allocated = entities.allocated_bytes() + registry.allocated_bytes();
+    print_measurement(
+        "heterogeneous registry insert",
+        registry_creation_ns,
+        registry_allocated,
+    )?;
+
+    let query_start = Instant::now();
+    pass = 0;
+    while pass < UPDATE_PASSES {
+        {
+            let mut query = match registry.query<QueryPosition, QueryVelocity>() {
+                Some(value) => value,
+                None => {
+                    return Ok(13);
+                },
+            };
+            if query.for_each(update_query_position) != ENTITY_COUNT {
+                return Ok(14);
+            }
+        };
+        pass += 1;
+    }
+    let query_duration = query_start.elapsed();
+    let query_ns = query_duration.as_nanoseconds();
+    print_measurement(
+        "variadic registry query update",
+        query_ns,
+        registry_allocated,
+    )?;
+    let first_entity = transforms.entities()[0];
+    let last_entity = transforms.entities()[ENTITY_COUNT - 1];
+    let first = match registry.get<QueryPosition>(first_entity) {
+        Some(value) => value,
+        None => {
+            return Ok(15);
+        },
+    };
+    let last = match registry.get<QueryPosition>(last_entity) {
+        Some(value) => value,
+        None => {
+            return Ok(16);
+        },
+    };
+    if first.x != UPDATE_PASSES as f32
+        || last.x != (ENTITY_COUNT - 1 + UPDATE_PASSES) as f32
+    {
+        return Ok(17);
+    }
     Ok(0)
 }
 

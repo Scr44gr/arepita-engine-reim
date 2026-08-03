@@ -2,7 +2,7 @@ from std::alloc import AllocError, general_allocator;
 from std::io import println;
 from std::string import String;
 
-from arepita_engine::ecs import Component, ComponentStore, Entities, Entity;
+from arepita_engine::ecs import Component, Entities, Entity, Registry;
 
 @derive(Copy, Component)
 struct Position {
@@ -17,28 +17,19 @@ struct Velocity {
 }
 
 fn movement(
-    positions: &mut ComponentStore<Position>,
-    velocities: &ComponentStore<Velocity>,
-    delta_seconds: f32,
+    entity: Entity,
+    position: &mut Position,
+    reads: (Velocity),
 ) {
-    let length = positions.len();
-    let velocity_values = velocities.values();
-    let position_values = positions.values_mut();
-    let mut index: usize = 0;
-    while index < length {
-        let mut position = position_values[index];
-        let velocity = velocity_values[index];
-        position.x += velocity.x * delta_seconds;
-        position.y += velocity.y * delta_seconds;
-        position_values[index] = position;
-        index += 1;
-    }
+    let _ = entity;
+    let velocity = reads.0;
+    position.x += velocity.x * 0.5;
+    position.y += velocity.y * 0.5;
 }
 
 fn spawn_mover(
     entities: &mut Entities,
-    positions: &mut ComponentStore<Position>,
-    velocities: &mut ComponentStore<Velocity>,
+    registry: &mut Registry<Position, Velocity>,
     position: Position,
     velocity: Velocity,
 ) -> Result<Entity, AllocError> {
@@ -48,8 +39,8 @@ fn spawn_mover(
             return Err(AllocError::OutOfMemory);
         },
     };
-    positions.insert(entity, position)?;
-    velocities.insert(entity, velocity)?;
+    registry.insert<Position>(entity, position)?;
+    registry.insert<Velocity>(entity, velocity)?;
     Ok(entity)
 }
 
@@ -58,26 +49,28 @@ fn run() -> Result<i32, AllocError> {
     let mut entities = Entities::new(&allocator)?;
     defer entities.deinit();
 
-    let position_result: Result<ComponentStore<Position>, AllocError> =
-        ComponentStore::new(&allocator);
-    let mut positions = position_result?;
-    defer positions.deinit();
-
-    let velocity_result: Result<ComponentStore<Velocity>, AllocError> =
-        ComponentStore::new(&allocator);
-    let mut velocities = velocity_result?;
-    defer velocities.deinit();
+    let registry_result: Result<Registry<Position, Velocity>, AllocError> =
+        Registry::new(&allocator);
+    let mut registry = registry_result?;
+    defer registry.deinit();
 
     let first = spawn_mover(
         &mut entities,
-        &mut positions,
-        &mut velocities,
+        &mut registry,
         Position { x: 0.0, y: 0.0 },
         Velocity { x: 3.0, y: -1.0 },
     )?;
-    movement(&mut positions, &velocities, 0.5);
+    {
+        let mut query = match registry.query<Position, Velocity>() {
+            Some(value) => value,
+            None => {
+                return Ok(1);
+            },
+        };
+        let _ = query.for_each(movement);
+    };
 
-    let position = match positions.get(first) {
+    let position = match registry.get<Position>(first) {
         Some(value) => value,
         None => {
             return Ok(1);
@@ -86,7 +79,7 @@ fn run() -> Result<i32, AllocError> {
     let mut message = String::with_capacity(&allocator, 96)?;
     defer message.deinit();
     message.push_format(
-        f"entity={first.index()} position=({position.x}, {position.y}) allocated={positions.allocated_bytes()} bytes",
+        f"entity={first.index()} position=({position.x}, {position.y}) allocated={registry.allocated_bytes()} bytes",
     )?;
     match println(message.as_str()) {
         Ok(_) => {},

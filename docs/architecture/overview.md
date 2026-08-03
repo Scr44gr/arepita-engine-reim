@@ -14,8 +14,9 @@ into independent layers so the ECS can be benchmarked without SDL3 or wgpu.
    lookup; dense arrays provide cache-friendly iteration and parallel chunks.
 4. Structural mutations occur outside active iteration. The command buffer
    will apply them at explicit schedule barriers.
-5. Resources are typed fields in application state. This avoids Arepy's
-   class-name lookup and lets ordinary function signatures document access.
+5. Components live in a monomorphized heterogeneous `Registry`; resources
+   remain typed fields in application state. Both avoid Arepy's class-name
+   lookup and let ordinary function signatures document access.
 6. Frame-stable paths allocate nothing. Growth is explicit during loading or
    command application, and capacity can be prepared before gameplay.
 7. Rendering uses persistent GPU resources and packed instance batches. One
@@ -29,10 +30,11 @@ into independent layers so the ECS can be benchmarked without SDL3 or wgpu.
 ## Why a static resource set
 
 Arepy resolves injected resources through Python annotations and class-name
-strings every time a system is prepared. Reimer already monomorphizes generic
-code and checks borrows, so an application state struct is a faster and clearer
-registry: fields are known at compile time, misspellings are type errors, and
-parallel access can be inferred from function signatures.
+strings every time a system is prepared. Reimer monomorphizes variadic type
+packs and can split unique tuple fields by concrete type, so component registry
+lookups become constant field addresses. Application resources remain ordinary
+typed state fields. Misspellings, absent components, duplicate store types, and
+conflicting query access are compile-time errors.
 
 A dynamic resource map may be added for editor plugins, but it is not the
 default gameplay path.
@@ -46,14 +48,14 @@ joins every job before returning. Each system boundary is therefore an
 explicit barrier. Deferred structural commands are applied only at these
 barriers, never while a worker holds a component slice.
 
-Arepita does not manufacture aliased references to unrelated fields of a
-monolithic application state or rely on runtime type-name lookup. Independent
-systems currently remain ordered, while homogeneous work inside a system runs
-in parallel. This preserves the same core conflict rule used by Bevy's
-multithreaded executor: concurrent work may never have conflicting data
-access. A future compiler facility for statically splitting named state-field
-borrows could enable safe inter-system graph scheduling without changing this
-rule.
+Arepita does not manufacture aliased references or rely on runtime type-name
+lookup. `Registry::query` uses the compiler's checked heterogeneous tuple split
+to create one exclusive store borrow and disjoint shared store borrows.
+Independent systems currently remain ordered, while homogeneous work inside a
+system runs in parallel. This preserves the same core conflict rule used by
+Bevy's multithreaded executor: concurrent work may never have conflicting data
+access. A future access-graph scheduler can build on the query signatures
+without changing that rule.
 
 ## Renderer direction
 

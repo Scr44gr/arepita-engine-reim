@@ -1,4 +1,4 @@
-from std::alloc import AllocError, Allocator, ArenaAllocator, general_allocator;
+from std::alloc import AllocError, Allocator, general_allocator;
 from std::collections import Vec;
 import std::slice as slice;
 
@@ -16,12 +16,15 @@ struct EntityIndex {
 }
 
 impl EntityIndex {
+    pub fn empty(allocator: &Allocator) -> EntityIndex {
+        EntityIndex {
+            sparse: Vec::empty(allocator),
+            dense: Vec::empty(allocator),
+        }
+    }
+
     pub fn new(allocator: &Allocator) -> Result<EntityIndex, AllocError> {
-        let sparse_result: Result<Vec<usize>, AllocError> = Vec::new(allocator);
-        let sparse = sparse_result?;
-        let dense_result: Result<Vec<Entity>, AllocError> = Vec::new(allocator);
-        let dense = dense_result?;
-        Ok(EntityIndex { sparse: sparse, dense: dense })
+        Ok(EntityIndex::empty(allocator))
     }
 
     pub fn find(&self, entity: Entity) -> Option<usize> {
@@ -108,10 +111,12 @@ struct PackedValues<T> {
 }
 
 impl<T: Component> PackedValues<T> {
+    pub fn empty(allocator: &Allocator) -> PackedValues<T> {
+        PackedValues { inner: Vec::empty(allocator) }
+    }
+
     pub fn new(allocator: &Allocator) -> Result<PackedValues<T>, AllocError> {
-        let created: Result<Vec<T>, AllocError> = Vec::new(allocator);
-        let inner = created?;
-        Ok(PackedValues { inner: inner })
+        Ok(PackedValues::empty(allocator))
     }
 
     pub fn len(&self) -> usize {
@@ -173,7 +178,6 @@ impl<T: Component> PackedValues<T> {
 /// values without allocating query tuples. Removing a value changes dense
 /// order by moving the final entry into its slot.
 pub struct ComponentStore<T> {
-    arena: ArenaAllocator,
     index: EntityIndex,
     values: PackedValues<T>,
     released: bool,
@@ -182,30 +186,20 @@ pub struct ComponentStore<T> {
 impl<T: Component> ComponentStore<T> {
     /// Creates an empty component store.
     pub fn new(allocator: &Allocator) -> Result<ComponentStore<T>, AllocError> {
-        let mut arena = ArenaAllocator::init(allocator)?;
-        let storage_allocator = arena.allocator_value();
-        let index = match EntityIndex::new(&storage_allocator) {
-            Ok(value) => value,
-            Err(error) => {
-                arena.release();
-                return Err(error);
-            },
-        };
-        let values_result: Result<PackedValues<T>, AllocError> =
-            PackedValues::new(&storage_allocator);
-        let values = match values_result {
-            Ok(value) => value,
-            Err(error) => {
-                arena.release();
-                return Err(error);
-            },
-        };
-        Ok(ComponentStore {
-            arena: arena,
-            index: index,
-            values: values,
+        Ok(ComponentStore::empty(allocator))
+    }
+
+    /// Creates an allocation-free empty store backed by `allocator`.
+    ///
+    /// This constructor lets aggregate owners share one arena across many
+    /// component types. The first insertion or reservation performs the first
+    /// allocation.
+    pub fn empty(allocator: &Allocator) -> ComponentStore<T> {
+        ComponentStore {
+            index: EntityIndex::empty(allocator),
+            values: PackedValues::empty(allocator),
             released: false,
-        })
+        }
     }
 
     /// Returns the number of stored components.
@@ -359,7 +353,6 @@ impl<T: Component> ComponentStore<T> {
         }
         self.index.release();
         self.values.release();
-        self.arena.release();
         self.released = true;
     }
 
@@ -386,6 +379,7 @@ impl<T: Component> ComponentStore<T> {
         }
         self.values.get_mut(index)
     }
+
 }
 
 /// Runs an allocation-free two-component query.

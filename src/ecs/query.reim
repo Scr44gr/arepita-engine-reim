@@ -1,0 +1,80 @@
+from self::entity import Entity;
+from self::store import Component, ComponentStore;
+
+/// An allocation-free query with one writable component and any number of
+/// read-only component types.
+///
+/// The first store drives dense iteration. Every read component is probed by
+/// entity, so the query remains correct when stores have different dense order
+/// or membership. Query construction statically splits disjoint registry
+/// fields; no runtime type lookup or erased pointer is involved.
+pub struct Query<Write: Component, ...Read: Component> {
+    stores: (
+        &mut ComponentStore<Write>,
+        ...Read => &ComponentStore<Read>
+    ),
+}
+
+impl<Write: Component, ...Read: Component> Query<Write, ...Read> {
+    /// Creates a query from a compiler-validated disjoint store split.
+    ///
+    /// Most applications should call `Registry::query`; this constructor is
+    /// public so registry-like aggregate owners can reuse the query engine.
+    pub fn from_stores(
+        stores: (
+            &mut ComponentStore<Write>,
+            ...Read => &ComponentStore<Read>
+        ),
+    ) -> Query<Write, ...Read> {
+        Query { stores: stores }
+    }
+
+    /// Returns the number of values in the writable driving store.
+    ///
+    /// The number of matching rows can be lower when a read component is
+    /// missing from an entity.
+    pub fn candidate_count(&self) -> usize {
+        self.stores.0.len()
+    }
+
+    /// Runs `system` for every entity that owns all requested components.
+    ///
+    /// Read components are passed as a tuple in generic order. The tuple is
+    /// made from compact `Copy` values, while the writable component is
+    /// borrowed in place. The returned count is the number of matched rows.
+    pub fn for_each(
+        &mut self,
+        system: fn(Entity, &mut Write, (...Read)) -> (),
+    ) -> usize {
+        let length = self.stores.0.len();
+        let mut matched: usize = 0;
+        let mut index: usize = 0;
+        while index < length {
+            let entity = match self.stores.0.entity_at(index) {
+                Some(value) => value,
+                None => panic("query driving entity index became inconsistent"),
+            };
+            let reads: (...Read) = (
+                ...Read => {
+                    let selected = self.stores.get_type<&ComponentStore<Read>>();
+                    let store = *selected;
+                    match store.get(entity) {
+                        Some(value) => value,
+                        None => {
+                            index += 1;
+                            continue;
+                        },
+                    }
+                },
+            );
+            let write = match self.stores.0.value_mut_at(index) {
+                Some(value) => value,
+                None => panic("query driving value index became inconsistent"),
+            };
+            system(entity, write, reads);
+            matched += 1;
+            index += 1;
+        }
+        matched
+    }
+}
