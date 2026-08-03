@@ -25,6 +25,10 @@ impl ManagedResource for ResourceSentinel {
 
 /// Internal static-dispatch contract implemented by typed resource sets.
 pub trait ResourceSet {
+    /// Borrows one registered resource by its concrete type.
+    fn registered_resource<T: ManagedResource>(&self) -> &T;
+    /// Exclusively borrows one registered resource by its concrete type.
+    fn registered_resource_mut<T: ManagedResource>(&mut self) -> &mut T;
     /// Releases every owned resource in reverse registration order.
     fn release_resources(&mut self);
 }
@@ -68,6 +72,14 @@ impl<...Resources: ManagedResource> ResourceRegistry<...Resources> {
 }
 
 impl<...Resources: ManagedResource> ResourceSet for ResourceRegistry<...Resources> {
+    fn registered_resource<T: ManagedResource>(&self) -> &T {
+        self.get<T>()
+    }
+
+    fn registered_resource_mut<T: ManagedResource>(&mut self) -> &mut T {
+        self.get_mut<T>()
+    }
+
     fn release_resources(&mut self) {
         let _ = (
             ...Resources => {

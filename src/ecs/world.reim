@@ -76,6 +76,45 @@ impl<
         self.systems.run_all<Storage>(&mut self.storage);
     }
 
+    /// Borrows a registered resource by type.
+    pub fn resource<T: ManagedResource>(&self) -> Option<&T> {
+        if self.is_released() {
+            return None;
+        }
+        Some(self.resources.registered_resource<T>())
+    }
+
+    /// Exclusively borrows a registered resource by type.
+    pub fn resource_mut<T: ManagedResource>(&mut self) -> Option<&mut T> {
+        if self.is_released() {
+            return None;
+        }
+        Some(self.resources.registered_resource_mut<T>())
+    }
+
+    /// Borrows one resource and constructs one disjoint component query.
+    ///
+    /// This is the advanced path for systems that need both application state
+    /// and packed components before mixed-parameter function injection is used.
+    pub fn resource_query<
+        T: ManagedResource,
+        Write: Component,
+        ...Read: Component,
+    >(&mut self) -> Option<(&mut T, Query<Write, ...Read>)> {
+        if self.is_released() {
+            return None;
+        }
+        let mut parts = (&mut self.resources, &mut self.storage);
+        let resource = parts.0.registered_resource_mut<T>();
+        let query = match parts.1.component_query<Write, ...Read>() {
+            Some(value) => value,
+            None => {
+                return None;
+            },
+        };
+        Some((resource, query))
+    }
+
     /// Returns the number of live entities.
     pub fn len(&self) -> usize {
         if self.released { 0 } else { self.entities.len() }
@@ -252,21 +291,6 @@ impl<
         }
     }
 
-    /// Borrows a registered resource by type.
-    pub fn resource<T: ManagedResource>(&self) -> Option<&T> {
-        if self.is_released() {
-            return None;
-        }
-        Some(self.resources.get<T>())
-    }
-
-    /// Exclusively borrows a registered resource by type.
-    pub fn resource_mut<T: ManagedResource>(&mut self) -> Option<&mut T> {
-        if self.is_released() {
-            return None;
-        }
-        Some(self.resources.get_mut<T>())
-    }
 }
 
 /// Creates an empty world whose component set is fixed at compile time.
@@ -435,8 +459,19 @@ fn world_should_own_typed_resources_across_system_registration() {
     defer world.deinit();
 
     {
+        let mut joined = match world.resource_query<
+            WorldScore,
+            WorldPosition,
+            WorldVelocity,
+        >() {
+            Some(value) => value,
+            None => panic("resource query should be available"),
+        };
+        joined.0.value += 1;
+    };
+    {
         match world.resource_mut<WorldScore>() {
-            Some(score) => score.value += 2,
+            Some(score) => score.value += 1,
             None => panic("registered score resource should exist"),
         }
     };
