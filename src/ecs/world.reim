@@ -4,9 +4,9 @@ from self::entity import Entities, Entity, EntityError;
 from self::query import Query;
 from self::registry import ComponentSet, Registry, create_registry;
 from self::store import Component, ComponentStore;
-from self::system import EmptySystems, QuerySystem, SystemChain, SystemList;
-from super::app import ManagedResource, Resource, ResourceRegistry, ResourceSet;
-from super::app::resource import ResourceSentinel, resource_registry;
+from self::system import EmptySystems, System, SystemChain, SystemList;
+from super::app import EmptyResources, ManagedResource, PipelineState, Resource, ResourceRegistry, ResourceSet, SystemPipeline;
+from super::app::resource import empty_resource_registry;
 
 /// Recoverable world lifecycle and storage failures.
 @derive(Copy, Clone, Debug, Eq)
@@ -48,12 +48,13 @@ impl<
     ///
     /// The returned world owns the extended static system chain. Calls may be
     /// fluently chained before binding the final world.
-    pub fn add_system<Write: Component, ...Read: Component>(
+    pub fn add_system<Current: System>(
         self,
-        system: fn(&mut Query<Write, ...Read>) -> (),
+        pipeline: SystemPipeline,
+        system: Current,
     ) -> World<
         Resources,
-        SystemChain<Systems, QuerySystem<Write, ...Read>>,
+        SystemChain<Systems, Current>,
         Storage
     > {
         World {
@@ -62,18 +63,24 @@ impl<
             storage: self.storage,
             systems: SystemChain::new(
                 self.systems,
-                QuerySystem::new(system),
+                pipeline,
+                system,
             ),
             released: self.released,
         }
     }
 
-    /// Runs all registered systems in insertion order without allocating.
-    pub fn run_systems(&mut self) {
+    /// Runs one engine pipeline in registration order without allocating.
+    pub fn run_pipeline(&mut self, pipeline: SystemPipeline) {
         if self.is_released() {
             return;
         }
-        self.systems.run_all<Storage>(&mut self.storage);
+        self.systems.run_pipeline<Resources, Storage>(
+            pipeline,
+            &mut self.entities,
+            &mut self.resources,
+            &mut self.storage,
+        );
     }
 
     /// Borrows a registered resource by type.
@@ -90,6 +97,16 @@ impl<
             return None;
         }
         Some(self.resources.registered_resource_mut<T>())
+    }
+
+    /// Exclusively borrows several distinct resources in one static split.
+    pub fn resources_mut<...Selected: ManagedResource>(
+        &mut self,
+    ) -> Option<(...Selected => &mut Selected)> {
+        if self.is_released() {
+            return None;
+        }
+        Some(self.resources.split_resources_mut<...Selected>())
     }
 
     /// Borrows one resource and constructs one disjoint component query.
@@ -186,6 +203,66 @@ impl<
         }
     }
 
+    /// Inserts a heterogeneous component bundle after reserving every store.
+    ///
+    /// Values are selected by type rather than tuple position. No component is
+    /// written when any reservation fails, so callers never observe a partial
+    /// bundle after a recoverable allocation error.
+    pub fn insert_bundle<...Selected: Component>(
+        &mut self,
+        entity: Entity,
+        values: (...Selected),
+    ) -> Result<(), WorldError> {
+        if self.is_released() {
+            return Err(WorldError::Released);
+        }
+        if !self.entities.contains(entity) {
+            return Err(WorldError::InvalidEntity);
+        }
+        values.assert_unique_types();
+        let reservations = [
+            ...Selected => {
+                match self.storage.reserve_component<Selected>(entity) {
+                    Ok(_) => true,
+                    Err(_) => false,
+                }
+            },
+        ];
+        for reserved in reservations {
+            if !reserved { return Err(WorldError::OutOfMemory); }
+        }
+        let insertions = [
+            ...Selected => {
+                let value = *values.get_type<Selected>();
+                match self.storage.insert_component<Selected>(entity, value) {
+                    Ok(_) => true,
+                    Err(_) => false,
+                }
+            },
+        ];
+        for inserted in insertions {
+            if !inserted {
+                panic("reserved component insertion became inconsistent")
+            }
+        }
+        Ok(())
+    }
+
+    /// Spawns an entity and attaches a complete typed bundle atomically.
+    pub fn spawn_bundle<...Selected: Component>(
+        &mut self,
+        values: (...Selected),
+    ) -> Result<Entity, WorldError> {
+        let entity = self.spawn()?;
+        match self.insert_bundle<...Selected>(entity, values) {
+            Ok(_) => Ok(entity),
+            Err(error) => {
+                let _ = self.despawn(entity);
+                Err(error)
+            },
+        }
+    }
+
     /// Returns a copied component for a live entity.
     pub fn get<T: Component>(&self, entity: Entity) -> Option<T> {
         if !self.contains_entity(entity) {
@@ -273,6 +350,16 @@ impl<
 }
 
 impl<
+    Resources: ResourceSet,
+    Systems: SystemList,
+    Storage: ComponentSet,
+> PipelineState for World<Resources, Systems, Storage> {
+    fn execute_pipeline(&mut self, pipeline: SystemPipeline) {
+        World::run_pipeline(self, pipeline);
+    }
+}
+
+impl<
     Systems: SystemList,
     Storage: ComponentSet,
     ...Resources: ManagedResource,
@@ -294,11 +381,15 @@ impl<
 }
 
 /// Creates an empty world whose component set is fixed at compile time.
+///
+/// Omitting generic arguments collects concrete `@derive(Component)` types
+/// from the root package. Explicit arguments remain available for isolated
+/// worlds and focused tests.
 pub fn world<...Components: Component>(
     allocator: &Allocator,
 ) -> Result<
     World<
-        ResourceRegistry<ResourceSentinel>,
+        EmptyResources,
         EmptySystems,
         Registry<...Components>
     >,
@@ -322,7 +413,7 @@ pub fn world<...Components: Component>(
     };
     Ok(World {
         entities: entities,
-        resources: resource_registry(ResourceSentinel {}),
+        resources: empty_resource_registry(),
         storage: component_registry,
         systems: EmptySystems {},
         released: false,
@@ -363,12 +454,20 @@ fn movement_system(query: &mut Query<WorldPosition, WorldVelocity>) {
     let _ = query.for_each(integrate_world_position);
 }
 
+fn scored_movement_system(
+    score: &mut WorldScore,
+    query: &mut Query<WorldPosition, WorldVelocity>,
+) {
+    score.value += 1;
+    movement_system(query);
+}
+
 @test
 fn world_should_reject_components_for_stale_entities() {
     let allocator = general_allocator();
     let created: Result<
         World<
-            ResourceRegistry<ResourceSentinel>,
+            EmptyResources,
             EmptySystems,
             Registry<WorldPosition>
         >,
@@ -396,11 +495,45 @@ fn world_should_reject_components_for_stale_entities() {
 }
 
 @test
+fn world_should_spawn_complete_typed_bundles() {
+    let allocator = general_allocator();
+    let created: Result<
+        World<
+            EmptyResources,
+            EmptySystems,
+            Registry<WorldPosition, WorldVelocity>
+        >,
+        WorldError
+    > = world<WorldPosition, WorldVelocity>(&allocator);
+    let mut world = match created {
+        Ok(value) => value,
+        Err(_) => panic("world allocation should succeed"),
+    };
+    defer world.deinit();
+
+    let position = WorldPosition { x: 40 };
+    let velocity = WorldVelocity { x: 2 };
+    let entity = match world.spawn_bundle((position, velocity)) {
+        Ok(value) => value,
+        Err(_) => panic("typed bundle spawn should succeed"),
+    };
+    assert(world.len() == 1);
+    assert(match world.get<WorldPosition>(entity) {
+        Some(value) => value.x == 40,
+        None => false,
+    });
+    assert(match world.get<WorldVelocity>(entity) {
+        Some(value) => value.x == 2,
+        None => false,
+    });
+}
+
+@test
 fn world_should_inject_queries_into_registered_systems() {
     let allocator = general_allocator();
     let created: Result<
         World<
-            ResourceRegistry<ResourceSentinel>,
+            EmptyResources,
             EmptySystems,
             Registry<WorldPosition, WorldVelocity>
         >,
@@ -425,14 +558,19 @@ fn world_should_inject_queries_into_registered_systems() {
         _ => false,
     });
 
-    let mut world = world
-        .add_system(movement_system)
-        .add_system(movement_system);
+    let world = world.add_system(SystemPipeline::Update, movement_system);
+    let world = world.add_system(SystemPipeline::Render, movement_system);
+    let mut world = world.add_system(SystemPipeline::Update, movement_system);
     defer world.deinit();
-    world.run_systems();
+    world.run_pipeline(SystemPipeline::Update);
 
     assert(match world.get<WorldPosition>(entity) {
         Some(position) => position.x == 42,
+        None => false,
+    });
+    world.run_pipeline(SystemPipeline::Render);
+    assert(match world.get<WorldPosition>(entity) {
+        Some(position) => position.x == 43,
         None => false,
     });
 }
@@ -442,7 +580,7 @@ fn world_should_own_typed_resources_across_system_registration() {
     let allocator = general_allocator();
     let created: Result<
         World<
-            ResourceRegistry<ResourceSentinel>,
+            EmptyResources,
             EmptySystems,
             Registry<WorldPosition, WorldVelocity>
         >,
@@ -452,29 +590,11 @@ fn world_should_own_typed_resources_across_system_registration() {
         Ok(value) => value,
         Err(_) => panic("world allocation should succeed"),
     };
-    let world = world
-        .add_system(movement_system)
-        .add_resource(WorldScore { value: 40 });
-    let mut world = world.add_system(movement_system);
+    let world = world.add_resource(WorldScore { value: 40 });
+    let world = world.add_system(SystemPipeline::Update, scored_movement_system);
+    let mut world = world.add_system(SystemPipeline::Update, scored_movement_system);
     defer world.deinit();
-
-    {
-        let mut joined = match world.resource_query<
-            WorldScore,
-            WorldPosition,
-            WorldVelocity,
-        >() {
-            Some(value) => value,
-            None => panic("resource query should be available"),
-        };
-        joined.0.value += 1;
-    };
-    {
-        match world.resource_mut<WorldScore>() {
-            Some(score) => score.value += 1,
-            None => panic("registered score resource should exist"),
-        }
-    };
+    world.run_pipeline(SystemPipeline::Update);
     assert(match world.resource<WorldScore>() {
         Some(score) => score.value == 42,
         None => false,

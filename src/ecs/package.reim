@@ -5,11 +5,12 @@ pub from self::store import Component, ComponentStore, for_each2_mut;
 /// Statically typed heterogeneous component storage.
 pub from self::registry import ComponentSet, Registry;
 /// Allocation-free heterogeneous registry queries.
-pub from self::query import Query;
+pub from self::query import Query, QueryMut;
 /// Entity and component ownership without direct registry access.
 pub from self::world import World, WorldError, world;
 /// Static system contracts used by generic world integrations.
-pub from self::system import EmptySystems, System, SystemList;
+pub from self::system import EmptySystems, QuerySystem, System, SystemChain, SystemList;
+pub from super::app import SystemPipeline;
 /// Generational entity lifecycle types.
 pub from self::entity import Entity, Entities, EntityError;
 /// Deterministic ordinary and data-parallel function schedules.

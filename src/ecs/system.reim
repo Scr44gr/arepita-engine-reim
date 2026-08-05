@@ -1,21 +1,28 @@
-from self::query import Query;
+from self::entity import Entities;
+from self::query import Query, QueryMut;
 from self::registry import ComponentSet;
 from self::store import Component;
+from super::app import ManagedResource, ResourceSet, SystemPipeline;
 
 /// Internal static-dispatch contract implemented by registered systems.
 pub trait System {
     /// Runs the system against a compatible component registry.
-    fn run<Storage: ComponentSet>(
+    fn run<Resources: ResourceSet, Storage: ComponentSet>(
         &mut self,
+        entities: &mut Entities,
+        resources: &mut Resources,
         storage: &mut Storage,
     );
 }
 
 /// Internal static-dispatch contract implemented by system chains.
 pub trait SystemList {
-    /// Runs every linked system in registration order.
-    fn run_all<Storage: ComponentSet>(
+    /// Runs linked systems in registration order for one pipeline.
+    fn run_pipeline<Resources: ResourceSet, Storage: ComponentSet>(
         &mut self,
+        pipeline: SystemPipeline,
+        entities: &mut Entities,
+        resources: &mut Resources,
         storage: &mut Storage,
     );
 }
@@ -24,12 +31,211 @@ pub trait SystemList {
 pub struct EmptySystems {}
 
 impl SystemList for EmptySystems {
-    fn run_all<Storage: ComponentSet>(
+    fn run_pipeline<Resources: ResourceSet, Storage: ComponentSet>(
         &mut self,
+        pipeline: SystemPipeline,
+        entities: &mut Entities,
+        resources: &mut Resources,
         storage: &mut Storage,
     ) {
         let _ = self;
+        let _ = pipeline;
+        let _ = resources;
         let _ = storage;
+    }
+}
+
+impl<WriteResource: ManagedResource> System for fn(&mut WriteResource) -> () {
+    fn run<Resources: ResourceSet, Storage: ComponentSet>(
+        &mut self,
+        entities: &mut Entities,
+        resources: &mut Resources,
+        storage: &mut Storage,
+    ) {
+        let _ = storage;
+        let resource = resources.registered_resource_mut<WriteResource>();
+        let function = *self;
+        function(resource);
+    }
+}
+
+impl<WriteResource: ManagedResource, ReadResource: ManagedResource> System for fn(
+    &mut WriteResource,
+    &ReadResource,
+) -> () {
+    fn run<Resources: ResourceSet, Storage: ComponentSet>(
+        &mut self,
+        entities: &mut Entities,
+        resources: &mut Resources,
+        storage: &mut Storage,
+    ) {
+        let _ = storage;
+        let selected = resources.split_resource_mut<WriteResource, ReadResource>();
+        let function = *self;
+        function(selected.0, selected.1);
+    }
+}
+
+impl<FirstResource: ManagedResource, SecondResource: ManagedResource> System for fn(
+    &mut FirstResource,
+    &mut SecondResource,
+) -> () {
+    fn run<Resources: ResourceSet, Storage: ComponentSet>(
+        &mut self,
+        entities: &mut Entities,
+        resources: &mut Resources,
+        storage: &mut Storage,
+    ) {
+        let _ = storage;
+        let selected = resources.split_resources_mut<FirstResource, SecondResource>();
+        let function = *self;
+        function(selected.0, selected.1);
+    }
+}
+
+impl<
+    FirstWriteResource: ManagedResource,
+    SecondWriteResource: ManagedResource,
+    ReadResource: ManagedResource,
+    Write: Component,
+    ...Read: Component,
+> System for fn(
+    &mut FirstWriteResource,
+    &mut SecondWriteResource,
+    &ReadResource,
+    &mut Query<Write, ...Read>,
+) -> () {
+    fn run<Resources: ResourceSet, Storage: ComponentSet>(
+        &mut self,
+        entities: &mut Entities,
+        resources: &mut Resources,
+        storage: &mut Storage,
+    ) {
+        let selected = resources.split_resources_mut<
+            FirstWriteResource,
+            SecondWriteResource,
+            ReadResource,
+        >();
+        let mut query = match storage.component_query<Write, ...Read>() {
+            Some(value) => value,
+            None => { return; },
+        };
+        let function = *self;
+        function(selected.0, selected.1, &*selected.2, &mut query);
+    }
+}
+
+impl<
+    FirstWriteResource: ManagedResource,
+    SecondWriteResource: ManagedResource,
+    First: Component,
+    ...Rest: Component,
+> System for fn(
+    &mut FirstWriteResource,
+    &mut SecondWriteResource,
+    &mut QueryMut<First, ...Rest>,
+) -> () {
+    fn run<Resources: ResourceSet, Storage: ComponentSet>(
+        &mut self,
+        entities: &mut Entities,
+        resources: &mut Resources,
+        storage: &mut Storage,
+    ) {
+        let selected = resources.split_resources_mut<
+            FirstWriteResource,
+            SecondWriteResource,
+        >();
+        let mut query = match storage.component_query_mut<First, ...Rest>() {
+            Some(value) => value,
+            None => { return; },
+        };
+        let function = *self;
+        function(selected.0, selected.1, &mut query);
+    }
+}
+
+impl<
+    FirstWriteResource: ManagedResource,
+    SecondWriteResource: ManagedResource,
+    First: Component,
+    ...Rest: Component,
+> System for fn(
+    &mut Entities,
+    &mut FirstWriteResource,
+    &mut SecondWriteResource,
+    &mut QueryMut<First, ...Rest>,
+) -> () {
+    fn run<Resources: ResourceSet, Storage: ComponentSet>(
+        &mut self,
+        entities: &mut Entities,
+        resources: &mut Resources,
+        storage: &mut Storage,
+    ) {
+        let selected = resources.split_resources_mut<
+            FirstWriteResource,
+            SecondWriteResource,
+        >();
+        let mut query = match storage.component_query_mut<First, ...Rest>() {
+            Some(value) => value,
+            None => { return; },
+        };
+        let function = *self;
+        function(entities, selected.0, selected.1, &mut query);
+    }
+}
+
+impl<
+    WriteResource: ManagedResource,
+    FirstReadResource: ManagedResource,
+    SecondReadResource: ManagedResource,
+> System for fn(
+    &mut WriteResource,
+    &FirstReadResource,
+    &SecondReadResource,
+) -> () {
+    fn run<Resources: ResourceSet, Storage: ComponentSet>(
+        &mut self,
+        entities: &mut Entities,
+        resources: &mut Resources,
+        storage: &mut Storage,
+    ) {
+        let _ = storage;
+        let selected = resources.split_resource_mut<
+            WriteResource,
+            FirstReadResource,
+            SecondReadResource,
+        >();
+        let function = *self;
+        function(selected.0, selected.1, selected.2);
+    }
+}
+
+impl<
+    WriteResource: ManagedResource,
+    FirstReadResource: ManagedResource,
+    SecondReadResource: ManagedResource,
+    ThirdReadResource: ManagedResource,
+> System for fn(
+    &mut WriteResource,
+    &FirstReadResource,
+    &SecondReadResource,
+    &ThirdReadResource,
+) -> () {
+    fn run<Resources: ResourceSet, Storage: ComponentSet>(
+        &mut self,
+        entities: &mut Entities,
+        resources: &mut Resources,
+        storage: &mut Storage,
+    ) {
+        let _ = storage;
+        let selected = resources.split_resource_mut<
+            WriteResource,
+            FirstReadResource,
+            SecondReadResource,
+            ThirdReadResource,
+        >();
+        let function = *self;
+        function(selected.0, selected.1, selected.2, selected.3);
     }
 }
 
@@ -49,10 +255,13 @@ impl<Write: Component, ...Read: Component> QuerySystem<Write, ...Read> {
 }
 
 impl<Write: Component, ...Read: Component> System for QuerySystem<Write, ...Read> {
-    fn run<Storage: ComponentSet>(
+    fn run<Resources: ResourceSet, Storage: ComponentSet>(
         &mut self,
+        entities: &mut Entities,
+        resources: &mut Resources,
         storage: &mut Storage,
     ) {
+        let _ = resources;
         let mut query = match storage.component_query<Write, ...Read>() {
             Some(value) => value,
             None => {
@@ -64,25 +273,412 @@ impl<Write: Component, ...Read: Component> System for QuerySystem<Write, ...Read
     }
 }
 
+impl<Write: Component, ...Read: Component> System for fn(&mut Query<Write, ...Read>) -> () {
+    fn run<Resources: ResourceSet, Storage: ComponentSet>(
+        &mut self,
+        entities: &mut Entities,
+        resources: &mut Resources,
+        storage: &mut Storage,
+    ) {
+        let _ = resources;
+        let mut query = match storage.component_query<Write, ...Read>() {
+            Some(value) => value,
+            None => { return; },
+        };
+        let function = *self;
+        function(&mut query);
+    }
+}
+
+impl<First: Component, ...Rest: Component> System for fn(
+    &mut QueryMut<First, ...Rest>,
+) -> () {
+    fn run<Resources: ResourceSet, Storage: ComponentSet>(
+        &mut self,
+        entities: &mut Entities,
+        resources: &mut Resources,
+        storage: &mut Storage,
+    ) {
+        let _ = resources;
+        let mut query = match storage.component_query_mut<First, ...Rest>() {
+            Some(value) => value,
+            None => { return; },
+        };
+        let function = *self;
+        function(&mut query);
+    }
+}
+
+impl<ReadResource: ManagedResource, Write: Component, ...Read: Component> System for fn(
+    &ReadResource,
+    &mut Query<Write, ...Read>,
+) -> () {
+    fn run<Resources: ResourceSet, Storage: ComponentSet>(
+        &mut self,
+        entities: &mut Entities,
+        resources: &mut Resources,
+        storage: &mut Storage,
+    ) {
+        let resource = resources.registered_resource<ReadResource>();
+        let mut query = match storage.component_query<Write, ...Read>() {
+            Some(value) => value,
+            None => { return; },
+        };
+        let function = *self;
+        function(resource, &mut query);
+    }
+}
+
+impl<
+    FirstResource: ManagedResource,
+    SecondResource: ManagedResource,
+    Write: Component,
+    ...Read: Component,
+> System for fn(
+    &FirstResource,
+    &SecondResource,
+    &mut Query<Write, ...Read>,
+) -> () {
+    fn run<Resources: ResourceSet, Storage: ComponentSet>(
+        &mut self,
+        entities: &mut Entities,
+        resources: &mut Resources,
+        storage: &mut Storage,
+    ) {
+        let first = resources.registered_resource<FirstResource>();
+        let second = resources.registered_resource<SecondResource>();
+        let mut query = match storage.component_query<Write, ...Read>() {
+            Some(value) => value,
+            None => { return; },
+        };
+        let function = *self;
+        function(first, second, &mut query);
+    }
+}
+
+impl<ReadResource: ManagedResource, First: Component, ...Rest: Component> System for fn(
+    &ReadResource,
+    &mut QueryMut<First, ...Rest>,
+) -> () {
+    fn run<Resources: ResourceSet, Storage: ComponentSet>(
+        &mut self,
+        entities: &mut Entities,
+        resources: &mut Resources,
+        storage: &mut Storage,
+    ) {
+        let resource = resources.registered_resource<ReadResource>();
+        let mut query = match storage.component_query_mut<First, ...Rest>() {
+            Some(value) => value,
+            None => { return; },
+        };
+        let function = *self;
+        function(resource, &mut query);
+    }
+}
+
+impl<
+    FirstResource: ManagedResource,
+    SecondResource: ManagedResource,
+    First: Component,
+    ...Rest: Component,
+> System for fn(
+    &FirstResource,
+    &SecondResource,
+    &mut QueryMut<First, ...Rest>,
+) -> () {
+    fn run<Resources: ResourceSet, Storage: ComponentSet>(
+        &mut self,
+        entities: &mut Entities,
+        resources: &mut Resources,
+        storage: &mut Storage,
+    ) {
+        let first = resources.registered_resource<FirstResource>();
+        let second = resources.registered_resource<SecondResource>();
+        let mut query = match storage.component_query_mut<First, ...Rest>() {
+            Some(value) => value,
+            None => { return; },
+        };
+        let function = *self;
+        function(first, second, &mut query);
+    }
+}
+
+impl<WriteResource: ManagedResource, Write: Component, ...Read: Component> System for fn(
+    &mut WriteResource,
+    &mut Query<Write, ...Read>,
+) -> () {
+    fn run<Resources: ResourceSet, Storage: ComponentSet>(
+        &mut self,
+        entities: &mut Entities,
+        resources: &mut Resources,
+        storage: &mut Storage,
+    ) {
+        let resource = resources.registered_resource_mut<WriteResource>();
+        let mut query = match storage.component_query<Write, ...Read>() {
+            Some(value) => value,
+            None => { return; },
+        };
+        let function = *self;
+        function(resource, &mut query);
+    }
+}
+
+impl<WriteResource: ManagedResource, First: Component, ...Rest: Component> System for fn(
+    &mut WriteResource,
+    &mut QueryMut<First, ...Rest>,
+) -> () {
+    fn run<Resources: ResourceSet, Storage: ComponentSet>(
+        &mut self,
+        entities: &mut Entities,
+        resources: &mut Resources,
+        storage: &mut Storage,
+    ) {
+        let resource = resources.registered_resource_mut<WriteResource>();
+        let mut query = match storage.component_query_mut<First, ...Rest>() {
+            Some(value) => value,
+            None => { return; },
+        };
+        let function = *self;
+        function(resource, &mut query);
+    }
+}
+
+impl<
+    WriteResource: ManagedResource,
+    ReadResource: ManagedResource,
+    Write: Component,
+    ...Read: Component,
+> System for fn(
+    &mut WriteResource,
+    &ReadResource,
+    &mut Query<Write, ...Read>,
+) -> () {
+    fn run<Resources: ResourceSet, Storage: ComponentSet>(
+        &mut self,
+        entities: &mut Entities,
+        resources: &mut Resources,
+        storage: &mut Storage,
+    ) {
+        let resource = resources.split_resource_mut<WriteResource, ReadResource>();
+        let mut query = match storage.component_query<Write, ...Read>() {
+            Some(value) => value,
+            None => { return; },
+        };
+        let function = *self;
+        function(resource.0, resource.1, &mut query);
+    }
+}
+
+impl<
+    WriteResource: ManagedResource,
+    ReadResource: ManagedResource,
+    First: Component,
+    ...Rest: Component,
+> System for fn(
+    &mut WriteResource,
+    &ReadResource,
+    &mut QueryMut<First, ...Rest>,
+) -> () {
+    fn run<Resources: ResourceSet, Storage: ComponentSet>(
+        &mut self,
+        entities: &mut Entities,
+        resources: &mut Resources,
+        storage: &mut Storage,
+    ) {
+        let resource = resources.split_resource_mut<WriteResource, ReadResource>();
+        let mut query = match storage.component_query_mut<First, ...Rest>() {
+            Some(value) => value,
+            None => { return; },
+        };
+        let function = *self;
+        function(resource.0, resource.1, &mut query);
+    }
+}
+
+impl<
+    WriteResource: ManagedResource,
+    FirstReadResource: ManagedResource,
+    SecondReadResource: ManagedResource,
+    Write: Component,
+    ...Read: Component,
+> System for fn(
+    &mut WriteResource,
+    &FirstReadResource,
+    &SecondReadResource,
+    &mut Query<Write, ...Read>,
+) -> () {
+    fn run<Resources: ResourceSet, Storage: ComponentSet>(
+        &mut self,
+        entities: &mut Entities,
+        resources: &mut Resources,
+        storage: &mut Storage,
+    ) {
+        let resource = resources.split_resource_mut<
+            WriteResource,
+            FirstReadResource,
+            SecondReadResource,
+        >();
+        let mut query = match storage.component_query<Write, ...Read>() {
+            Some(value) => value,
+            None => { return; },
+        };
+        let function = *self;
+        function(resource.0, resource.1, resource.2, &mut query);
+    }
+}
+
+impl<
+    WriteResource: ManagedResource,
+    FirstReadResource: ManagedResource,
+    SecondReadResource: ManagedResource,
+    ThirdReadResource: ManagedResource,
+    Write: Component,
+    ...Read: Component,
+> System for fn(
+    &mut WriteResource,
+    &FirstReadResource,
+    &SecondReadResource,
+    &ThirdReadResource,
+    &mut Query<Write, ...Read>,
+) -> () {
+    fn run<Resources: ResourceSet, Storage: ComponentSet>(
+        &mut self,
+        entities: &mut Entities,
+        resources: &mut Resources,
+        storage: &mut Storage,
+    ) {
+        let selected = resources.split_resource_mut<
+            WriteResource,
+            FirstReadResource,
+            SecondReadResource,
+            ThirdReadResource,
+        >();
+        let mut query = match storage.component_query<Write, ...Read>() {
+            Some(value) => value,
+            None => { return; },
+        };
+        let function = *self;
+        function(
+            selected.0,
+            selected.1,
+            selected.2,
+            selected.3,
+            &mut query,
+        );
+    }
+}
+
+impl<
+    WriteResource: ManagedResource,
+    FirstReadResource: ManagedResource,
+    SecondReadResource: ManagedResource,
+    First: Component,
+    ...Rest: Component,
+> System for fn(
+    &mut WriteResource,
+    &FirstReadResource,
+    &SecondReadResource,
+    &mut QueryMut<First, ...Rest>,
+) -> () {
+    fn run<Resources: ResourceSet, Storage: ComponentSet>(
+        &mut self,
+        entities: &mut Entities,
+        resources: &mut Resources,
+        storage: &mut Storage,
+    ) {
+        let resource = resources.split_resource_mut<
+            WriteResource,
+            FirstReadResource,
+            SecondReadResource,
+        >();
+        let mut query = match storage.component_query_mut<First, ...Rest>() {
+            Some(value) => value,
+            None => { return; },
+        };
+        let function = *self;
+        function(resource.0, resource.1, resource.2, &mut query);
+    }
+}
+
+impl<
+    WriteResource: ManagedResource,
+    FirstReadResource: ManagedResource,
+    SecondReadResource: ManagedResource,
+    ThirdReadResource: ManagedResource,
+    First: Component,
+    ...Rest: Component,
+> System for fn(
+    &mut WriteResource,
+    &FirstReadResource,
+    &SecondReadResource,
+    &ThirdReadResource,
+    &mut QueryMut<First, ...Rest>,
+) -> () {
+    fn run<Resources: ResourceSet, Storage: ComponentSet>(
+        &mut self,
+        entities: &mut Entities,
+        resources: &mut Resources,
+        storage: &mut Storage,
+    ) {
+        let selected = resources.split_resource_mut<
+            WriteResource,
+            FirstReadResource,
+            SecondReadResource,
+            ThirdReadResource,
+        >();
+        let mut query = match storage.component_query_mut<First, ...Rest>() {
+            Some(value) => value,
+            None => { return; },
+        };
+        let function = *self;
+        function(
+            selected.0,
+            selected.1,
+            selected.2,
+            selected.3,
+            &mut query,
+        );
+    }
+}
+
 /// One statically linked system preceded by an existing system list.
 pub struct SystemChain<Previous: SystemList, Current: System> {
     previous: Previous,
+    pipeline: SystemPipeline,
     current: Current,
 }
 
 impl<Previous: SystemList, Current: System> SystemChain<Previous, Current> {
     /// Appends `current` after an existing system list.
-    pub fn new(previous: Previous, current: Current) -> SystemChain<Previous, Current> {
-        SystemChain { previous: previous, current: current }
+    pub fn new(
+        previous: Previous,
+        pipeline: SystemPipeline,
+        current: Current,
+    ) -> SystemChain<Previous, Current> {
+        SystemChain {
+            previous: previous,
+            pipeline: pipeline,
+            current: current,
+        }
     }
 }
 
 impl<Previous: SystemList, Current: System> SystemList for SystemChain<Previous, Current> {
-    fn run_all<Storage: ComponentSet>(
+    fn run_pipeline<Resources: ResourceSet, Storage: ComponentSet>(
         &mut self,
+        pipeline: SystemPipeline,
+        entities: &mut Entities,
+        resources: &mut Resources,
         storage: &mut Storage,
     ) {
-        self.previous.run_all<Storage>(storage);
-        self.current.run<Storage>(storage);
+        self.previous.run_pipeline<Resources, Storage>(
+            pipeline,
+            entities,
+            resources,
+            storage,
+        );
+        if self.pipeline == pipeline {
+            self.current.run<Resources, Storage>(entities, resources, storage);
+        }
     }
 }

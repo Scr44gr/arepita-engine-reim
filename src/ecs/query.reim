@@ -1,3 +1,5 @@
+from std::alloc import AllocError;
+
 from self::entity import Entity;
 from self::store import Component, ComponentStore;
 
@@ -12,6 +14,18 @@ pub struct Query<Write: Component, ...Read: Component> {
     stores: (
         &mut ComponentStore<Write>,
         ...Read => &ComponentStore<Read>
+    ),
+}
+
+/// An allocation-free query that mutably borrows every requested component.
+///
+/// `First` drives dense iteration. Remaining stores are split statically and
+/// matched by entity, so systems can update several capabilities in one pass
+/// without reopening the registry or constructing body-level queries.
+pub struct QueryMut<First: Component, ...Rest: Component> {
+    stores: (
+        &mut ComponentStore<First>,
+        ...Rest => &mut ComponentStore<Rest>
     ),
 }
 
@@ -72,6 +86,227 @@ impl<Write: Component, ...Read: Component> Query<Write, ...Read> {
                 None => panic("query driving value index became inconsistent"),
             };
             system(entity, write, reads);
+            matched += 1;
+            index += 1;
+        }
+        matched
+    }
+
+    /// Runs `system` with one caller-owned context for every matching entity.
+    ///
+    /// The context makes resource-backed systems allocation-free without
+    /// globals or captured closures. It is borrowed only for the duration of
+    /// this call and cannot escape the query.
+    pub fn for_each_with<Context>(
+        &mut self,
+        context: &mut Context,
+        system: fn(&mut Context, Entity, &mut Write, (...Read)) -> (),
+    ) -> usize {
+        let length = self.stores.0.len();
+        let mut matched: usize = 0;
+        let mut index: usize = 0;
+        while index < length {
+            let entity = match self.stores.0.entity_at(index) {
+                Some(value) => value,
+                None => panic("query driving entity index became inconsistent"),
+            };
+            let reads: (...Read) = (
+                ...Read => {
+                    let selected = self.stores.get_type<&ComponentStore<Read>>();
+                    let store = *selected;
+                    match store.get(entity) {
+                        Some(value) => value,
+                        None => {
+                            index += 1;
+                            continue;
+                        },
+                    }
+                },
+            );
+            let write = match self.stores.0.value_mut_at(index) {
+                Some(value) => value,
+                None => panic("query driving value index became inconsistent"),
+            };
+            system(context, entity, write, reads);
+            matched += 1;
+            index += 1;
+        }
+        matched
+    }
+}
+
+impl<First: Component, ...Rest: Component> QueryMut<First, ...Rest> {
+    /// Creates a multi-write query from a statically validated store split.
+    pub fn from_stores(
+        stores: (
+            &mut ComponentStore<First>,
+            ...Rest => &mut ComponentStore<Rest>
+        ),
+    ) -> QueryMut<First, ...Rest> {
+        QueryMut { stores: stores }
+    }
+
+    /// Returns the number of values in the driving store.
+    pub fn candidate_count(&self) -> usize {
+        self.stores.0.len()
+    }
+
+    /// Reserves one slot in a selected store before a structural command.
+    ///
+    /// `Selected` must be one of this query's component types. Bundle builders
+    /// reserve every selected type first, then perform allocation-free inserts.
+    pub fn reserve_component<Selected: Component>(
+        &mut self,
+        entity: Entity,
+    ) -> Result<(), AllocError> {
+        let selected = self.stores.get_type_mut<
+            &mut ComponentStore<Selected>
+        >();
+        let store = &mut **selected;
+        store.reserve(1, entity.index())
+    }
+
+    /// Inserts or replaces one selected component after optional reservation.
+    pub fn insert_component<Selected: Component>(
+        &mut self,
+        entity: Entity,
+        value: Selected,
+    ) -> Result<Option<Selected>, AllocError> {
+        let selected = self.stores.get_type_mut<
+            &mut ComponentStore<Selected>
+        >();
+        let store = &mut **selected;
+        store.insert(entity, value)
+    }
+
+    /// Inserts one complete typed component bundle without partial writes.
+    ///
+    /// Every selected store is reserved before the first component is
+    /// inserted. A reservation failure therefore leaves all stores unchanged.
+    /// The tuple order is irrelevant because values are selected by type.
+    pub fn insert_bundle(
+        &mut self,
+        entity: Entity,
+        values: (First, ...Rest),
+    ) -> Result<(), AllocError> {
+        values.assert_unique_types();
+        let first_reserved = match self.reserve_component<First>(entity) {
+            Ok(_) => true,
+            Err(_) => false,
+        };
+        if !first_reserved { return Err(AllocError::OutOfMemory); }
+        let reservations = [
+            ...Rest => {
+                match self.reserve_component<Rest>(entity) {
+                    Ok(_) => true,
+                    Err(_) => false,
+                }
+            },
+        ];
+        for reserved in reservations {
+            if !reserved { return Err(AllocError::OutOfMemory); }
+        }
+
+        let first = *values.get_type<First>();
+        match self.insert_component<First>(entity, first) {
+            Ok(_) => {},
+            Err(_) => panic("reserved component insertion became inconsistent"),
+        }
+        let insertions = [
+            ...Rest => {
+                let value = *values.get_type<Rest>();
+                match self.insert_component<Rest>(entity, value) {
+                    Ok(_) => true,
+                    Err(_) => false,
+                }
+            },
+        ];
+        for inserted in insertions {
+            if !inserted {
+                panic("reserved component insertion became inconsistent")
+            }
+        }
+        Ok(())
+    }
+
+    /// Mutably visits every entity that owns all requested components.
+    pub fn for_each(
+        &mut self,
+        system: fn(Entity, &mut First, (...Rest => &mut Rest)) -> (),
+    ) -> usize {
+        let length = self.stores.0.len();
+        let mut matched: usize = 0;
+        let mut index: usize = 0;
+        while index < length {
+            let entity = match self.stores.0.entity_at(index) {
+                Some(value) => value,
+                None => panic("query driving entity index became inconsistent"),
+            };
+            let rest: (...Rest => &mut Rest) = (
+                ...Rest => {
+                    let selected = self.stores.get_type_mut<
+                        &mut ComponentStore<Rest>
+                    >();
+                    let store = &mut **selected;
+                    match store.get_mut(entity) {
+                        Some(value) => value,
+                        None => {
+                            index += 1;
+                            continue;
+                        },
+                    }
+                },
+            );
+            let first = match self.stores.0.value_mut_at(index) {
+                Some(value) => value,
+                None => panic("query driving value index became inconsistent"),
+            };
+            system(entity, first, rest);
+            matched += 1;
+            index += 1;
+        }
+        matched
+    }
+
+    /// Mutably visits matching entities with one caller-owned context.
+    pub fn for_each_with<Context>(
+        &mut self,
+        context: &mut Context,
+        system: fn(
+            &mut Context,
+            Entity,
+            &mut First,
+            (...Rest => &mut Rest),
+        ) -> (),
+    ) -> usize {
+        let length = self.stores.0.len();
+        let mut matched: usize = 0;
+        let mut index: usize = 0;
+        while index < length {
+            let entity = match self.stores.0.entity_at(index) {
+                Some(value) => value,
+                None => panic("query driving entity index became inconsistent"),
+            };
+            let rest: (...Rest => &mut Rest) = (
+                ...Rest => {
+                    let selected = self.stores.get_type_mut<
+                        &mut ComponentStore<Rest>
+                    >();
+                    let store = &mut **selected;
+                    match store.get_mut(entity) {
+                        Some(value) => value,
+                        None => {
+                            index += 1;
+                            continue;
+                        },
+                    }
+                },
+            );
+            let first = match self.stores.0.value_mut_at(index) {
+                Some(value) => value,
+                None => panic("query driving value index became inconsistent"),
+            };
+            system(context, entity, first, rest);
             matched += 1;
             index += 1;
         }

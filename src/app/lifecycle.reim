@@ -1,6 +1,59 @@
 from std::alloc import AllocError, Allocator, ArenaAllocator, general_allocator;
 from std::collections import Vec;
 
+/// Engine-owned execution pipelines.
+@derive(Copy, Clone, Debug, Eq)
+pub enum SystemPipeline {
+    Input,
+    Update,
+    Physics,
+    AsyncUpdate,
+    Render,
+    RenderUi,
+}
+
+/// A world whose registered systems can be driven by the engine loop.
+pub trait PipelineState {
+    fn execute_pipeline(&mut self, pipeline: SystemPipeline);
+}
+
+/// Owns normal frame orchestration for a typed ECS world.
+///
+/// Systems run in registration order inside each pipeline. Games register
+/// systems and resources; they do not call individual systems or reproduce
+/// the engine's pipeline ordering.
+pub struct Engine<State: PipelineState> {
+    state: State,
+}
+
+impl<State: PipelineState> Engine<State> {
+    pub fn new(state: State) -> Engine<State> {
+        Engine { state: state }
+    }
+
+    /// Runs the standard Arepita frame pipelines.
+    pub fn run_frame(&mut self) {
+        self.state.execute_pipeline(SystemPipeline::Input);
+        self.state.execute_pipeline(SystemPipeline::Update);
+        self.state.execute_pipeline(SystemPipeline::Physics);
+        self.state.execute_pipeline(SystemPipeline::AsyncUpdate);
+        self.state.execute_pipeline(SystemPipeline::Render);
+        self.state.execute_pipeline(SystemPipeline::RenderUi);
+    }
+
+    pub fn state(&self) -> &State {
+        &self.state
+    }
+
+    pub fn state_mut(&mut self) -> &mut State {
+        &mut self.state
+    }
+
+    pub fn into_state(self) -> State {
+        self.state
+    }
+}
+
 struct Stage<State> {
     arena: ArenaAllocator,
     systems: Vec<fn(&mut State) -> ()>,
@@ -190,6 +243,19 @@ impl ApplicationState for TestState {
     }
 }
 
+impl PipelineState for TestState {
+    fn execute_pipeline(&mut self, pipeline: SystemPipeline) {
+        match pipeline {
+            SystemPipeline::Input => { self.value = 1; },
+            SystemPipeline::Update => { self.value *= 2; },
+            SystemPipeline::Physics => { self.value += 3; },
+            SystemPipeline::AsyncUpdate => { self.value *= 4; },
+            SystemPipeline::Render => { self.value += 5; },
+            SystemPipeline::RenderUi => { self.value *= 6; },
+        }
+    }
+}
+
 fn initialize(state: &mut TestState) {
     state.value = 20;
 }
@@ -239,4 +305,12 @@ fn app_should_run_startup_once_and_release_state_once() {
     {
         assert(app.state().released);
     }
+}
+
+@test
+fn engine_should_own_standard_pipeline_order() {
+    let state = TestState { value: 0, released: false };
+    let mut engine = Engine::new(state);
+    engine.run_frame();
+    assert(engine.state().value == 150);
 }

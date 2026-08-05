@@ -61,6 +61,14 @@ impl<State> Schedule<State> {
         self.systems.len()
     }
 
+    /// Returns one registered function without exposing schedule storage.
+    ///
+    /// State owners use this to run systems while keeping their schedule in a
+    /// disjoint field, avoiding an overlapping borrow of the complete owner.
+    pub fn system_at(&self, index: usize) -> Option<fn(&mut State) -> ()> {
+        self.systems.get(index)
+    }
+
     /// Releases schedule storage.
     pub fn deinit(&mut self) {
         if self.released {

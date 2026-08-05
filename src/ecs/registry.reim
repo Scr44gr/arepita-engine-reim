@@ -1,7 +1,7 @@
 from std::alloc import AllocError, Allocator, ArenaAllocator, general_allocator;
 
 from self::entity import Entities, Entity;
-from self::query import Query;
+from self::query import Query, QueryMut;
 from self::store import Component, ComponentStore;
 
 fn empty_component_store<T: Component>(allocator: &Allocator) -> ComponentStore<T> {
@@ -13,7 +13,8 @@ fn empty_component_store<T: Component>(allocator: &Allocator) -> ComponentStore<
 /// Every component type has exactly one store. Reimer expands the type pack at
 /// compile time, so lookup is a constant tuple-field selection rather than a
 /// runtime hash or type-ID lookup. All stores share one arena and the registry
-/// releases them together.
+/// releases them together. When generic arguments are omitted, the compiler
+/// collects concrete types with `@derive(Component)` from the root package.
 pub struct Registry<...Components: Component> {
     arena: ArenaAllocator,
     stores: (...Components => ComponentStore<Components>),
@@ -25,6 +26,10 @@ pub struct Registry<...Components: Component> {
 /// The concrete `Registry` remains monomorphized, so these calls preserve
 /// compile-time type validation and direct tuple-field access.
 pub trait ComponentSet {
+    fn reserve_component<T: Component>(
+        &mut self,
+        entity: Entity,
+    ) -> Result<(), AllocError>;
     fn insert_component<T: Component>(
         &mut self,
         entity: Entity,
@@ -39,6 +44,9 @@ pub trait ComponentSet {
     fn component_query<Write: Component, ...Read: Component>(
         &mut self,
     ) -> Option<Query<Write, ...Read>>;
+    fn component_query_mut<First: Component, ...Rest: Component>(
+        &mut self,
+    ) -> Option<QueryMut<First, ...Rest>>;
     fn component_store<T: Component>(&self) -> Option<&ComponentStore<T>>;
     fn component_store_mut<T: Component>(&mut self) -> Option<&mut ComponentStore<T>>;
     fn component_allocated_bytes(&self) -> usize;
@@ -178,6 +186,24 @@ impl<...Components: Component> Registry<...Components> {
         Some(Query::from_stores(stores))
     }
 
+    /// Creates an allocation-free query that mutably borrows every requested
+    /// component store. Duplicate types are rejected at compile time.
+    pub fn query_mut<First: Component, ...Rest: Component>(
+        &mut self,
+    ) -> Option<QueryMut<First, ...Rest>> {
+        if self.released {
+            return None;
+        }
+        let stores: (
+            &mut ComponentStore<First>,
+            ...Rest => &mut ComponentStore<Rest>
+        ) = self.stores.split_types_mut<
+            ComponentStore<First>,
+            ...Rest => ComponentStore<Rest>
+        >();
+        Some(QueryMut::from_stores(stores))
+    }
+
     /// Removes and returns one component using swap-remove semantics.
     pub fn remove<T: Component>(&mut self, entity: Entity) -> Option<T> {
         if self.released {
@@ -216,6 +242,17 @@ impl<...Components: Component> Registry<...Components> {
 }
 
 impl<...Components: Component> ComponentSet for Registry<...Components> {
+    fn reserve_component<T: Component>(
+        &mut self,
+        entity: Entity,
+    ) -> Result<(), AllocError> {
+        if self.released {
+            return Err(AllocError::OutOfMemory);
+        }
+        let store = self.stores.get_type_mut<ComponentStore<T>>();
+        store.reserve(1, entity.index())
+    }
+
     fn insert_component<T: Component>(
         &mut self,
         entity: Entity,
@@ -254,6 +291,13 @@ impl<...Components: Component> ComponentSet for Registry<...Components> {
         self.query<Write, ...Read>()
     }
 
+
+    fn component_query_mut<First: Component, ...Rest: Component>(
+        &mut self,
+    ) -> Option<QueryMut<First, ...Rest>> {
+        self.query_mut<First, ...Rest>()
+    }
+
     fn component_store<T: Component>(&self) -> Option<&ComponentStore<T>> {
         self.store<T>()
     }
@@ -288,6 +332,20 @@ fn integrate_query_position(
 ) {
     let _ = entity;
     position.x += reads.0.x;
+}
+
+struct QueryScale {
+    factor: i32,
+}
+
+fn integrate_query_position_with_scale(
+    scale: &mut QueryScale,
+    entity: Entity,
+    position: &mut QueryPosition,
+    reads: (QueryVelocity),
+) {
+    let _ = entity;
+    position.x += reads.0.x * scale.factor;
 }
 
 @test
@@ -326,9 +384,61 @@ fn heterogeneous_registry_should_run_a_typed_query() {
         };
         assert(query.for_each(integrate_query_position) == 1, "query should match once");
     };
+    {
+        let mut query = match registry.query<QueryPosition, QueryVelocity>() {
+            Some(value) => value,
+            None => panic("context query construction should succeed"),
+        };
+        let mut scale = QueryScale { factor: 2 };
+        assert(
+            query.for_each_with(&mut scale, integrate_query_position_with_scale) == 1,
+            "context query should match once",
+        );
+    };
     let position = match registry.get<QueryPosition>(entity) {
         Some(value) => value,
         None => panic("position should remain present"),
     };
-    assert(position.x == 42, "query should update the writable component");
+    assert(position.x == 46, "queries should update the writable component");
+}
+
+@test
+fn mutable_query_should_insert_a_complete_typed_bundle() {
+    let allocator = general_allocator();
+    let mut entities = match Entities::new(&allocator) {
+        Ok(value) => value,
+        Err(_) => panic("entity allocation should succeed"),
+    };
+    defer entities.deinit();
+    let created: Result<Registry<QueryPosition, QueryVelocity>, AllocError> =
+        Registry::new(&allocator);
+    let mut registry = match created {
+        Ok(value) => value,
+        Err(_) => panic("registry allocation should succeed"),
+    };
+    defer registry.deinit();
+    let entity = match entities.spawn() {
+        Ok(value) => value,
+        Err(_) => panic("entity spawn should succeed"),
+    };
+    let position = QueryPosition { x: 40 };
+    let velocity = QueryVelocity { x: 2 };
+    {
+        let mut query = match registry.query_mut<QueryPosition, QueryVelocity>() {
+            Some(value) => value,
+            None => panic("mutable query construction should succeed"),
+        };
+        match query.insert_bundle(entity, (position, velocity)) {
+            Ok(_) => {},
+            Err(_) => panic("typed bundle insertion should succeed"),
+        }
+    };
+    assert(match registry.get<QueryPosition>(entity) {
+        Some(value) => value.x == 40,
+        None => false,
+    });
+    assert(match registry.get<QueryVelocity>(entity) {
+        Some(value) => value.x == 2,
+        None => false,
+    });
 }
