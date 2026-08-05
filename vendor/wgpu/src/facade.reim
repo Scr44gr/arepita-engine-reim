@@ -742,19 +742,19 @@ impl Device {
         }
     }
 
-    /// Clears, submits, and presents one acquired surface frame transactionally.
+    /// Starts one composable render pass for an acquired surface frame.
     ///
-    /// The texture view is never exposed, so it cannot outlive its frame.
-    pub fn clear_and_present(
+    /// The returned owner keeps the surface image, texture view, command
+    /// encoder, and active pass alive as one transaction. Additional renderers
+    /// may record into the pass through safe facades before it is submitted and
+    /// presented exactly once.
+    pub fn begin_render_frame(
         &self,
-        queue: &Queue,
         frame: SurfaceFrame,
         color: Color,
-    ) -> Result<(), Error> {
+    ) -> Result<RenderFrame, Error> {
         let mut frame = frame;
         if c::is_null_mut(self.raw)
-            || c::is_null_mut(queue.raw)
-            || c::is_null_mut(queue.device)
             || c::is_null_mut(frame.surface)
             || c::is_null_mut(frame.texture)
         {
@@ -781,8 +781,8 @@ impl Device {
                 return Err(error);
             },
         };
-        match record_clear(&mut encoder, view, color) {
-            Ok(_) => {},
+        let pass = match begin_color_pass(&encoder, view, color) {
+            Ok(value) => value,
             Err(error) => {
                 encoder.release();
                 unsafe {
@@ -791,31 +791,26 @@ impl Device {
                 frame.release();
                 return Err(error);
             },
-        }
-        let commands = match encoder.finish() {
-            Ok(value) => value,
-            Err(error) => {
-                unsafe {
-                    api::wgpuTextureViewRelease(view);
-                }
-                frame.release();
-                return Err(error);
-            },
         };
-        match queue.submit(commands) {
-            Ok(_) => {},
-            Err(error) => {
-                unsafe {
-                    api::wgpuTextureViewRelease(view);
-                }
-                frame.release();
-                return Err(error);
-            },
-        }
-        unsafe {
-            api::wgpuTextureViewRelease(view);
-        }
-        frame.present()
+        Ok(RenderFrame {
+            frame: frame,
+            view: view,
+            encoder: encoder,
+            pass: pass,
+        })
+    }
+
+    /// Clears, submits, and presents one acquired surface frame transactionally.
+    ///
+    /// The texture view is never exposed, so it cannot outlive its frame.
+    pub fn clear_and_present(
+        &self,
+        queue: &Queue,
+        frame: SurfaceFrame,
+        color: Color,
+    ) -> Result<(), Error> {
+        let render_frame: RenderFrame = self.begin_render_frame(frame, color)?;
+        render_frame.finish_and_present(queue)
     }
 
     /// Clears, draws one instanced vertex buffer, submits, and presents.
@@ -856,51 +851,8 @@ impl Device {
         instance_count: u32,
         byte_length: u64,
     ) -> Result<(), Error> {
-        let mut frame = frame;
-        if c::is_null_mut(self.raw)
-            || c::is_null_mut(queue.raw)
-            || c::is_null_mut(queue.device)
-            || c::is_null_mut(frame.surface)
-            || c::is_null_mut(frame.texture)
-            || c::is_null_mut(pipeline.raw)
-            || c::is_null_mut(bind_group.raw)
-            || c::is_null_mut(vertex_buffer.raw)
-        {
-            frame.release();
-            return Err(Error::Released);
-        }
-        if vertex_count == 0
-            || instance_count == 0
-            || byte_length == 0
-            || byte_length > vertex_buffer.size()
-        {
-            frame.release();
-            return Err(Error::InvalidBufferRange);
-        }
-        let view = unsafe {
-            api::wgpuTextureCreateView(
-                frame.texture,
-                c::null_const<types::WGPUTextureViewDescriptor>(),
-            )
-        };
-        if c::is_null_mut(view) {
-            frame.release();
-            return Err(Error::ResourceCreationFailed);
-        }
-        let mut encoder = match self.create_command_encoder() {
-            Ok(value) => value,
-            Err(error) => {
-                unsafe {
-                    api::wgpuTextureViewRelease(view);
-                }
-                frame.release();
-                return Err(error);
-            },
-        };
-        match record_instanced(
-            &mut encoder,
-            view,
-            color,
+        let mut render_frame = self.begin_render_frame(frame, color)?;
+        match render_frame.draw_instanced(
             pipeline,
             bind_group,
             vertex_buffer,
@@ -908,40 +860,12 @@ impl Device {
             instance_count,
             byte_length,
         ) {
-            Ok(_) => {},
+            Ok(_) => render_frame.finish_and_present(queue),
             Err(error) => {
-                encoder.release();
-                unsafe {
-                    api::wgpuTextureViewRelease(view);
-                }
-                frame.release();
-                return Err(error);
+                render_frame.discard();
+                Err(error)
             },
         }
-        let commands = match encoder.finish() {
-            Ok(value) => value,
-            Err(error) => {
-                unsafe {
-                    api::wgpuTextureViewRelease(view);
-                }
-                frame.release();
-                return Err(error);
-            },
-        };
-        match queue.submit(commands) {
-            Ok(_) => {},
-            Err(error) => {
-                unsafe {
-                    api::wgpuTextureViewRelease(view);
-                }
-                frame.release();
-                return Err(error);
-            },
-        }
-        unsafe {
-            api::wgpuTextureViewRelease(view);
-        }
-        frame.present()
     }
 
     /// Returns the borrowed native device handle.
@@ -1559,6 +1483,12 @@ impl CommandEncoder {
 
     /// Finishes recording and transfers ownership to a command buffer.
     pub fn finish(self) -> Result<CommandBuffer, Error> {
+        let mut encoder = self;
+        encoder.finish_in_place()
+    }
+
+    /// Finishes recording in place and invalidates this encoder.
+    fn finish_in_place(&mut self) -> Result<CommandBuffer, Error> {
         if c::is_null_mut(self.raw) {
             return Err(Error::Released);
         }
@@ -1571,6 +1501,7 @@ impl CommandEncoder {
         unsafe {
             api::wgpuCommandEncoderRelease(self.raw);
         }
+        self.raw = c::null<()>();
         if c::is_null_mut(raw) {
             Err(Error::ResourceCreationFailed)
         } else {
@@ -1898,64 +1829,143 @@ impl SurfaceFrame {
     }
 }
 
-fn record_clear(
-    encoder: &mut CommandEncoder,
+/// Owns one active surface render pass until submission or cancellation.
+///
+/// A frame can receive work from multiple safe renderer facades. Call
+/// `finish_and_present` after all renderers have recorded, or `discard` when
+/// abandoning the frame after a recoverable error.
+pub struct RenderFrame {
+    frame: SurfaceFrame,
     view: types::WGPUTextureView,
-    color: Color,
-) -> Result<(), Error> {
-    let attachment = types::WGPURenderPassColorAttachment {
-        next_in_chain: c::null<types::WGPUChainedStruct>(),
-        view: view,
-        depth_slice: 4294967295,
-        resolve_target: c::null<()>(),
-        load_op: constants::WGPULoadOp_Clear,
-        store_op: constants::WGPUStoreOp_Store,
-        clear_value: types::WGPUColor {
-            r: color.r,
-            g: color.g,
-            b: color.b,
-            a: color.a,
-        },
-    };
-    let descriptor = types::WGPURenderPassDescriptor {
-        next_in_chain: c::null<types::WGPUChainedStruct>(),
-        label: empty_string_view(),
-        color_attachment_count: 1,
-        color_attachments: &attachment
-            as *const types::WGPURenderPassColorAttachment,
-        depth_stencil_attachment: c::null_const<
-            types::WGPURenderPassDepthStencilAttachment,
-        >(),
-        occlusion_query_set: c::null<()>(),
-        timestamp_writes: c::null_const<types::WGPUPassTimestampWrites>(),
-    };
-    let pass = unsafe {
-        api::wgpuCommandEncoderBeginRenderPass(
-            encoder.raw,
-            &descriptor as *const types::WGPURenderPassDescriptor,
-        )
-    };
-    if c::is_null_mut(pass) {
-        return Err(Error::ResourceCreationFailed);
-    }
-    unsafe {
-        api::wgpuRenderPassEncoderEnd(pass);
-        api::wgpuRenderPassEncoderRelease(pass);
-    }
-    Ok(())
+    encoder: CommandEncoder,
+    pass: types::WGPURenderPassEncoder,
 }
 
-fn record_instanced(
-    encoder: &mut CommandEncoder,
+impl RenderFrame {
+    /// Records one instanced draw into this frame's active pass.
+    pub fn draw_instanced(
+        &mut self,
+        pipeline: &RenderPipeline,
+        bind_group: &BindGroup,
+        vertex_buffer: &Buffer,
+        vertex_count: u32,
+        instance_count: u32,
+        byte_length: u64,
+    ) -> Result<(), Error> {
+        require_live(self.pass)?;
+        require_live(pipeline.raw)?;
+        require_live(bind_group.raw)?;
+        require_live(vertex_buffer.raw)?;
+        if vertex_count == 0
+            || instance_count == 0
+            || byte_length == 0
+            || byte_length > vertex_buffer.size()
+        {
+            return Err(Error::InvalidBufferRange);
+        }
+        unsafe {
+            api::wgpuRenderPassEncoderSetPipeline(self.pass, pipeline.as_raw());
+            api::wgpuRenderPassEncoderSetBindGroup(
+                self.pass,
+                0,
+                bind_group.as_raw(),
+                0,
+                c::null_const<u32>(),
+            );
+            api::wgpuRenderPassEncoderSetVertexBuffer(
+                self.pass,
+                0,
+                vertex_buffer.as_raw(),
+                0,
+                byte_length,
+            );
+            api::wgpuRenderPassEncoderDraw(
+                self.pass,
+                vertex_count,
+                instance_count,
+                0,
+                0,
+            );
+        }
+        Ok(())
+    }
+
+    /// Returns the borrowed native pass used by renderer extensions.
+    ///
+    /// The handle remains owned by this frame. It is valid only until
+    /// `finish_and_present` or `discard` and must never be released by callers.
+    pub fn as_raw_pass(&self) -> types::WGPURenderPassEncoder {
+        self.pass
+    }
+
+    /// Ends the pass, submits its command buffer, and presents the surface.
+    pub fn finish_and_present(self, queue: &Queue) -> Result<(), Error> {
+        let mut render_frame = self;
+        if c::is_null_mut(queue.raw)
+            || c::is_null_mut(queue.device)
+            || c::is_null_mut(render_frame.pass)
+        {
+            release_render_frame(&mut render_frame);
+            return Err(Error::Released);
+        }
+        end_render_pass(&mut render_frame);
+        release_render_view(&mut render_frame);
+        let commands = match render_frame.encoder.finish_in_place() {
+            Ok(value) => value,
+            Err(error) => {
+                render_frame.frame.release();
+                return Err(error);
+            },
+        };
+        match queue.submit(commands) {
+            Ok(_) => render_frame.frame.present(),
+            Err(error) => {
+                render_frame.frame.release();
+                Err(error)
+            },
+        }
+    }
+
+    /// Cancels an unfinished render transaction and releases its surface image.
+    pub fn discard(self) {
+        let mut render_frame = self;
+        release_render_frame(&mut render_frame);
+    }
+}
+
+fn end_render_pass(render_frame: &mut RenderFrame) {
+    if !c::is_null_mut(render_frame.pass) {
+        unsafe {
+            api::wgpuRenderPassEncoderEnd(render_frame.pass);
+            api::wgpuRenderPassEncoderRelease(render_frame.pass);
+        }
+        render_frame.pass = c::null<()>();
+    }
+}
+
+fn release_render_view(render_frame: &mut RenderFrame) {
+    if !c::is_null_mut(render_frame.view) {
+        unsafe {
+            api::wgpuTextureViewRelease(render_frame.view);
+        }
+        render_frame.view = c::null<()>();
+    }
+}
+
+fn release_render_frame(render_frame: &mut RenderFrame) {
+    end_render_pass(render_frame);
+    render_frame.encoder.release();
+    release_render_view(render_frame);
+    render_frame.frame.release();
+}
+
+fn begin_color_pass(
+    encoder: &CommandEncoder,
     view: types::WGPUTextureView,
     color: Color,
-    pipeline: &RenderPipeline,
-    bind_group: &BindGroup,
-    vertex_buffer: &Buffer,
-    vertex_count: u32,
-    instance_count: u32,
-    byte_length: u64,
-) -> Result<(), Error> {
+) -> Result<types::WGPURenderPassEncoder, Error> {
+    require_live(encoder.raw)?;
+    require_live(view)?;
     let attachment = types::WGPURenderPassColorAttachment {
         next_in_chain: c::null<types::WGPUChainedStruct>(),
         view: view,
@@ -1989,35 +1999,10 @@ fn record_instanced(
         )
     };
     if c::is_null_mut(pass) {
-        return Err(Error::ResourceCreationFailed);
+        Err(Error::ResourceCreationFailed)
+    } else {
+        Ok(pass)
     }
-    unsafe {
-        api::wgpuRenderPassEncoderSetPipeline(pass, pipeline.as_raw());
-        api::wgpuRenderPassEncoderSetBindGroup(
-            pass,
-            0,
-            bind_group.as_raw(),
-            0,
-            c::null_const<u32>(),
-        );
-        api::wgpuRenderPassEncoderSetVertexBuffer(
-            pass,
-            0,
-            vertex_buffer.as_raw(),
-            0,
-            byte_length,
-        );
-        api::wgpuRenderPassEncoderDraw(
-            pass,
-            vertex_count,
-            instance_count,
-            0,
-            0,
-        );
-        api::wgpuRenderPassEncoderEnd(pass);
-        api::wgpuRenderPassEncoderRelease(pass);
-    }
-    Ok(())
 }
 
 fn owned_shader_module(

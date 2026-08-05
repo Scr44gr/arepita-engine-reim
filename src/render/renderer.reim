@@ -1,5 +1,5 @@
 from sdl3 import Window;
-from self::context import ClearColor, GpuContext, PresentationMode, RendererError;
+from self::context import ClearColor, GpuContext, PresentationMode, RenderFrame, RendererError;
 from self::sprite_batch import SpriteBatch;
 from self::sprite_renderer import RenderReport, SpriteRenderer;
 from wgpu_sdl3 import WindowSurface, create_window_surface;
@@ -131,7 +131,52 @@ impl Renderer {
         if self.released {
             return Err(RendererError::Released);
         }
-        self.sprites.draw(&self.context, &self.surface, batch, clear)
+        let result = self.draw_sprites_to_frame(batch, clear)?;
+        let frame = result.0;
+        let report = result.1;
+        self.present_frame(frame)?;
+        Ok(report)
+    }
+
+    /// Records sprites into a frame that remains open for ordered extensions.
+    ///
+    /// The caller must finish the returned frame with `present_frame` or
+    /// discard it after a later rendering error.
+    pub fn draw_sprites_to_frame(
+        &self,
+        batch: &SpriteBatch,
+        clear: ClearColor,
+    ) -> Result<(RenderFrame, RenderReport), RendererError> {
+        if self.released {
+            return Err(RendererError::Released);
+        }
+        let mut frame = self.context.begin_render_frame(&self.surface, clear)?;
+        match self.sprites.draw_into(&self.context, batch, &mut frame) {
+            Ok(report) => Ok((frame, report)),
+            Err(error) => {
+                frame.discard();
+                Err(error)
+            },
+        }
+    }
+
+    /// Submits and presents a frame after every ordered layer has recorded.
+    pub fn present_frame(&self, frame: RenderFrame) -> Result<(), RendererError> {
+        if self.released {
+            frame.discard();
+            Err(RendererError::Released)
+        } else {
+            self.context.finish_render_frame(frame)
+        }
+    }
+
+    /// Borrows backend state for safe renderer extensions such as debug UI.
+    pub fn backend_context(&self) -> Result<&GpuContext, RendererError> {
+        if self.released {
+            Err(RendererError::Released)
+        } else {
+            Ok(&self.context)
+        }
     }
 
     /// Grows persistent instance storage outside frame-critical work.

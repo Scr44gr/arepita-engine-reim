@@ -1,4 +1,4 @@
-from self::context import ClearColor, GpuContext, RendererError;
+from self::context import ClearColor, GpuContext, RenderFrame, RendererError;
 from self::sprite_batch import SpriteBatch;
 from wgpu import BindGroup, BindGroupLayout, Buffer, PrimitiveTopology, RenderPipeline, Sampler, Texture, TextureView, VertexAttribute, VertexFormat;
 from wgpu_sdl3 import WindowSurface;
@@ -279,6 +279,26 @@ impl SpriteRenderer {
         batch: &SpriteBatch,
         clear: ClearColor,
     ) -> Result<RenderReport, RendererError> {
+        let mut frame = context.begin_render_frame(surface, clear)?;
+        match self.draw_into(context, batch, &mut frame) {
+            Ok(report) => match context.finish_render_frame(frame) {
+                Ok(_) => Ok(report),
+                Err(error) => Err(error),
+            },
+            Err(error) => {
+                frame.discard();
+                Err(error)
+            },
+        }
+    }
+
+    /// Uploads and records a complete batch into an existing shared frame.
+    pub fn draw_into(
+        &self,
+        context: &GpuContext,
+        batch: &SpriteBatch,
+        frame: &mut RenderFrame,
+    ) -> Result<RenderReport, RendererError> {
         if self.released {
             return Err(RendererError::Released);
         }
@@ -287,7 +307,6 @@ impl SpriteRenderer {
             return Err(RendererError::BatchCapacityExceeded);
         }
         if count == 0 {
-            context.clear(surface, clear)?;
             return Ok(RenderReport {
                 draw_calls: 0,
                 instances: 0,
@@ -305,9 +324,7 @@ impl SpriteRenderer {
                 return Err(RendererError::UploadFailed);
             },
         }
-        context.draw_instances(
-            surface,
-            clear,
+        frame.draw_instances(
             &self.pipeline,
             &self.atlas.bind_group,
             &self.instance_buffer,

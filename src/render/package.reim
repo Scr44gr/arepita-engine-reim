@@ -1,4 +1,4 @@
-pub from self::context import ClearColor, Frame, GpuContext, PresentationMode, RendererError;
+pub from self::context import ClearColor, Frame, GpuContext, PresentationMode, RenderFrame, RendererError;
 pub import self::context as context;
 pub from self::handles import MaterialHandle, MeshHandle, TextureHandle;
 pub import self::handles as handles;

@@ -1,4 +1,4 @@
-from wgpu import Adapter, BindGroup, Buffer, Color, Device, Error as WgpuError, PresentMode as WgpuPresentMode, Queue, RenderPipeline, SurfaceFrame;
+from wgpu import Adapter, BindGroup, Buffer, Color, Device, Error as WgpuError, PresentMode as WgpuPresentMode, Queue, RenderFrame as WgpuRenderFrame, RenderPipeline, SurfaceFrame;
 import wgpu::raw::types as types;
 from wgpu_sdl3 import WindowSurface;
 
@@ -249,12 +249,29 @@ impl GpuContext {
         surface: &WindowSurface,
         color: ClearColor,
     ) -> Result<(), RendererError> {
+        let frame = self.begin_render_frame(surface, color)?;
+        self.finish_render_frame(frame)
+    }
+
+    /// Starts one composable frame that can receive multiple render layers.
+    pub fn begin_render_frame(
+        &self,
+        surface: &WindowSurface,
+        color: ClearColor,
+    ) -> Result<RenderFrame, RendererError> {
         let frame = self.acquire(surface)?;
-        match self.device.clear_and_present(
-            &self.queue,
-            frame.inner,
-            color.into_wgpu(),
-        ) {
+        match self.device.begin_render_frame(frame.inner, color.into_wgpu()) {
+            Ok(value) => Ok(RenderFrame { inner: value }),
+            Err(_) => Err(RendererError::FrameRenderFailed),
+        }
+    }
+
+    /// Submits and presents a composable frame after every layer has recorded.
+    pub fn finish_render_frame(
+        &self,
+        frame: RenderFrame,
+    ) -> Result<(), RendererError> {
+        match frame.inner.finish_and_present(&self.queue) {
             Ok(_) => Ok(()),
             Err(_) => Err(RendererError::FrameRenderFailed),
         }
@@ -271,11 +288,8 @@ impl GpuContext {
         instance_count: u32,
         byte_length: u64,
     ) -> Result<(), RendererError> {
-        let frame = self.acquire(surface)?;
-        match self.device.draw_instanced_vertices_and_present(
-            &self.queue,
-            frame.inner,
-            color.into_wgpu(),
+        let mut frame = self.begin_render_frame(surface, color)?;
+        match frame.draw_instances(
             pipeline,
             bind_group,
             vertex_buffer,
@@ -283,8 +297,11 @@ impl GpuContext {
             instance_count,
             byte_length,
         ) {
-            Ok(_) => Ok(()),
-            Err(_) => Err(RendererError::FrameRenderFailed),
+            Ok(_) => self.finish_render_frame(frame),
+            Err(error) => {
+                frame.discard();
+                Err(error)
+            },
         }
     }
 
@@ -348,6 +365,46 @@ impl GpuContext {
 /// One acquired presentation image.
 pub struct Frame {
     inner: SurfaceFrame,
+}
+
+/// One active backend frame shared by ordered render layers.
+pub struct RenderFrame {
+    inner: WgpuRenderFrame,
+}
+
+impl RenderFrame {
+    /// Records one instanced draw without ending or presenting the frame.
+    pub fn draw_instances(
+        &mut self,
+        pipeline: &RenderPipeline,
+        bind_group: &BindGroup,
+        vertex_buffer: &Buffer,
+        vertex_count: u32,
+        instance_count: u32,
+        byte_length: u64,
+    ) -> Result<(), RendererError> {
+        match self.inner.draw_instanced(
+            pipeline,
+            bind_group,
+            vertex_buffer,
+            vertex_count,
+            instance_count,
+            byte_length,
+        ) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(RendererError::FrameRenderFailed),
+        }
+    }
+
+    /// Borrows the backend transaction for safe renderer extensions.
+    pub fn backend_frame(&self) -> &WgpuRenderFrame {
+        &self.inner
+    }
+
+    /// Cancels this frame without presenting it.
+    pub fn discard(self) {
+        self.inner.discard();
+    }
 }
 
 impl Frame {
