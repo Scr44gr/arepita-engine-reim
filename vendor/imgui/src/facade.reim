@@ -1,0 +1,211 @@
+import std::c;
+
+from sdl3 import Event, GlContext;
+import self::raw::backends as backends;
+import self::raw::constants as constants;
+import self::raw::functions as imgui;
+import self::raw::types as types;
+
+/// A recoverable Dear ImGui context or backend initialization failure.
+@derive(Copy, Clone, Debug, Eq)
+pub enum Error {
+    ContextCreationFailed,
+    SdlInitializationFailed,
+    OpenGlInitializationFailed,
+    WgpuInitializationFailed,
+}
+
+/// A frame operation was requested in the wrong lifecycle state.
+@derive(Copy, Clone, Debug, Eq)
+pub enum FrameError {
+    FrameAlreadyStarted,
+    NoActiveFrame,
+}
+
+/// One owned Dear ImGui context connected to borrowed SDL3 and OpenGL objects.
+///
+/// This facade hides all raw-pointer operations and guarantees that the
+/// renderer and platform backends shut down before the Dear ImGui context.
+/// Destroy it before the borrowed OpenGL context and window.
+pub struct SdlOpenGl {
+    gl_context: &GlContext,
+    raw: *mut types::ImGuiContext,
+    frame_active: bool,
+}
+
+impl SdlOpenGl {
+    /// Creates a Dear ImGui context and initializes the official SDL3 and
+    /// OpenGL3 backends for the window borrowed by `gl_context`.
+    ///
+    /// The renderer uses GLSL 130, which is valid for this package's desktop
+    /// OpenGL 3.x context contract.
+    pub fn create(gl_context: &GlContext) -> Result<SdlOpenGl, Error> {
+        let raw = unsafe {
+            imgui::ImGui_CreateContext(c::null<types::ImFontAtlas>())
+        };
+        if c::is_null_mut(raw) {
+            return Err(Error::ContextCreationFailed);
+        }
+
+        let window = gl_context.window();
+        if !unsafe {
+            backends::cImGui_ImplSDL3_InitForOpenGL(
+                window.as_raw(),
+                gl_context.as_raw() as *mut (),
+            )
+        } {
+            unsafe {
+                imgui::ImGui_DestroyContext(raw);
+            }
+            return Err(Error::SdlInitializationFailed);
+        }
+
+        if !unsafe {
+            backends::cImGui_ImplOpenGL3_InitEx(
+                c"#version 130" as *const c::Char,
+            )
+        } {
+            unsafe {
+                backends::cImGui_ImplSDL3_Shutdown();
+                imgui::ImGui_DestroyContext(raw);
+            }
+            return Err(Error::OpenGlInitializationFailed);
+        }
+
+        Ok(SdlOpenGl {
+            gl_context: gl_context,
+            raw: raw,
+            frame_active: false,
+        })
+    }
+
+    /// Gives one SDL event to Dear ImGui's platform backend.
+    ///
+    /// Returns `true` when the backend recognized and consumed the event.
+    pub fn process_event(&mut self, event: &Event) -> bool {
+        unsafe {
+            imgui::ImGui_SetCurrentContext(self.raw);
+            backends::cImGui_ImplSDL3_ProcessEvent(event.as_raw())
+        }
+    }
+
+    /// Starts one Dear ImGui frame after updating the renderer and platform
+    /// backends.
+    pub fn new_frame(&mut self) -> Result<(), FrameError> {
+        if self.frame_active {
+            return Err(FrameError::FrameAlreadyStarted);
+        }
+        unsafe {
+            imgui::ImGui_SetCurrentContext(self.raw);
+            backends::cImGui_ImplOpenGL3_NewFrame();
+            backends::cImGui_ImplSDL3_NewFrame();
+            imgui::ImGui_NewFrame();
+        }
+        self.frame_active = true;
+        Ok(())
+    }
+
+    /// Adds Dear ImGui's comprehensive interactive demo window to the active
+    /// frame. Closing the window changes `open` to `false`.
+    pub fn show_demo_window(&mut self, open: &mut bool) -> Result<(), FrameError> {
+        if !self.frame_active {
+            return Err(FrameError::NoActiveFrame);
+        }
+        unsafe {
+            imgui::ImGui_SetCurrentContext(self.raw);
+            imgui::ImGui_ShowDemoWindow(open as *mut bool);
+        }
+        Ok(())
+    }
+
+    /// Starts appending widgets to a named window in the active frame.
+    ///
+    /// A matching `end_window` call is always required, even when this method
+    /// returns `false` because the window is collapsed or clipped.
+    pub fn begin_window(&mut self, title: cstr) -> Result<bool, FrameError> {
+        if !self.frame_active {
+            return Err(FrameError::NoActiveFrame);
+        }
+        Ok(unsafe {
+            imgui::ImGui_SetCurrentContext(self.raw);
+            imgui::ImGui_Begin(
+                title as *const c::Char,
+                c::null<bool>(),
+                constants::ImGuiWindowFlags_None,
+            )
+        })
+    }
+
+    /// Ends the window most recently started with `begin_window`.
+    pub fn end_window(&mut self) -> Result<(), FrameError> {
+        if !self.frame_active {
+            return Err(FrameError::NoActiveFrame);
+        }
+        unsafe {
+            imgui::ImGui_SetCurrentContext(self.raw);
+            imgui::ImGui_End();
+        }
+        Ok(())
+    }
+
+    /// Draws unformatted UTF-8 text in the current Dear ImGui window.
+    pub fn text(&mut self, value: cstr) -> Result<(), FrameError> {
+        if !self.frame_active {
+            return Err(FrameError::NoActiveFrame);
+        }
+        unsafe {
+            imgui::ImGui_SetCurrentContext(self.raw);
+            imgui::ImGui_TextUnformatted(value as *const c::Char);
+        }
+        Ok(())
+    }
+
+    /// Draws a button and returns whether it was activated during this frame.
+    pub fn button(&mut self, label: cstr) -> Result<bool, FrameError> {
+        if !self.frame_active {
+            return Err(FrameError::NoActiveFrame);
+        }
+        Ok(unsafe {
+            imgui::ImGui_SetCurrentContext(self.raw);
+            imgui::ImGui_Button(label as *const c::Char)
+        })
+    }
+
+    /// Finalizes the active frame and renders its draw data through OpenGL3.
+    pub fn render(&mut self) -> Result<(), FrameError> {
+        if !self.frame_active {
+            return Err(FrameError::NoActiveFrame);
+        }
+        unsafe {
+            imgui::ImGui_SetCurrentContext(self.raw);
+            imgui::ImGui_Render();
+            backends::cImGui_ImplOpenGL3_RenderDrawData(
+                imgui::ImGui_GetDrawData(),
+            );
+        }
+        self.frame_active = false;
+        Ok(())
+    }
+
+    /// Returns the native Dear ImGui context for advanced raw API calls.
+    ///
+    /// The pointer remains owned by this facade and becomes invalid after
+    /// `deinit`.
+    pub fn as_raw(&self) -> *mut types::ImGuiContext {
+        self.raw
+    }
+
+    /// Shuts down both backends and destroys the Dear ImGui context.
+    pub fn deinit(self) {
+        let _gl_context = self.gl_context;
+        unsafe {
+            imgui::ImGui_SetCurrentContext(self.raw);
+            if self.frame_active {
+                imgui::ImGui_EndFrame();
+            }
+            backends::cImGui_ImplOpenGL3_Shutdown();
+            backends::cImGui_ImplSDL3_Shutdown();
+            imgui::ImGui_DestroyContext(self.raw);
+        }
+    }
+}

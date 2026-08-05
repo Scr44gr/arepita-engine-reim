@@ -1,0 +1,413 @@
+import std::c;
+import std::string as string;
+
+from sdl3 import Event;
+import sdl3::raw::types as sdl_types;
+from self::facade import Error, FrameError;
+import self::raw::backends as backends;
+import self::raw::constants as constants;
+import self::raw::functions as imgui;
+import self::raw::types as types;
+from wgpu import Device;
+import wgpu::raw::types as wgpu_types;
+
+const DEFAULT_FRAMES_IN_FLIGHT: i32 = 3;
+
+/// One owned Dear ImGui context connected to borrowed SDL3 and wgpu objects.
+///
+/// The facade keeps native handles behind safe methods. It records UI commands
+/// into a borrowed active `RenderFrame`, so the application can submit sprites
+/// and debug UI through one command buffer and one presentation.
+pub struct SdlWgpu {
+    raw: *mut types::ImGuiContext,
+    frame_active: bool,
+}
+
+impl SdlWgpu {
+    /// Creates a context using three buffered renderer frames.
+    pub fn create(
+        device: &Device,
+        window: *mut sdl_types::SDL_Window,
+        render_target_format: wgpu_types::WGPUTextureFormat,
+    ) -> Result<SdlWgpu, Error> {
+        SdlWgpu::create_with_frames_in_flight(
+            device,
+            window,
+            render_target_format,
+            DEFAULT_FRAMES_IN_FLIGHT,
+        )
+    }
+
+    /// Creates a context with an explicit positive buffered-frame count.
+    pub fn create_with_frames_in_flight(
+        device: &Device,
+        window: *mut sdl_types::SDL_Window,
+        render_target_format: wgpu_types::WGPUTextureFormat,
+        frames_in_flight: i32,
+    ) -> Result<SdlWgpu, Error> {
+        let raw = unsafe {
+            imgui::ImGui_CreateContext(c::null<types::ImFontAtlas>())
+        };
+        if c::is_null_mut(raw) {
+            return Err(Error::ContextCreationFailed);
+        }
+        if !unsafe { backends::cImGui_ImplSDL3_InitForOther(window) } {
+            unsafe {
+                imgui::ImGui_DestroyContext(raw);
+            }
+            return Err(Error::SdlInitializationFailed);
+        }
+        if !unsafe {
+            backends::imgui_bridge_wgpu_init(
+                device.as_raw(),
+                render_target_format,
+                frames_in_flight,
+            )
+        } {
+            unsafe {
+                backends::cImGui_ImplSDL3_Shutdown();
+                imgui::ImGui_DestroyContext(raw);
+            }
+            return Err(Error::WgpuInitializationFailed);
+        }
+        Ok(SdlWgpu {
+            raw: raw,
+            frame_active: false,
+        })
+    }
+
+    /// Gives one SDL event to Dear ImGui's platform backend.
+    pub fn process_event(&mut self, event: &Event) -> bool {
+        unsafe {
+            imgui::ImGui_SetCurrentContext(self.raw);
+            backends::cImGui_ImplSDL3_ProcessEvent(event.as_raw())
+        }
+    }
+
+    /// Starts one UI frame after updating the renderer and platform backends.
+    pub fn new_frame(&mut self) -> Result<(), FrameError> {
+        if self.frame_active {
+            return Err(FrameError::FrameAlreadyStarted);
+        }
+        unsafe {
+            imgui::ImGui_SetCurrentContext(self.raw);
+            backends::imgui_bridge_wgpu_new_frame();
+            backends::cImGui_ImplSDL3_NewFrame();
+            imgui::ImGui_NewFrame();
+        }
+        self.frame_active = true;
+        Ok(())
+    }
+
+    /// Adds Dear ImGui's comprehensive demo window to the active frame.
+    pub fn show_demo_window(&mut self, open: &mut bool) -> Result<(), FrameError> {
+        activate_frame(self.raw, self.frame_active)?;
+        unsafe {
+            imgui::ImGui_ShowDemoWindow(open as *mut bool);
+        }
+        Ok(())
+    }
+
+    /// Sets the initial position and size of the next window.
+    ///
+    /// Dear ImGui applies these values only before the user moves or resizes
+    /// that window, so personal debug layouts remain persistent.
+    pub fn set_next_window_layout(
+        &mut self,
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+    ) -> Result<(), FrameError> {
+        activate_frame(self.raw, self.frame_active)?;
+        unsafe {
+            imgui::ImGui_SetNextWindowPos(
+                types::ImVec2 { x: x, y: y },
+                constants::ImGuiCond_FirstUseEver,
+            );
+            imgui::ImGui_SetNextWindowSize(
+                types::ImVec2 { x: width, y: height },
+                constants::ImGuiCond_FirstUseEver,
+            );
+        }
+        Ok(())
+    }
+
+    /// Replaces the persisted position and size of the next window once.
+    ///
+    /// Call this for a single frame when a development tool explicitly resets
+    /// its workspace. Later frames can return to `set_next_window_layout` so
+    /// the user remains free to move and resize the window.
+    pub fn reset_next_window_layout(
+        &mut self,
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+    ) -> Result<(), FrameError> {
+        activate_frame(self.raw, self.frame_active)?;
+        unsafe {
+            imgui::ImGui_SetNextWindowPos(
+                types::ImVec2 { x: x, y: y },
+                constants::ImGuiCond_Always,
+            );
+            imgui::ImGui_SetNextWindowSize(
+                types::ImVec2 { x: width, y: height },
+                constants::ImGuiCond_Always,
+            );
+        }
+        Ok(())
+    }
+
+    /// Starts appending widgets to a named window.
+    ///
+    /// Always pair this call with `end_window`, including when it returns
+    /// `false` because the window is collapsed or clipped.
+    pub fn begin_window(&mut self, title: cstr) -> Result<bool, FrameError> {
+        activate_frame(self.raw, self.frame_active)?;
+        Ok(unsafe {
+            imgui::ImGui_Begin(
+                title as *const c::Char,
+                c::null<bool>(),
+                constants::ImGuiWindowFlags_None,
+            )
+        })
+    }
+
+    /// Ends the window most recently started with `begin_window`.
+    pub fn end_window(&mut self) -> Result<(), FrameError> {
+        activate_frame(self.raw, self.frame_active)?;
+        unsafe {
+            imgui::ImGui_End();
+        }
+        Ok(())
+    }
+
+    /// Draws length-delimited UTF-8 text without format-string interpretation.
+    pub fn text(&mut self, value: str) -> Result<(), FrameError> {
+        activate_frame(self.raw, self.frame_active)?;
+        unsafe {
+            backends::imgui_bridge_text_unformatted(
+                string::as_ptr(value),
+                string::byte_len(value),
+            );
+        }
+        Ok(())
+    }
+
+    /// Draws a UTF-8 label followed by one signed integer without allocation.
+    pub fn text_i64(&mut self, label: str, value: i64) -> Result<(), FrameError> {
+        activate_frame(self.raw, self.frame_active)?;
+        unsafe {
+            backends::imgui_bridge_text_i64(
+                string::as_ptr(label),
+                string::byte_len(label),
+                value,
+            );
+        }
+        Ok(())
+    }
+
+    /// Draws a UTF-8 label followed by one floating-point value.
+    pub fn text_f64(&mut self, label: str, value: f64) -> Result<(), FrameError> {
+        activate_frame(self.raw, self.frame_active)?;
+        unsafe {
+            backends::imgui_bridge_text_f64(
+                string::as_ptr(label),
+                string::byte_len(label),
+                value,
+            );
+        }
+        Ok(())
+    }
+
+    /// Draws a button and reports whether it was activated this frame.
+    pub fn button(&mut self, label: cstr) -> Result<bool, FrameError> {
+        activate_frame(self.raw, self.frame_active)?;
+        Ok(unsafe { imgui::ImGui_Button(label as *const c::Char) })
+    }
+
+    /// Draws a checkbox and updates its borrowed value when edited.
+    pub fn checkbox(
+        &mut self,
+        label: cstr,
+        value: &mut bool,
+    ) -> Result<bool, FrameError> {
+        activate_frame(self.raw, self.frame_active)?;
+        Ok(unsafe {
+            imgui::ImGui_Checkbox(label as *const c::Char, value as *mut bool)
+        })
+    }
+
+    /// Draws a bounded integer slider and reports whether its value changed.
+    pub fn slider_i32(
+        &mut self,
+        label: cstr,
+        value: &mut i32,
+        minimum: i32,
+        maximum: i32,
+    ) -> Result<bool, FrameError> {
+        activate_frame(self.raw, self.frame_active)?;
+        Ok(unsafe {
+            imgui::ImGui_SliderInt(
+                label as *const c::Char,
+                value as *mut c::Int,
+                minimum,
+                maximum,
+            )
+        })
+    }
+
+    /// Draws a bounded floating-point slider and reports value changes.
+    pub fn slider_f32(
+        &mut self,
+        label: cstr,
+        value: &mut f32,
+        minimum: f32,
+        maximum: f32,
+    ) -> Result<bool, FrameError> {
+        activate_frame(self.raw, self.frame_active)?;
+        Ok(unsafe {
+            imgui::ImGui_SliderFloat(
+                label as *const c::Char,
+                value as *mut f32,
+                minimum,
+                maximum,
+            )
+        })
+    }
+
+    /// Adds a horizontal separator between related controls.
+    pub fn separator(&mut self) -> Result<(), FrameError> {
+        activate_frame(self.raw, self.frame_active)?;
+        unsafe {
+            imgui::ImGui_Separator();
+        }
+        Ok(())
+    }
+
+    /// Keeps the next widget on the same horizontal line.
+    pub fn same_line(&mut self) -> Result<(), FrameError> {
+        activate_frame(self.raw, self.frame_active)?;
+        unsafe {
+            imgui::ImGui_SameLine();
+        }
+        Ok(())
+    }
+
+    /// Opens a persistent collapsible section and reports whether it is visible.
+    pub fn collapsing_header(&mut self, label: cstr) -> Result<bool, FrameError> {
+        activate_frame(self.raw, self.frame_active)?;
+        Ok(unsafe {
+            imgui::ImGui_CollapsingHeader(
+                label as *const c::Char,
+                constants::ImGuiTreeNodeFlags_None,
+            )
+        })
+    }
+
+    /// Starts the application-wide main menu bar when it is visible.
+    pub fn begin_main_menu_bar(&mut self) -> Result<bool, FrameError> {
+        activate_frame(self.raw, self.frame_active)?;
+        Ok(unsafe { imgui::ImGui_BeginMainMenuBar() })
+    }
+
+    /// Ends the active main menu bar.
+    pub fn end_main_menu_bar(&mut self) -> Result<(), FrameError> {
+        activate_frame(self.raw, self.frame_active)?;
+        unsafe {
+            imgui::ImGui_EndMainMenuBar();
+        }
+        Ok(())
+    }
+
+    /// Starts one drop-down menu when it is open.
+    pub fn begin_menu(&mut self, label: cstr) -> Result<bool, FrameError> {
+        activate_frame(self.raw, self.frame_active)?;
+        Ok(unsafe { imgui::ImGui_BeginMenu(label as *const c::Char) })
+    }
+
+    /// Ends the active drop-down menu.
+    pub fn end_menu(&mut self) -> Result<(), FrameError> {
+        activate_frame(self.raw, self.frame_active)?;
+        unsafe {
+            imgui::ImGui_EndMenu();
+        }
+        Ok(())
+    }
+
+    /// Draws a menu command and reports whether it was selected.
+    pub fn menu_item(&mut self, label: cstr) -> Result<bool, FrameError> {
+        activate_frame(self.raw, self.frame_active)?;
+        Ok(unsafe { imgui::ImGui_MenuItem(label as *const c::Char) })
+    }
+
+    /// Reports whether Dear ImGui wants mouse events withheld from gameplay.
+    pub fn wants_mouse(&self) -> bool {
+        unsafe {
+            imgui::ImGui_SetCurrentContext(self.raw);
+            backends::imgui_bridge_wants_mouse()
+        }
+    }
+
+    /// Reports whether Dear ImGui wants keyboard events withheld from gameplay.
+    pub fn wants_keyboard(&self) -> bool {
+        unsafe {
+            imgui::ImGui_SetCurrentContext(self.raw);
+            backends::imgui_bridge_wants_keyboard()
+        }
+    }
+
+    /// Finalizes UI draw data and records it into a borrowed active wgpu pass.
+    ///
+    /// Engine adapters should obtain this handle from their owned frame
+    /// transaction and keep the raw handle out of application code.
+    pub fn render_to_pass(
+        &mut self,
+        pass: wgpu_types::WGPURenderPassEncoder,
+    ) -> Result<(), FrameError> {
+        activate_frame(self.raw, self.frame_active)?;
+        unsafe {
+            imgui::ImGui_Render();
+            backends::imgui_bridge_wgpu_render_draw_data(
+                imgui::ImGui_GetDrawData(),
+                pass,
+            );
+        }
+        self.frame_active = false;
+        Ok(())
+    }
+
+    /// Returns the native context for advanced raw API calls.
+    ///
+    /// The pointer remains owned by this facade and is invalid after `deinit`.
+    pub fn as_raw(&self) -> *mut types::ImGuiContext {
+        self.raw
+    }
+
+    /// Shuts down both backends and destroys the Dear ImGui context.
+    pub fn deinit(self) {
+        unsafe {
+            imgui::ImGui_SetCurrentContext(self.raw);
+            if self.frame_active {
+                imgui::ImGui_EndFrame();
+            }
+            backends::imgui_bridge_wgpu_shutdown();
+            backends::cImGui_ImplSDL3_Shutdown();
+            imgui::ImGui_DestroyContext(self.raw);
+        }
+    }
+}
+
+fn activate_frame(
+    raw: *mut types::ImGuiContext,
+    frame_active: bool,
+) -> Result<(), FrameError> {
+    if !frame_active {
+        return Err(FrameError::NoActiveFrame);
+    }
+    unsafe {
+        imgui::ImGui_SetCurrentContext(raw);
+    }
+    Ok(())
+}

@@ -1,0 +1,9 @@
+imgui_version = "1.92.8"
+dear_bindings_version = "0.21"
+core_functions = 730
+backend_functions = 30
+backend_unsupported = 0
+core_conditionally_unavailable = 1
+core_internal = 14
+core_unsupported = 0
+core_variadic = 15

@@ -1,0 +1,6 @@
+/// Shared Dear ImGui lifecycle errors and SDL3/OpenGL3 backend facade.
+pub from self::facade import Error, FrameError, SdlOpenGl;
+/// Safe Dear ImGui context and SDL3/wgpu backend lifecycle.
+pub from self::wgpu_facade import SdlWgpu;
+/// Complete generated Dear ImGui C ABI and backend declarations.
+pub import self::raw as raw;

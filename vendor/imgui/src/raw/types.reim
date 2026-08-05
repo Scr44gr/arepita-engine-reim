@@ -1,0 +1,792 @@
+// Generated from Dear ImGui 1.92.8 with Dear Bindings 0.21: raw types and callback aliases. Do not edit by hand.
+// Run `vendor/imgui/tools/generate.ps1` to update this file.
+
+import std::c;
+
+    /// Default: 16-bit (for maximum compatibility with renderer backends)
+pub type ImDrawIdx = u16;
+
+    /// Scalar data types
+    /// A unique ID used by widgets (typically the result of hashing a stack of string)
+pub type ImGuiID = c::UnsignedInt;
+
+    /// 8-bit signed integer
+pub type ImS8 = c::Char;
+
+    /// 8-bit unsigned integer
+pub type ImU8 = u8;
+
+    /// 16-bit signed integer
+pub type ImS16 = i16;
+
+    /// 16-bit unsigned integer
+pub type ImU16 = u16;
+
+    /// 32-bit signed integer == int
+pub type ImS32 = c::Int;
+
+    /// 32-bit unsigned integer (often used to store packed colors)
+pub type ImU32 = c::UnsignedInt;
+
+    /// 64-bit signed integer
+pub type ImS64 = i64;
+
+    /// 64-bit unsigned integer
+pub type ImU64 = u64;
+
+    /// Enumerations
+    /// - We don't use strongly typed enums much because they add constraints (can't extend in private code, can't store typed in bit fields, extra casting on iteration)
+    /// - Tip: Use your programming IDE navigation facilities on the names in the _central column_ below to find the actual flags/enum lists!
+    /// - In Visual Studio: Ctrl+Comma ("Edit.GoToAll") can follow symbols inside comments, whereas Ctrl+F12 ("Edit.GoToImplementation") cannot.
+    /// - In Visual Studio w/ Visual Assist installed: Alt+G ("VAssistX.GoToImplementation") can also follow symbols inside comments.
+    /// - In VS Code, CLion, etc.: Ctrl+Click can follow symbols inside comments.
+    /// -> enum ImGuiDir              // Enum: A cardinal direction (Left, Right, Up, Down)
+pub type ImGuiDir = c::Int;
+
+    /// -> enum ImGuiKey              // Enum: A key identifier (ImGuiKey_XXX or ImGuiMod_XXX value)
+pub type ImGuiKey = c::Int;
+
+    /// -> enum ImGuiMouseSource      // Enum; A mouse input source identifier (Mouse, TouchScreen, Pen)
+pub type ImGuiMouseSource = c::Int;
+
+    /// -> enum ImGuiSortDirection    // Enum: A sorting direction (ascending or descending)
+pub type ImGuiSortDirection = ImU8;
+
+    /// -> enum ImGuiCol_             // Enum: A color identifier for styling
+pub type ImGuiCol = c::Int;
+
+    /// -> enum ImGuiCond_            // Enum: A condition for many Set*() functions
+pub type ImGuiCond = c::Int;
+
+    /// -> enum ImGuiDataType_        // Enum: A primary data type
+pub type ImGuiDataType = c::Int;
+
+    /// -> enum ImGuiMouseButton_     // Enum: A mouse button identifier (0=left, 1=right, 2=middle)
+pub type ImGuiMouseButton = c::Int;
+
+    /// -> enum ImGuiMouseCursor_     // Enum: A mouse cursor shape
+pub type ImGuiMouseCursor = c::Int;
+
+    /// -> enum ImGuiStyleVar_        // Enum: A variable identifier for styling
+pub type ImGuiStyleVar = c::Int;
+
+    /// -> enum ImGuiTableBgTarget_   // Enum: A color target for TableSetBgColor()
+pub type ImGuiTableBgTarget = c::Int;
+
+    /// Flags (declared as int to allow using as flags without overhead, and to not pollute the top of this file)
+    /// - Tip: Use your programming IDE navigation facilities on the names in the _central column_ below to find the actual flags/enum lists!
+    /// - In Visual Studio: Ctrl+Comma ("Edit.GoToAll") can follow symbols inside comments, whereas Ctrl+F12 ("Edit.GoToImplementation") cannot.
+    /// - In Visual Studio w/ Visual Assist installed: Alt+G ("VAssistX.GoToImplementation") can also follow symbols inside comments.
+    /// - In VS Code, CLion, etc.: Ctrl+Click can follow symbols inside comments.
+    /// -> enum ImDrawFlags_          // Flags: for ImDrawList functions
+pub type ImDrawFlags = c::Int;
+
+    /// -> enum ImDrawListFlags_      // Flags: for ImDrawList instance
+pub type ImDrawListFlags = c::Int;
+
+    /// -> enum ImDrawTextFlags_      // Internal, do not use!
+pub type ImDrawTextFlags = c::Int;
+
+    /// -> enum ImFontFlags_          // Flags: for ImFont
+pub type ImFontFlags = c::Int;
+
+    /// -> enum ImFontAtlasFlags_     // Flags: for ImFontAtlas
+pub type ImFontAtlasFlags = c::Int;
+
+    /// -> enum ImGuiBackendFlags_    // Flags: for io.BackendFlags
+pub type ImGuiBackendFlags = c::Int;
+
+    /// -> enum ImGuiButtonFlags_     // Flags: for InvisibleButton()
+pub type ImGuiButtonFlags = c::Int;
+
+    /// -> enum ImGuiChildFlags_      // Flags: for BeginChild()
+pub type ImGuiChildFlags = c::Int;
+
+    /// -> enum ImGuiColorEditFlags_  // Flags: for ColorEdit4(), ColorPicker4() etc.
+pub type ImGuiColorEditFlags = c::Int;
+
+    /// -> enum ImGuiConfigFlags_     // Flags: for io.ConfigFlags
+pub type ImGuiConfigFlags = c::Int;
+
+    /// -> enum ImGuiComboFlags_      // Flags: for BeginCombo()
+pub type ImGuiComboFlags = c::Int;
+
+    /// -> enum ImGuiDragDropFlags_   // Flags: for BeginDragDropSource(), AcceptDragDropPayload()
+pub type ImGuiDragDropFlags = c::Int;
+
+    /// -> enum ImGuiFocusedFlags_    // Flags: for IsWindowFocused()
+pub type ImGuiFocusedFlags = c::Int;
+
+    /// -> enum ImGuiHoveredFlags_    // Flags: for IsItemHovered(), IsWindowHovered() etc.
+pub type ImGuiHoveredFlags = c::Int;
+
+    /// -> enum ImGuiInputFlags_      // Flags: for Shortcut(), SetNextItemShortcut()
+pub type ImGuiInputFlags = c::Int;
+
+    /// -> enum ImGuiInputTextFlags_  // Flags: for InputText(), InputTextMultiline()
+pub type ImGuiInputTextFlags = c::Int;
+
+    /// -> enum ImGuiItemFlags_       // Flags: for PushItemFlag(), shared by all items
+pub type ImGuiItemFlags = c::Int;
+
+    /// -> ImGuiKey | ImGuiMod_XXX    // Flags: for IsKeyChordPressed(), Shortcut() etc. an ImGuiKey optionally OR-ed with one or more ImGuiMod_XXX values.
+pub type ImGuiKeyChord = c::Int;
+
+    /// -> enum ImGuiListClipperFlags_// Flags: for ImGuiListClipper
+pub type ImGuiListClipperFlags = c::Int;
+
+    /// -> enum ImGuiPopupFlags_      // Flags: for OpenPopup*(), BeginPopupContext*(), IsPopupOpen()
+pub type ImGuiPopupFlags = c::Int;
+
+    /// -> enum ImGuiMultiSelectFlags_// Flags: for BeginMultiSelect()
+pub type ImGuiMultiSelectFlags = c::Int;
+
+    /// -> enum ImGuiSelectableFlags_ // Flags: for Selectable()
+pub type ImGuiSelectableFlags = c::Int;
+
+    /// -> enum ImGuiSliderFlags_     // Flags: for DragFloat(), DragInt(), SliderFloat(), SliderInt() etc.
+pub type ImGuiSliderFlags = c::Int;
+
+    /// -> enum ImGuiTabBarFlags_     // Flags: for BeginTabBar()
+pub type ImGuiTabBarFlags = c::Int;
+
+    /// -> enum ImGuiTabItemFlags_    // Flags: for BeginTabItem()
+pub type ImGuiTabItemFlags = c::Int;
+
+    /// -> enum ImGuiTableFlags_      // Flags: For BeginTable()
+pub type ImGuiTableFlags = c::Int;
+
+    /// -> enum ImGuiTableColumnFlags_// Flags: For TableSetupColumn()
+pub type ImGuiTableColumnFlags = c::Int;
+
+    /// -> enum ImGuiTableRowFlags_   // Flags: For TableNextRow()
+pub type ImGuiTableRowFlags = c::Int;
+
+    /// -> enum ImGuiTreeNodeFlags_   // Flags: for TreeNode(), TreeNodeEx(), CollapsingHeader()
+pub type ImGuiTreeNodeFlags = c::Int;
+
+    /// -> enum ImGuiViewportFlags_   // Flags: for ImGuiViewport
+pub type ImGuiViewportFlags = c::Int;
+
+    /// -> enum ImGuiWindowFlags_     // Flags: for Begin(), BeginChild()
+pub type ImGuiWindowFlags = c::Int;
+
+    /// Character types
+    /// (we generally use UTF-8 encoded string in the API. This is storage specifically for a decoded character used for keyboard input and display)
+    /// A single decoded U32 character/code point. We encode them as multi bytes UTF-8 when used in strings.
+pub type ImWchar32 = c::UnsignedInt;
+
+    /// A single decoded U16 character/code point. We encode them as multi bytes UTF-8 when used in strings.
+pub type ImWchar16 = u16;
+
+    /// Dear ImGui type alias `ImWchar`.
+pub type ImWchar = ImWchar32;
+
+    /// Multi-Selection item index or identifier when using BeginMultiSelect()
+    /// - Used by SetNextItemSelectionUserData() + and inside ImGuiMultiSelectIO structure.
+    /// - Most users are likely to use this store an item INDEX but this may be used to store a POINTER/ID as well. Read comments near ImGuiMultiSelectIO for details.
+pub type ImGuiSelectionUserData = ImS64;
+
+    /// Callback and functions types
+    /// Callback function for ImGui::InputText()
+pub type ImGuiInputTextCallback = fn(*mut ImGuiInputTextCallbackData) -> c::Int;
+
+    /// Callback function for ImGui::SetNextWindowSizeConstraints()
+pub type ImGuiSizeCallback = fn(*mut ImGuiSizeCallbackData) -> ();
+
+    /// Function signature for ImGui::SetAllocatorFunctions()
+pub type ImGuiMemAllocFunc = fn(usize, *mut ()) -> *mut ();
+
+    /// Function signature for ImGui::SetAllocatorFunctions()
+pub type ImGuiMemFreeFunc = fn(*mut (), *mut ()) -> ();
+
+    /// Default: store up to 64-bits (any pointer or integer). A majority of backends are ok with that.
+pub type ImTextureID = ImU64;
+
+    /// Dear ImGui type alias `ImDrawCallback`.
+pub type ImDrawCallback = fn(*const ImDrawList, *const ImDrawCmd) -> ();
+
+    /// An opaque identifier to a rectangle in the atlas. -1 when invalid.
+    /// The rectangle may move and UV may be invalidated, use GetCustomRect() to retrieve it.
+pub type ImFontAtlasRectId = c::Int;
+
+    /// -- OBSOLETED in 1.92.0: ImFontAtlasCustomRect becomes ImTextureRect
+    /// - ImFontAtlasCustomRect::X,Y          --> ImTextureRect::x,y
+    /// - ImFontAtlasCustomRect::Width,Height --> ImTextureRect::w,h
+    /// - ImFontAtlasCustomRect::GlyphColored --> if you need to write to this, instead you can write to 'font->Glyphs.back()->Colored' after calling AddCustomRectFontGlyph()
+    /// We could make ImTextureRect an union to use old names, but 1) this would be confusing 2) the fix is easy 3) ImFontAtlasCustomRect was always a rather esoteric api.
+pub type ImFontAtlasCustomRect = ImFontAtlasRect;
+
+/// Selection request operation kind.
+pub type ImGuiSelectionRequestType = c::Int;
+
+/// Dear ImGui texture pixel format.
+pub type ImTextureFormat = c::Int;
+
+/// Dear ImGui texture upload state.
+pub type ImTextureStatus = c::Int;
+
+/// Opaque platform variadic argument-list storage.
+pub type va_list = *mut ();
+
+/// Opaque Dear ImGui internal string view returned by raw helpers.
+@repr(C)
+pub struct ImStr {
+    private_byte: u8,
+}
+
+    /// Data shared among multiple draw lists (typically owned by parent ImGui context, but you may create one yourself)
+@repr(C)
+pub struct ImDrawListSharedData {
+    private_byte: u8,
+}
+
+    /// Opaque storage for building a ImFontAtlas
+@repr(C)
+pub struct ImFontAtlasBuilder {
+    private_byte: u8,
+}
+
+    /// Opaque interface to a font loading backend (stb_truetype, FreeType etc.).
+@repr(C)
+pub struct ImFontLoader {
+    private_byte: u8,
+}
+
+    /// Forward declarations: ImGui layer
+    /// Dear ImGui context (opaque structure, unless including imgui_internal.h)
+@repr(C)
+pub struct ImGuiContext {
+    private_byte: u8,
+}
+
+    /// C-compatible storage for Dear ImGui's `ImVec2` type.
+@repr(C)
+pub struct ImVec2 {
+    /// Native `x` field.
+    pub x: f32,
+    /// Native `y` field.
+    pub y: f32,
+}
+
+    /// ImVec4: 4D vector used to store clipping rectangles, colors etc. [Compile-time configurable type]
+@repr(C)
+pub struct ImVec4 {
+    /// Native `x` field.
+    pub x: f32,
+    /// Native `y` field.
+    pub y: f32,
+    /// Native `z` field.
+    pub z: f32,
+    /// Native `w` field.
+    pub w: f32,
+}
+
+    /// C-compatible storage for Dear ImGui's `ImTextureRef` type.
+@repr(C)
+pub struct ImTextureRef {
+    /// Members (either are set, never both!)
+    /// A texture, generally owned by a ImFontAtlas. Will convert to ImTextureID during render loop, after texture has been uploaded.
+    pub _TexData: *mut ImTextureData,
+    /// _OR_ Low-level backend texture identifier, if already uploaded or created by user/app. Generally provided to e.g. ImGui::Image() calls.
+    pub _TexID: ImTextureID,
+}
+
+    /// Sorting specifications for a table (often handling sort specs for a single column, occasionally more)
+    /// Obtained by calling TableGetSortSpecs().
+    /// When 'SpecsDirty == true' you can sort your data. It will be true with sorting specs have changed since last call, or the first time.
+    /// Make sure to set 'SpecsDirty = false' after sorting, else you may wastefully sort your data every frame!
+@repr(C)
+pub struct ImGuiTableSortSpecs {
+    private_byte: u8,
+}
+
+    /// Sorting specification for one column of a table (sizeof == 12 bytes)
+@repr(C)
+pub struct ImGuiTableColumnSortSpecs {
+    private_byte: u8,
+}
+
+    /// Instantiation of ImVector<ImGuiTextRange>
+@repr(C)
+pub struct ImVector_ImGuiTextRange {
+    private_byte: u8,
+}
+
+    /// Instantiation of ImVector<char>
+@repr(C)
+pub struct ImVector_char {
+    private_byte: u8,
+}
+
+    /// Instantiation of ImVector<ImGuiStoragePair>
+@repr(C)
+pub struct ImVector_ImGuiStoragePair {
+    private_byte: u8,
+}
+
+    /// Instantiation of ImVector<ImGuiSelectionRequest>
+@repr(C)
+pub struct ImVector_ImGuiSelectionRequest {
+    private_byte: u8,
+}
+
+    /// Instantiation of ImVector<ImDrawChannel>
+@repr(C)
+pub struct ImVector_ImDrawChannel {
+    private_byte: u8,
+}
+
+    /// Instantiation of ImVector<ImDrawCmd>
+@repr(C)
+pub struct ImVector_ImDrawCmd {
+    private_byte: u8,
+}
+
+    /// Instantiation of ImVector<ImDrawIdx>
+@repr(C)
+pub struct ImVector_ImDrawIdx {
+    private_byte: u8,
+}
+
+    /// Instantiation of ImVector<ImDrawVert>
+@repr(C)
+pub struct ImVector_ImDrawVert {
+    private_byte: u8,
+}
+
+    /// Instantiation of ImVector<ImVec2>
+@repr(C)
+pub struct ImVector_ImVec2 {
+    private_byte: u8,
+}
+
+    /// Instantiation of ImVector<ImVec4>
+@repr(C)
+pub struct ImVector_ImVec4 {
+    private_byte: u8,
+}
+
+    /// Instantiation of ImVector<ImTextureRef>
+@repr(C)
+pub struct ImVector_ImTextureRef {
+    private_byte: u8,
+}
+
+    /// Instantiation of ImVector<ImU8>
+@repr(C)
+pub struct ImVector_ImU8 {
+    private_byte: u8,
+}
+
+    /// Instantiation of ImVector<ImDrawList*>
+@repr(C)
+pub struct ImVector_ImDrawListPtr {
+    private_byte: u8,
+}
+
+    /// Instantiation of ImVector<ImTextureRect>
+@repr(C)
+pub struct ImVector_ImTextureRect {
+    private_byte: u8,
+}
+
+    /// Instantiation of ImVector<ImU32>
+@repr(C)
+pub struct ImVector_ImU32 {
+    private_byte: u8,
+}
+
+    /// Instantiation of ImVector<ImWchar>
+@repr(C)
+pub struct ImVector_ImWchar {
+    private_byte: u8,
+}
+
+    /// Instantiation of ImVector<ImFont*>
+@repr(C)
+pub struct ImVector_ImFontPtr {
+    private_byte: u8,
+}
+
+    /// Instantiation of ImVector<ImFontConfig>
+@repr(C)
+pub struct ImVector_ImFontConfig {
+    private_byte: u8,
+}
+
+    /// Instantiation of ImVector<ImDrawListSharedData*>
+@repr(C)
+pub struct ImVector_ImDrawListSharedDataPtr {
+    private_byte: u8,
+}
+
+    /// Instantiation of ImVector<float>
+@repr(C)
+pub struct ImVector_float {
+    private_byte: u8,
+}
+
+    /// Instantiation of ImVector<ImU16>
+@repr(C)
+pub struct ImVector_ImU16 {
+    private_byte: u8,
+}
+
+    /// Instantiation of ImVector<ImFontGlyph>
+@repr(C)
+pub struct ImVector_ImFontGlyph {
+    private_byte: u8,
+}
+
+    /// Instantiation of ImVector<ImFontConfig*>
+@repr(C)
+pub struct ImVector_ImFontConfigPtr {
+    private_byte: u8,
+}
+
+    /// Instantiation of ImVector<ImTextureData*>
+@repr(C)
+pub struct ImVector_ImTextureDataPtr {
+    private_byte: u8,
+}
+
+    /// C-compatible storage for Dear ImGui's `ImGuiStyle` type.
+@repr(C)
+pub struct ImGuiStyle {
+    private_byte: u8,
+}
+
+    /// [Internal] Storage used by IsKeyDown(), IsKeyPressed() etc functions.
+    /// If prior to 1.87 you used io.KeysDownDuration[] (which was marked as internal), you should use GetKeyData(key)->DownDuration and *NOT* io.KeysData[key]->DownDuration.
+@repr(C)
+pub struct ImGuiKeyData {
+    private_byte: u8,
+}
+
+    /// C-compatible storage for Dear ImGui's `ImGuiIO` type.
+@repr(C)
+pub struct ImGuiIO {
+    private_byte: u8,
+}
+
+    /// Shared state of InputText(), passed as an argument to your callback when a ImGuiInputTextFlags_Callback* flag is used.
+    /// The callback function should return 0 by default.
+    /// Callbacks (follow a flag name and see comments in ImGuiInputTextFlags_ declarations for more details)
+    /// - ImGuiInputTextFlags_CallbackEdit:        Callback on buffer edit. Note that InputText() already returns true on edit + you can always use IsItemEdited(). The callback is useful to manipulate the underlying buffer while focus is active.
+    /// - ImGuiInputTextFlags_CallbackAlways:      Callback on each iteration
+    /// - ImGuiInputTextFlags_CallbackCompletion:  Callback on pressing TAB
+    /// - ImGuiInputTextFlags_CallbackHistory:     Callback on pressing Up/Down arrows
+    /// - ImGuiInputTextFlags_CallbackCharFilter:  Callback on character inputs to replace or discard them. Modify 'EventChar' to replace or discard, or return 1 in callback to discard.
+    /// - ImGuiInputTextFlags_CallbackResize:      Callback on buffer capacity changes request (beyond 'buf_size' parameter value), allowing the string to grow.
+@repr(C)
+pub struct ImGuiInputTextCallbackData {
+    private_byte: u8,
+}
+
+    /// Resizing callback data to apply custom constraint. As enabled by SetNextWindowSizeConstraints(). Callback is called during the next Begin().
+    /// NB: For basic min/max size constraint on each axis you don't need to use the callback! The SetNextWindowSizeConstraints() parameters are enough.
+@repr(C)
+pub struct ImGuiSizeCallbackData {
+    private_byte: u8,
+}
+
+    /// Data payload for Drag and Drop operations: AcceptDragDropPayload(), GetDragDropPayload()
+@repr(C)
+pub struct ImGuiPayload {
+    private_byte: u8,
+}
+
+    /// [Internal]
+@repr(C)
+pub struct ImGuiTextFilter_ImGuiTextRange {
+    private_byte: u8,
+}
+
+    /// Helper: Parse and apply text filters. In format "aaaaa[,bbbb][,ccccc]"
+@repr(C)
+pub struct ImGuiTextFilter {
+    private_byte: u8,
+}
+
+    /// Helper: Growable text buffer for logging/accumulating text
+    /// (this could be called 'ImGuiTextBuilder' / 'ImGuiStringBuilder')
+@repr(C)
+pub struct ImGuiTextBuffer {
+    private_byte: u8,
+}
+
+    /// [Internal] Key+Value for ImGuiStorage
+@repr(C)
+pub struct ImGuiStoragePair {
+    private_byte: u8,
+}
+
+    /// Helper: Key->Value storage
+    /// Typically you don't have to worry about this since a storage is held within each Window.
+    /// We use it to e.g. store collapse state for a tree (Int 0/1)
+    /// This is optimized for efficient lookup (dichotomy into a contiguous buffer) and rare insertion (typically tied to user interactions aka max once a frame)
+    /// You can use it as custom user storage for temporary values. Declare your own storage if, for example:
+    /// - You want to manipulate the open/close state of a particular sub-tree in your interface (tree node uses Int 0/1 to store their state).
+    /// - You want to store custom debug data easily without adding or editing structures in your code (probably not efficient, but convenient)
+    /// Types are NOT stored, so it is up to you to make sure your Key don't collide with different types.
+@repr(C)
+pub struct ImGuiStorage {
+    private_byte: u8,
+}
+
+    /// Helper: Manually clip large list of items.
+    /// If you have lots evenly spaced items and you have random access to the list, you can perform coarse
+    /// clipping based on visibility to only submit items that are in view.
+    /// The clipper calculates the range of visible items and advance the cursor to compensate for the non-visible items we have skipped.
+    /// (Dear ImGui already clip items based on their bounds but: it needs to first layout the item to do so, and generally
+    /// fetching/submitting your own data incurs additional cost. Coarse clipping using ImGuiListClipper allows you to easily
+    /// scale using lists with tens of thousands of items without a problem)
+    /// Usage:
+    /// ImGuiListClipper clipper;
+    /// clipper.Begin(1000);         // We have 1000 elements, evenly spaced.
+    /// while (clipper.Step())
+    /// for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
+    /// ImGui::Text("line number %d", i);
+    /// Generally what happens is:
+    /// - Clipper lets you process the first element (DisplayStart = 0, DisplayEnd = 1) regardless of it being visible or not.
+    /// - User code submit that one element.
+    /// - Clipper can measure the height of the first element
+    /// - Clipper calculate the actual range of elements to display based on the current clipping rectangle, position the cursor before the first visible element.
+    /// - User code submit visible elements.
+    /// - The clipper also handles various subtleties related to keyboard/gamepad navigation, wrapping etc.
+@repr(C)
+pub struct ImGuiListClipper {
+    private_byte: u8,
+}
+
+    /// Helper: ImColor() implicitly converts colors to either ImU32 (packed 4x1 byte) or ImVec4 (4x1 float)
+    /// Prefer using IM_COL32() macros if you want a guaranteed compile-time ImU32 for usage with ImDrawList API.
+    /// **Avoid storing ImColor! Store either u32 of ImVec4. This is not a full-featured color class. MAY OBSOLETE.
+    /// **None of the ImGui API are using ImColor directly but you can use it as a convenience to pass colors in either ImU32 or ImVec4 formats. Explicitly cast to ImU32 or ImVec4 if needed.
+@repr(C)
+pub struct ImColor {
+    /// Native `Value` field.
+    pub Value: ImVec4,
+}
+
+    /// Main IO structure returned by BeginMultiSelect()/EndMultiSelect().
+    /// This mainly contains a list of selection requests.
+    /// - Use 'Demo->Tools->Debug Log->Selection' to see requests as they happen.
+    /// - Some fields are only useful if your list is dynamic and allows deletion (getting post-deletion focus/state right is shown in the demo)
+    /// - Below: who reads/writes each fields? 'r'=read, 'w'=write, 'ms'=multi-select code, 'app'=application/user code.
+@repr(C)
+pub struct ImGuiMultiSelectIO {
+    private_byte: u8,
+}
+
+    /// Selection request item
+@repr(C)
+pub struct ImGuiSelectionRequest {
+    private_byte: u8,
+}
+
+    /// Optional helper to store multi-selection state + apply multi-selection requests.
+    /// - Used by our demos and provided as a convenience to easily implement basic multi-selection.
+    /// - Iterate selection with 'void* it = NULL; ImGuiID id; while (selection.GetNextSelectedItem(&it, &id)) { ... }'
+    /// Or you can check 'if (Contains(id)) { ... }' for each possible object if their number is not too high to iterate.
+    /// - USING THIS IS NOT MANDATORY. This is only a helper and not a required API.
+    /// To store a multi-selection, in your application you could:
+    /// - Use this helper as a convenience. We use our simple key->value ImGuiStorage as a std::set<ImGuiID> replacement.
+    /// - Use your own external storage: e.g. std::set<MyObjectId>, std::vector<MyObjectId>, interval trees, intrusively stored selection etc.
+    /// In ImGuiSelectionBasicStorage we:
+    /// - always use indices in the multi-selection API (passed to SetNextItemSelectionUserData(), retrieved in ImGuiMultiSelectIO)
+    /// - use the AdapterIndexToStorageId() indirection layer to abstract how persistent selection data is derived from an index.
+    /// - use decently optimized logic to allow queries and insertion of very large selection sets.
+    /// - do not preserve selection order.
+    /// Many combinations are possible depending on how you prefer to store your items and how you prefer to store your selection.
+    /// Large applications are likely to eventually want to get rid of this indirection layer and do their own thing.
+    /// See https://github.com/ocornut/imgui/wiki/Multi-Select for details and pseudo-code using this helper.
+@repr(C)
+pub struct ImGuiSelectionBasicStorage {
+    private_byte: u8,
+}
+
+    /// Optional helper to apply multi-selection requests to existing randomly accessible storage.
+    /// Convenient if you want to quickly wire multi-select API on e.g. an array of bool or items storing their own selection state.
+@repr(C)
+pub struct ImGuiSelectionExternalStorage {
+    private_byte: u8,
+}
+
+    /// Typically, 1 command = 1 GPU draw call (unless command is a callback)
+    /// - VtxOffset: When 'io.BackendFlags & ImGuiBackendFlags_RendererHasVtxOffset' is enabled,
+    /// this fields allow us to render meshes larger than 64K vertices while keeping 16-bit indices.
+    /// Backends made for <1.71. will typically ignore the VtxOffset fields.
+    /// - The ClipRect/TexRef/VtxOffset fields must be contiguous as we memcmp() them together (this is asserted for).
+@repr(C)
+pub struct ImDrawCmd {
+    private_byte: u8,
+}
+
+    /// C-compatible storage for Dear ImGui's `ImDrawVert` type.
+@repr(C)
+pub struct ImDrawVert {
+    private_byte: u8,
+}
+
+    /// [Internal] For use by ImDrawList
+@repr(C)
+pub struct ImDrawCmdHeader {
+    private_byte: u8,
+}
+
+    /// [Internal] For use by ImDrawListSplitter
+@repr(C)
+pub struct ImDrawChannel {
+    private_byte: u8,
+}
+
+    /// Split/Merge functions are used to split the draw list into different layers which can be drawn into out of order.
+    /// This is used by the Columns/Tables API, so items of each column can be batched together in a same draw call.
+@repr(C)
+pub struct ImDrawListSplitter {
+    private_byte: u8,
+}
+
+    /// Draw command list
+    /// This is the low-level list of polygons that ImGui:: functions are filling. At the end of the frame,
+    /// all command lists are passed to your ImGuiIO::RenderDrawListFn function for rendering.
+    /// Each dear imgui window contains its own ImDrawList. You can use ImGui::GetWindowDrawList() to
+    /// access the current window draw list and draw custom primitives.
+    /// You can interleave normal ImGui:: calls and adding primitives to the current draw list.
+    /// In single viewport mode, top-left is == GetMainViewport()->Pos (generally 0,0), bottom-right is == GetMainViewport()->Pos+Size (generally io.DisplaySize).
+    /// You are totally free to apply whatever transformation matrix you want to the data (depending on the use of the transformation you may want to apply it to ClipRect as well!)
+    /// Important: Primitives are always added to the list and not culled (culling is done at higher-level by ImGui:: functions), if you use this API a lot consider coarse culling your drawn objects.
+@repr(C)
+pub struct ImDrawList {
+    private_byte: u8,
+}
+
+    /// All draw data to render a Dear ImGui frame
+    /// (NB: the style and the naming convention here is a little inconsistent, we currently preserve them for backward compatibility purpose,
+    /// as this is one of the oldest structure exposed by the library! Basically, ImDrawList == CmdList)
+@repr(C)
+pub struct ImDrawData {
+    private_byte: u8,
+}
+
+    /// Coordinates of a rectangle within a texture.
+    /// When a texture is in ImTextureStatus_WantUpdates state, we provide a list of individual rectangles to copy to the graphics system.
+    /// You may use ImTextureData::Updates[] for the list, or ImTextureData::UpdateBox for a single bounding box.
+@repr(C)
+pub struct ImTextureRect {
+    private_byte: u8,
+}
+
+    /// Specs and pixel storage for a texture used by Dear ImGui.
+    /// This is only useful for (1) core library and (2) backends. End-user/applications do not need to care about this.
+    /// Renderer Backends will create a GPU-side version of this.
+    /// Why does we store two identifiers: TexID and BackendUserData?
+    /// - ImTextureID    TexID           = lower-level identifier stored in ImDrawCmd. ImDrawCmd can refer to textures not created by the backend, and for which there's no ImTextureData.
+    /// - void*          BackendUserData = higher-level opaque storage for backend own book-keeping. Some backends may have enough with TexID and not need both.
+    /// In columns below: who reads/writes each fields? 'r'=read, 'w'=write, 'core'=main library, 'backend'=renderer backend
+@repr(C)
+pub struct ImTextureData {
+    private_byte: u8,
+}
+
+    /// A font input/source (we may rename this to ImFontSource in the future)
+@repr(C)
+pub struct ImFontConfig {
+    private_byte: u8,
+}
+
+    /// Hold rendering data for one glyph.
+    /// (Note: some language parsers may fail to convert the bitfield members, in this case maybe drop store a single u32 or we can rework this)
+@repr(C)
+pub struct ImFontGlyph {
+    private_byte: u8,
+}
+
+    /// Helper to build glyph ranges from text/string data. Feed your application strings/characters to it then call BuildRanges().
+    /// This is essentially a tightly packed of vector of 64k booleans = 8KB storage.
+@repr(C)
+pub struct ImFontGlyphRangesBuilder {
+    private_byte: u8,
+}
+
+    /// Output of ImFontAtlas::GetCustomRect() when using custom rectangles.
+    /// Those values may not be cached/stored as they are only valid for the current value of atlas->TexRef
+    /// (this is in theory derived from ImTextureRect but we use separate structures for reasons)
+@repr(C)
+pub struct ImFontAtlasRect {
+    private_byte: u8,
+}
+
+    /// Load and rasterize multiple TTF/OTF fonts into a same texture. The font atlas will build a single texture holding:
+    /// - One or more fonts.
+    /// - Custom graphics data needed to render the shapes needed by Dear ImGui.
+    /// - Mouse cursor shapes for software cursor rendering (unless setting 'Flags |= ImFontAtlasFlags_NoMouseCursors' in the font atlas).
+    /// - If you don't call any AddFont*** functions, the default font embedded in the code will be loaded for you.
+    /// It is the rendering backend responsibility to upload texture into your graphics API:
+    /// - ImGui_ImplXXXX_RenderDrawData() functions generally iterate platform_io->Textures[] to create/update/destroy each ImTextureData instance.
+    /// - Backend then set ImTextureData's TexID and BackendUserData.
+    /// - Texture id are passed back to you during rendering to identify the texture. Read FAQ entry about ImTextureID/ImTextureRef for more details.
+    /// Legacy path:
+    /// - Call Build() + GetTexDataAsAlpha8() or GetTexDataAsRGBA32() to build and retrieve pixels data.
+    /// - Call SetTexID(my_tex_id); and pass the pointer/identifier to your texture in a format natural to your graphics API.
+    /// Common pitfalls:
+    /// - If you pass a 'glyph_ranges' array to AddFont*** functions, you need to make sure that your array persists up until the
+    /// atlas is build (when calling GetTexData*** or Build()). We only copy the pointer, not the data.
+    /// - Important: By default, AddFontFromMemoryTTF() takes ownership of the data. Even though we are not writing to it, we will free the pointer on destruction.
+    /// You can set font_cfg->FontDataOwnedByAtlas=false to keep ownership of your data and it won't be freed,
+    /// - Even though many functions are suffixed with "TTF", OTF data is supported just as well.
+    /// - This is an old API and it is currently awkward for those and various other reasons! We will address them in the future!
+@repr(C)
+pub struct ImFontAtlas {
+    private_byte: u8,
+}
+
+    /// Font runtime data for a given size
+    /// Important: pointers to ImFontBaked are only valid for the current frame.
+@repr(C)
+pub struct ImFontBaked {
+    private_byte: u8,
+}
+
+    /// Font runtime data and rendering
+    /// - ImFontAtlas automatically loads a default embedded font for you if you didn't load one manually.
+    /// - Since 1.92.0 a font may be rendered as any size! Therefore a font doesn't have one specific size.
+    /// - Use 'font->GetFontBaked(size)' to retrieve the ImFontBaked* corresponding to a given size.
+    /// - If you used g.Font + g.FontSize (which is frequent from the ImGui layer), you can use g.FontBaked as a shortcut, as g.FontBaked == g.Font->GetFontBaked(g.FontSize).
+@repr(C)
+pub struct ImFont {
+    private_byte: u8,
+}
+
+    /// - Currently represents the Platform Window created by the application which is hosting our Dear ImGui windows.
+    /// - In 'docking' branch with multi-viewport enabled, we extend this concept to have multiple active viewports.
+    /// - In the future we will extend this concept further to also represent Platform Monitor and support a "no main platform window" operation mode.
+    /// - About Main Area vs Work Area:
+    /// - Main Area = entire viewport.
+    /// - Work Area = entire viewport minus sections used by main menu bars (for platform windows), or by task bar (for platform monitor).
+    /// - Windows are generally trying to stay within the Work Area of their host viewport.
+@repr(C)
+pub struct ImGuiViewport {
+    private_byte: u8,
+}
+
+    /// Access via ImGui::GetPlatformIO()
+@repr(C)
+pub struct ImGuiPlatformIO {
+    private_byte: u8,
+}
+
+    /// (Optional) Support for IME (Input Method Editor) via the platform_io.Platform_SetImeDataFn() function. Handler is called during EndFrame().
+@repr(C)
+pub struct ImGuiPlatformImeData {
+    private_byte: u8,
+}
+
+comptime {
+    assert(size_of<ImVec2>() == 8);
+    assert(align_of<ImVec2>() == 4);
+    assert(size_of<ImVec4>() == 16);
+    assert(align_of<ImVec4>() == 4);
+}

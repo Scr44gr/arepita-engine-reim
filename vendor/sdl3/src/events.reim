@@ -59,6 +59,25 @@ impl Event {
         self.kind() == constants::SDL_EVENT_QUIT
     }
 
+    /// Returns whether an overlay may capture this keyboard event.
+    pub fn is_keyboard_input(&self) -> bool {
+        let kind = self.kind();
+        kind == constants::SDL_EVENT_KEY_DOWN
+            || kind == constants::SDL_EVENT_KEY_UP
+            || kind == constants::SDL_EVENT_TEXT_EDITING
+            || kind == constants::SDL_EVENT_TEXT_INPUT
+            || kind == constants::SDL_EVENT_TEXT_EDITING_CANDIDATES
+    }
+
+    /// Returns whether an overlay may capture this mouse event.
+    pub fn is_mouse_input(&self) -> bool {
+        let kind = self.kind();
+        kind == constants::SDL_EVENT_MOUSE_MOTION
+            || kind == constants::SDL_EVENT_MOUSE_BUTTON_DOWN
+            || kind == constants::SDL_EVENT_MOUSE_BUTTON_UP
+            || kind == constants::SDL_EVENT_MOUSE_WHEEL
+    }
+
     /// Returns whether the drawable pixel size may need reconfiguration.
     pub fn is_window_size_changed(&self) -> bool {
         let kind = self.kind();

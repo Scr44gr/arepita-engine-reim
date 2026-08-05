@@ -1,0 +1,245 @@
+from arepita_engine::render import RenderFrame, Renderer;
+from imgui import Error as ImGuiError, FrameError, SdlWgpu;
+from sdl3 import Event, Window;
+
+/// Recoverable initialization and frame-order errors from the debug UI layer.
+@derive(Copy, Clone, Debug, Eq)
+pub enum DebugUiError {
+    RendererUnavailable,
+    ContextInitializationFailed,
+    FrameAlreadyStarted,
+    NoActiveFrame,
+}
+
+/// Opt-in Dear ImGui layer that records into Arepita's shared wgpu frame.
+///
+/// This type belongs in development tools and debug launchers. The normal
+/// engine package has no Dear ImGui dependency, so final applications do not
+/// link or ship this backend unless they explicitly depend on this extension.
+pub struct DebugUi {
+    inner: SdlWgpu,
+}
+
+impl DebugUi {
+    /// Creates a debug UI that borrows the renderer's device.
+    ///
+    /// Destroy the UI before releasing the renderer or its SDL window.
+    pub fn create(
+        renderer: &Renderer,
+        window: &Window,
+    ) -> Result<DebugUi, DebugUiError> {
+        let context = match renderer.backend_context() {
+            Ok(value) => value,
+            Err(_) => {
+                return Err(DebugUiError::RendererUnavailable);
+            },
+        };
+        let device = match context.device() {
+            Ok(value) => value,
+            Err(_) => {
+                return Err(DebugUiError::RendererUnavailable);
+            },
+        };
+        let format = match context.format() {
+            Ok(value) => value,
+            Err(_) => {
+                return Err(DebugUiError::RendererUnavailable);
+            },
+        };
+        match SdlWgpu::create(device, window.as_raw(), format) {
+            Ok(inner) => Ok(DebugUi { inner: inner }),
+            Err(ImGuiError::ContextCreationFailed) => {
+                Err(DebugUiError::ContextInitializationFailed)
+            },
+            Err(ImGuiError::SdlInitializationFailed) => {
+                Err(DebugUiError::ContextInitializationFailed)
+            },
+            Err(ImGuiError::OpenGlInitializationFailed) => {
+                Err(DebugUiError::ContextInitializationFailed)
+            },
+            Err(ImGuiError::WgpuInitializationFailed) => {
+                Err(DebugUiError::ContextInitializationFailed)
+            },
+            Err(_) => Err(DebugUiError::ContextInitializationFailed),
+        }
+    }
+
+    /// Feeds an SDL event to Dear ImGui before gameplay handles it.
+    pub fn process_event(&mut self, event: &Event) -> bool {
+        self.inner.process_event(event)
+    }
+
+    /// Starts one debug UI frame.
+    pub fn new_frame(&mut self) -> Result<(), DebugUiError> {
+        map_frame(self.inner.new_frame())
+    }
+
+    /// Adds Dear ImGui's built-in feature demonstration window.
+    pub fn show_demo_window(
+        &mut self,
+        open: &mut bool,
+    ) -> Result<(), DebugUiError> {
+        map_frame(self.inner.show_demo_window(open))
+    }
+
+    /// Sets the first-use position and size for the next debug window.
+    pub fn set_next_window_layout(
+        &mut self,
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+    ) -> Result<(), DebugUiError> {
+        map_frame(self.inner.set_next_window_layout(x, y, width, height))
+    }
+
+    /// Replaces a persisted debug-window layout for the current frame.
+    pub fn reset_next_window_layout(
+        &mut self,
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+    ) -> Result<(), DebugUiError> {
+        map_frame(self.inner.reset_next_window_layout(x, y, width, height))
+    }
+
+    /// Starts appending widgets to a named window.
+    ///
+    /// Always pair this call with `end_window`, even when it returns `false`.
+    pub fn begin_window(&mut self, title: cstr) -> Result<bool, DebugUiError> {
+        map_frame(self.inner.begin_window(title))
+    }
+
+    /// Ends the current window.
+    pub fn end_window(&mut self) -> Result<(), DebugUiError> {
+        map_frame(self.inner.end_window())
+    }
+
+    /// Draws length-delimited UTF-8 text without format-string interpretation.
+    pub fn text(&mut self, value: str) -> Result<(), DebugUiError> {
+        map_frame(self.inner.text(value))
+    }
+
+    /// Draws a UTF-8 label followed by one signed integer without allocation.
+    pub fn text_i64(&mut self, label: str, value: i64) -> Result<(), DebugUiError> {
+        map_frame(self.inner.text_i64(label, value))
+    }
+
+    /// Draws a UTF-8 label followed by one floating-point value.
+    pub fn text_f64(&mut self, label: str, value: f64) -> Result<(), DebugUiError> {
+        map_frame(self.inner.text_f64(label, value))
+    }
+
+    /// Draws a button and reports whether it was activated.
+    pub fn button(&mut self, label: cstr) -> Result<bool, DebugUiError> {
+        map_frame(self.inner.button(label))
+    }
+
+    /// Draws a checkbox and updates its borrowed value.
+    pub fn checkbox(
+        &mut self,
+        label: cstr,
+        value: &mut bool,
+    ) -> Result<bool, DebugUiError> {
+        map_frame(self.inner.checkbox(label, value))
+    }
+
+    /// Draws a bounded integer slider.
+    pub fn slider_i32(
+        &mut self,
+        label: cstr,
+        value: &mut i32,
+        minimum: i32,
+        maximum: i32,
+    ) -> Result<bool, DebugUiError> {
+        map_frame(self.inner.slider_i32(label, value, minimum, maximum))
+    }
+
+    /// Draws a bounded floating-point slider.
+    pub fn slider_f32(
+        &mut self,
+        label: cstr,
+        value: &mut f32,
+        minimum: f32,
+        maximum: f32,
+    ) -> Result<bool, DebugUiError> {
+        map_frame(self.inner.slider_f32(label, value, minimum, maximum))
+    }
+
+    /// Adds a horizontal separator.
+    pub fn separator(&mut self) -> Result<(), DebugUiError> {
+        map_frame(self.inner.separator())
+    }
+
+    /// Keeps the next widget on the current line.
+    pub fn same_line(&mut self) -> Result<(), DebugUiError> {
+        map_frame(self.inner.same_line())
+    }
+
+    /// Opens a persistent collapsible section.
+    pub fn collapsing_header(
+        &mut self,
+        label: cstr,
+    ) -> Result<bool, DebugUiError> {
+        map_frame(self.inner.collapsing_header(label))
+    }
+
+    /// Starts the application-wide main menu bar when visible.
+    pub fn begin_main_menu_bar(&mut self) -> Result<bool, DebugUiError> {
+        map_frame(self.inner.begin_main_menu_bar())
+    }
+
+    /// Ends the active main menu bar.
+    pub fn end_main_menu_bar(&mut self) -> Result<(), DebugUiError> {
+        map_frame(self.inner.end_main_menu_bar())
+    }
+
+    /// Starts one drop-down menu when open.
+    pub fn begin_menu(&mut self, label: cstr) -> Result<bool, DebugUiError> {
+        map_frame(self.inner.begin_menu(label))
+    }
+
+    /// Ends the active drop-down menu.
+    pub fn end_menu(&mut self) -> Result<(), DebugUiError> {
+        map_frame(self.inner.end_menu())
+    }
+
+    /// Draws a menu command and reports whether it was selected.
+    pub fn menu_item(&mut self, label: cstr) -> Result<bool, DebugUiError> {
+        map_frame(self.inner.menu_item(label))
+    }
+
+    /// Reports whether gameplay should ignore mouse input this frame.
+    pub fn wants_mouse(&self) -> bool {
+        self.inner.wants_mouse()
+    }
+
+    /// Reports whether gameplay should ignore keyboard input this frame.
+    pub fn wants_keyboard(&self) -> bool {
+        self.inner.wants_keyboard()
+    }
+
+    /// Records the completed UI into an active shared render frame.
+    pub fn render(&mut self, frame: &RenderFrame) -> Result<(), DebugUiError> {
+        let backend_frame = frame.backend_frame();
+        let pass = backend_frame.as_raw_pass();
+        map_frame(self.inner.render_to_pass(pass))
+    }
+
+    /// Releases Dear ImGui before the borrowed renderer and window.
+    pub fn deinit(self) {
+        self.inner.deinit();
+    }
+}
+
+fn map_frame<T>(result: Result<T, FrameError>) -> Result<T, DebugUiError> {
+    match result {
+        Ok(value) => Ok(value),
+        Err(FrameError::FrameAlreadyStarted) => {
+            Err(DebugUiError::FrameAlreadyStarted)
+        },
+        Err(FrameError::NoActiveFrame) => Err(DebugUiError::NoActiveFrame),
+        Err(_) => Err(DebugUiError::NoActiveFrame),
+    }
+}

@@ -1,0 +1,15 @@
+from self::facade import Error, FrameError, SdlOpenGl;
+
+fn main() -> i32 {
+    let error = Error::ContextCreationFailed;
+    let frame_error = FrameError::NoActiveFrame;
+    match error {
+        Error::ContextCreationFailed => match frame_error {
+            FrameError::NoActiveFrame => 0,
+            _ => 1,
+        },
+        _ => 2,
+    }
+}
+
+fn accept_context(_context: &SdlOpenGl) {}

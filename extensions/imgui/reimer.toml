@@ -1,0 +1,16 @@
+[package]
+name = "arepita-imgui"
+version = "0.1.0"
+edition = "2026"
+
+[dependencies]
+arepita_engine = { package = "arepita-engine", path = "../..", version = "^0.1" }
+imgui = { path = "../../vendor/imgui", version = "^1.92" }
+sdl3 = { path = "../../vendor/sdl3", version = "^3.4" }
+wgpu = { path = "../../vendor/wgpu", version = "^29.0" }
+
+[profile.debug]
+optimization = 0
+
+[profile.release]
+optimization = 3

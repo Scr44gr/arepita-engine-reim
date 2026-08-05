@@ -1,0 +1,131 @@
+// Generated from Dear ImGui 1.92.8 with Dear Bindings 0.21: SDL3, OpenGL3, and wgpu backend functions. Do not edit by hand.
+// Run `vendor/imgui/tools/generate.ps1` to update this file.
+
+import std::c;
+
+import sdl3::raw::types as sdl_types;
+import self::types as types;
+import wgpu::raw::types as wgpu_types;
+
+    /// Gamepad selection automatically starts in AutoFirst mode, picking first available SDL_Gamepad. You may override this.
+    /// When using manual mode, caller is responsible for opening/closing gamepad.
+pub type ImGui_ImplSDL3_GamepadMode = c::Int;
+
+    /// `ImGui_ImplSDL3_GamepadMode_AutoFirst` mode for the Dear ImGui SDL3 backend.
+pub const ImGui_ImplSDL3_GamepadMode_AutoFirst: ImGui_ImplSDL3_GamepadMode = 0;
+
+    /// `ImGui_ImplSDL3_GamepadMode_AutoAll` mode for the Dear ImGui SDL3 backend.
+pub const ImGui_ImplSDL3_GamepadMode_AutoAll: ImGui_ImplSDL3_GamepadMode = 1;
+
+    /// `ImGui_ImplSDL3_GamepadMode_Manual` mode for the Dear ImGui SDL3 backend.
+pub const ImGui_ImplSDL3_GamepadMode_Manual: ImGui_ImplSDL3_GamepadMode = 2;
+
+    /// (Advanced, for X11 users) Override Mouse Capture mode. Mouse capture allows receiving updated mouse position after clicking inside our window and dragging outside it.
+    /// Having this 'Enabled' is in theory always better. But, on X11 if you crash/break to debugger while capture is active you may temporarily lose access to your mouse.
+    /// The best solution is to setup your debugger to automatically release capture, e.g. 'setxkbmap -option grab:break_actions && xdotool key XF86Ungrab' or via a GDB script. See #3650.
+    /// But you may independently decide on X11, when a debugger is attached, to set this value to ImGui_ImplSDL3_MouseCaptureMode_Disabled.
+pub type ImGui_ImplSDL3_MouseCaptureMode = c::Int;
+
+    /// `ImGui_ImplSDL3_MouseCaptureMode_Enabled` mode for the Dear ImGui SDL3 backend.
+pub const ImGui_ImplSDL3_MouseCaptureMode_Enabled: ImGui_ImplSDL3_MouseCaptureMode = 0;
+
+    /// `ImGui_ImplSDL3_MouseCaptureMode_EnabledAfterDrag` mode for the Dear ImGui SDL3 backend.
+pub const ImGui_ImplSDL3_MouseCaptureMode_EnabledAfterDrag: ImGui_ImplSDL3_MouseCaptureMode = 1;
+
+    /// `ImGui_ImplSDL3_MouseCaptureMode_Disabled` mode for the Dear ImGui SDL3 backend.
+pub const ImGui_ImplSDL3_MouseCaptureMode_Disabled: ImGui_ImplSDL3_MouseCaptureMode = 2;
+
+@link("imgui")
+extern "C" {
+    /// Follow "Getting Started" link and check examples/ folder to learn about using backends!
+    pub fn cImGui_ImplSDL3_InitForOpenGL(window: *mut sdl_types::SDL_Window, sdl_gl_context: *mut ()) -> bool;
+
+    /// Calls Dear ImGui's `ImGui_ImplSDL3_InitForVulkan` operation through the generated C ABI.
+    pub fn cImGui_ImplSDL3_InitForVulkan(window: *mut sdl_types::SDL_Window) -> bool;
+
+    /// Calls Dear ImGui's `ImGui_ImplSDL3_InitForD3D` operation through the generated C ABI.
+    pub fn cImGui_ImplSDL3_InitForD3D(window: *mut sdl_types::SDL_Window) -> bool;
+
+    /// Calls Dear ImGui's `ImGui_ImplSDL3_InitForMetal` operation through the generated C ABI.
+    pub fn cImGui_ImplSDL3_InitForMetal(window: *mut sdl_types::SDL_Window) -> bool;
+
+    /// Calls Dear ImGui's `ImGui_ImplSDL3_InitForSDLRenderer` operation through the generated C ABI.
+    pub fn cImGui_ImplSDL3_InitForSDLRenderer(window: *mut sdl_types::SDL_Window, renderer: *mut sdl_types::SDL_Renderer) -> bool;
+
+    /// Calls Dear ImGui's `ImGui_ImplSDL3_InitForSDLGPU` operation through the generated C ABI.
+    pub fn cImGui_ImplSDL3_InitForSDLGPU(window: *mut sdl_types::SDL_Window) -> bool;
+
+    /// Calls Dear ImGui's `ImGui_ImplSDL3_InitForOther` operation through the generated C ABI.
+    pub fn cImGui_ImplSDL3_InitForOther(window: *mut sdl_types::SDL_Window) -> bool;
+
+    /// Calls Dear ImGui's `ImGui_ImplSDL3_Shutdown` operation through the generated C ABI.
+    pub fn cImGui_ImplSDL3_Shutdown();
+
+    /// Calls Dear ImGui's `ImGui_ImplSDL3_NewFrame` operation through the generated C ABI.
+    pub fn cImGui_ImplSDL3_NewFrame();
+
+    /// Calls Dear ImGui's `ImGui_ImplSDL3_ProcessEvent` operation through the generated C ABI.
+    pub fn cImGui_ImplSDL3_ProcessEvent(event: *const sdl_types::SDL_Event) -> bool;
+
+    /// Implied manual_gamepads_array = nullptr, manual_gamepads_count = -1
+    pub fn cImGui_ImplSDL3_SetGamepadMode(mode: ImGui_ImplSDL3_GamepadMode);
+
+    /// Calls Dear ImGui's `ImGui_ImplSDL3_SetGamepadMode` operation through the generated C ABI.
+    pub fn cImGui_ImplSDL3_SetGamepadModeEx(mode: ImGui_ImplSDL3_GamepadMode, manual_gamepads_array: *mut *mut sdl_types::SDL_Gamepad, manual_gamepads_count: c::Int);
+
+    /// Calls Dear ImGui's `ImGui_ImplSDL3_SetMouseCaptureMode` operation through the generated C ABI.
+    pub fn cImGui_ImplSDL3_SetMouseCaptureMode(mode: ImGui_ImplSDL3_MouseCaptureMode);
+
+    /// Follow "Getting Started" link and check examples/ folder to learn about using backends!
+    /// Implied glsl_version = nullptr
+    pub fn cImGui_ImplOpenGL3_Init() -> bool;
+
+    /// Calls Dear ImGui's `ImGui_ImplOpenGL3_Init` operation through the generated C ABI.
+    pub fn cImGui_ImplOpenGL3_InitEx(glsl_version: *const c::Char) -> bool;
+
+    /// Calls Dear ImGui's `ImGui_ImplOpenGL3_Shutdown` operation through the generated C ABI.
+    pub fn cImGui_ImplOpenGL3_Shutdown();
+
+    /// Calls Dear ImGui's `ImGui_ImplOpenGL3_NewFrame` operation through the generated C ABI.
+    pub fn cImGui_ImplOpenGL3_NewFrame();
+
+    /// Calls Dear ImGui's `ImGui_ImplOpenGL3_RenderDrawData` operation through the generated C ABI.
+    pub fn cImGui_ImplOpenGL3_RenderDrawData(draw_data: *mut types::ImDrawData);
+
+    /// (Optional) Called by Init/NewFrame/Shutdown
+    pub fn cImGui_ImplOpenGL3_CreateDeviceObjects() -> bool;
+
+    /// Calls Dear ImGui's `ImGui_ImplOpenGL3_DestroyDeviceObjects` operation through the generated C ABI.
+    pub fn cImGui_ImplOpenGL3_DestroyDeviceObjects();
+
+    /// (Advanced) Use e.g. if you need to precisely control the timing of texture updates (e.g. for staged rendering), by setting ImDrawData::Textures = nullptr to handle this manually.
+    pub fn cImGui_ImplOpenGL3_UpdateTexture(tex: *mut types::ImTextureData);
+
+    /// Initializes the official Dear ImGui wgpu renderer backend.
+    pub fn imgui_bridge_wgpu_init(device: wgpu_types::WGPUDevice, render_target_format: wgpu_types::WGPUTextureFormat, frames_in_flight: c::Int) -> bool;
+
+    /// Releases renderer resources owned by the Dear ImGui wgpu backend.
+    pub fn imgui_bridge_wgpu_shutdown();
+
+    /// Prepares the Dear ImGui wgpu renderer backend for a new frame.
+    pub fn imgui_bridge_wgpu_new_frame();
+
+    /// Records Dear ImGui draw data into a borrowed active wgpu render pass.
+    pub fn imgui_bridge_wgpu_render_draw_data(draw_data: *mut types::ImDrawData, pass: wgpu_types::WGPURenderPassEncoder);
+
+    /// Draws a length-delimited UTF-8 string without treating it as a format string.
+    pub fn imgui_bridge_text_unformatted(value: *const u8, byte_length: usize);
+
+    /// Reports whether Dear ImGui wants to consume mouse input this frame.
+    pub fn imgui_bridge_wants_mouse() -> bool;
+
+    /// Reports whether Dear ImGui wants to consume keyboard input this frame.
+    pub fn imgui_bridge_wants_keyboard() -> bool;
+
+    /// Draws a UTF-8 label followed by one signed integer.
+    pub fn imgui_bridge_text_i64(label: *const u8, byte_length: usize, value: i64);
+
+    /// Draws a UTF-8 label followed by one floating-point value.
+    pub fn imgui_bridge_text_f64(label: *const u8, byte_length: usize, value: f64);
+
+}

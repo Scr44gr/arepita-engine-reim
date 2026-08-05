@@ -1,0 +1,2165 @@
+// Generated from Dear ImGui 1.92.8 with Dear Bindings 0.21: raw constants. Do not edit by hand.
+// Run `vendor/imgui/tools/generate.ps1` to update this file.
+
+import std::c;
+
+/// Dear ImGui semantic version used to build this package.
+pub const IMGUI_VERSION: cstr = c"1.92.8";
+/// Numeric Dear ImGui version used to build this package.
+pub const IMGUI_VERSION_NUM: c::Int = 19280;
+
+    /// `ImGuiWindowFlags_None` value from Dear ImGui's `ImGuiWindowFlags_` catalog.
+pub const ImGuiWindowFlags_None: c::Int = 0;
+
+    /// Disable title-bar
+pub const ImGuiWindowFlags_NoTitleBar: c::Int = 1;
+
+    /// Disable user resizing with the lower-right grip
+pub const ImGuiWindowFlags_NoResize: c::Int = 2;
+
+    /// Disable user moving the window
+pub const ImGuiWindowFlags_NoMove: c::Int = 4;
+
+    /// Disable scrollbars (window can still scroll with mouse or programmatically)
+pub const ImGuiWindowFlags_NoScrollbar: c::Int = 8;
+
+    /// Disable user vertically scrolling with mouse wheel. On child window, mouse wheel will be forwarded to the parent unless NoScrollbar is also set.
+pub const ImGuiWindowFlags_NoScrollWithMouse: c::Int = 16;
+
+    /// Disable user collapsing window by double-clicking on it. Also referred to as Window Menu Button (e.g. within a docking node).
+pub const ImGuiWindowFlags_NoCollapse: c::Int = 32;
+
+    /// Resize every window to its content every frame
+pub const ImGuiWindowFlags_AlwaysAutoResize: c::Int = 64;
+
+    /// Disable drawing background color (WindowBg, etc.) and outside border. Similar as using SetNextWindowBgAlpha(0.0f).
+pub const ImGuiWindowFlags_NoBackground: c::Int = 128;
+
+    /// Never load/save settings in .ini file
+pub const ImGuiWindowFlags_NoSavedSettings: c::Int = 256;
+
+    /// Disable catching mouse, hovering test with pass through.
+pub const ImGuiWindowFlags_NoMouseInputs: c::Int = 512;
+
+    /// Has a menu-bar
+pub const ImGuiWindowFlags_MenuBar: c::Int = 1024;
+
+    /// Allow horizontal scrollbar to appear (off by default). You may use SetNextWindowContentSize(ImVec2(width,0.0f)); prior to calling Begin() to specify width. Read code in imgui_demo in the "Horizontal Scrolling" section.
+pub const ImGuiWindowFlags_HorizontalScrollbar: c::Int = 2048;
+
+    /// Disable taking focus when transitioning from hidden to visible state
+pub const ImGuiWindowFlags_NoFocusOnAppearing: c::Int = 4096;
+
+    /// Disable bringing window to front when taking focus (e.g. clicking on it or programmatically giving it focus)
+pub const ImGuiWindowFlags_NoBringToFrontOnFocus: c::Int = 8192;
+
+    /// Always show vertical scrollbar (even if ContentSize.y < Size.y)
+pub const ImGuiWindowFlags_AlwaysVerticalScrollbar: c::Int = 16384;
+
+    /// Always show horizontal scrollbar (even if ContentSize.x < Size.x)
+pub const ImGuiWindowFlags_AlwaysHorizontalScrollbar: c::Int = 32768;
+
+    /// No keyboard/gamepad navigation within the window
+pub const ImGuiWindowFlags_NoNavInputs: c::Int = 65536;
+
+    /// No focusing toward this window with keyboard/gamepad navigation (e.g. skipped by Ctrl+Tab)
+pub const ImGuiWindowFlags_NoNavFocus: c::Int = 131072;
+
+    /// Display a dot next to the title. When used in a tab/docking context, tab is selected when clicking the X + closure is not assumed (will wait for user to stop submitting the tab). Otherwise closure is assumed when pressing the X, so if you keep submitting the tab may reappear at end of tab bar.
+pub const ImGuiWindowFlags_UnsavedDocument: c::Int = 262144;
+
+    /// `ImGuiWindowFlags_NoNav` value from Dear ImGui's `ImGuiWindowFlags_` catalog.
+pub const ImGuiWindowFlags_NoNav: c::Int = 196608;
+
+    /// `ImGuiWindowFlags_NoDecoration` value from Dear ImGui's `ImGuiWindowFlags_` catalog.
+pub const ImGuiWindowFlags_NoDecoration: c::Int = 43;
+
+    /// `ImGuiWindowFlags_NoInputs` value from Dear ImGui's `ImGuiWindowFlags_` catalog.
+pub const ImGuiWindowFlags_NoInputs: c::Int = 197120;
+
+    /// `ImGuiChildFlags_None` value from Dear ImGui's `ImGuiChildFlags_` catalog.
+pub const ImGuiChildFlags_None: c::Int = 0;
+
+    /// Show an outer border and enable WindowPadding. (IMPORTANT: this is always == 1 == true for legacy reason)
+pub const ImGuiChildFlags_Borders: c::Int = 1;
+
+    /// Pad with style.WindowPadding even if no border are drawn (no padding by default for non-bordered child windows because it makes more sense)
+pub const ImGuiChildFlags_AlwaysUseWindowPadding: c::Int = 2;
+
+    /// Allow resize from right border (layout direction). Enable .ini saving (unless ImGuiWindowFlags_NoSavedSettings passed to window flags)
+pub const ImGuiChildFlags_ResizeX: c::Int = 4;
+
+    /// Allow resize from bottom border (layout direction). "
+pub const ImGuiChildFlags_ResizeY: c::Int = 8;
+
+    /// Enable auto-resizing width. Read "IMPORTANT: Size measurement" details above.
+pub const ImGuiChildFlags_AutoResizeX: c::Int = 16;
+
+    /// Enable auto-resizing height. Read "IMPORTANT: Size measurement" details above.
+pub const ImGuiChildFlags_AutoResizeY: c::Int = 32;
+
+    /// Combined with AutoResizeX/AutoResizeY. Always measure size even when child is hidden, always return true, always disable clipping optimization! NOT RECOMMENDED.
+pub const ImGuiChildFlags_AlwaysAutoResize: c::Int = 64;
+
+    /// Style the child window like a framed item: use FrameBg, FrameRounding, FrameBorderSize, FramePadding instead of ChildBg, ChildRounding, ChildBorderSize, WindowPadding.
+pub const ImGuiChildFlags_FrameStyle: c::Int = 128;
+
+    /// [BETA] Share focus scope, allow keyboard/gamepad navigation to cross over parent border to this child or between sibling child windows.
+pub const ImGuiChildFlags_NavFlattened: c::Int = 256;
+
+    /// (Default)
+pub const ImGuiItemFlags_None: c::Int = 0;
+
+    /// false    // Disable keyboard tabbing. This is a "lighter" version of ImGuiItemFlags_NoNav.
+pub const ImGuiItemFlags_NoTabStop: c::Int = 1;
+
+    /// false    // Disable any form of focusing (keyboard/gamepad directional navigation and SetKeyboardFocusHere() calls).
+pub const ImGuiItemFlags_NoNav: c::Int = 2;
+
+    /// false    // Disable item being a candidate for default focus (e.g. used by title bar items).
+pub const ImGuiItemFlags_NoNavDefaultFocus: c::Int = 4;
+
+    /// false    // Any button-like behavior will have repeat mode enabled (based on io.KeyRepeatDelay and io.KeyRepeatRate values). Note that you can also call IsItemActive() after any button to tell if it is being held.
+pub const ImGuiItemFlags_ButtonRepeat: c::Int = 8;
+
+    /// true     // MenuItem()/Selectable() automatically close their parent popup window.
+pub const ImGuiItemFlags_AutoClosePopups: c::Int = 16;
+
+    /// false    // Allow submitting an item with the same identifier as an item already submitted this frame without triggering a warning tooltip if io.ConfigDebugHighlightIdConflicts is set.
+pub const ImGuiItemFlags_AllowDuplicateId: c::Int = 32;
+
+    /// false    // [Internal] Disable interactions. DOES NOT affect visuals. This is used by BeginDisabled()/EndDisabled() and only provided here so you can read back via GetItemFlags().
+pub const ImGuiItemFlags_Disabled: c::Int = 64;
+
+    /// Basic filters (also see ImGuiInputTextFlags_CallbackCharFilter)
+pub const ImGuiInputTextFlags_None: c::Int = 0;
+
+    /// Allow 0123456789.+-*/
+pub const ImGuiInputTextFlags_CharsDecimal: c::Int = 1;
+
+    /// Allow 0123456789ABCDEFabcdef
+pub const ImGuiInputTextFlags_CharsHexadecimal: c::Int = 2;
+
+    /// Allow 0123456789.+-*/eE (Scientific notation input)
+pub const ImGuiInputTextFlags_CharsScientific: c::Int = 4;
+
+    /// Turn a..z into A..Z
+pub const ImGuiInputTextFlags_CharsUppercase: c::Int = 8;
+
+    /// Filter out spaces, tabs
+pub const ImGuiInputTextFlags_CharsNoBlank: c::Int = 16;
+
+    /// Inputs
+    /// Pressing TAB input a '\t' character into the text field
+pub const ImGuiInputTextFlags_AllowTabInput: c::Int = 32;
+
+    /// Return 'true' when Enter is pressed (as opposed to every time the value was modified). Consider using IsItemDeactivatedAfterEdit() instead!
+pub const ImGuiInputTextFlags_EnterReturnsTrue: c::Int = 64;
+
+    /// Escape key clears content if not empty, and deactivate otherwise (contrast to default behavior of Escape to revert)
+pub const ImGuiInputTextFlags_EscapeClearsAll: c::Int = 128;
+
+    /// In multi-line mode: validate with Enter, add new line with Ctrl+Enter (default is opposite: validate with Ctrl+Enter, add line with Enter). Note that Shift+Enter always enter a new line either way.
+pub const ImGuiInputTextFlags_CtrlEnterForNewLine: c::Int = 256;
+
+    /// Other options
+    /// Read-only mode
+pub const ImGuiInputTextFlags_ReadOnly: c::Int = 512;
+
+    /// Password mode, display all characters as '*', disable copy
+pub const ImGuiInputTextFlags_Password: c::Int = 1024;
+
+    /// Overwrite mode
+pub const ImGuiInputTextFlags_AlwaysOverwrite: c::Int = 2048;
+
+    /// Select entire text when first taking mouse focus
+pub const ImGuiInputTextFlags_AutoSelectAll: c::Int = 4096;
+
+    /// InputFloat(), InputInt(), InputScalar() etc. only: parse empty string as zero value.
+pub const ImGuiInputTextFlags_ParseEmptyRefVal: c::Int = 8192;
+
+    /// InputFloat(), InputInt(), InputScalar() etc. only: when value is zero, do not display it. Generally used with ImGuiInputTextFlags_ParseEmptyRefVal.
+pub const ImGuiInputTextFlags_DisplayEmptyRefVal: c::Int = 16384;
+
+    /// Disable following the cursor horizontally
+pub const ImGuiInputTextFlags_NoHorizontalScroll: c::Int = 32768;
+
+    /// Disable undo/redo. Note that input text owns the text data while active, if you want to provide your own undo/redo stack you need e.g. to call ClearActiveID().
+pub const ImGuiInputTextFlags_NoUndoRedo: c::Int = 65536;
+
+    /// Elide display / Alignment
+    /// When text doesn't fit, elide left side to ensure right side stays visible. Useful for path/filenames. Single-line only!
+pub const ImGuiInputTextFlags_ElideLeft: c::Int = 131072;
+
+    /// Callback features
+    /// Callback on pressing TAB (for completion handling)
+pub const ImGuiInputTextFlags_CallbackCompletion: c::Int = 262144;
+
+    /// Callback on pressing Up/Down arrows (for history handling)
+pub const ImGuiInputTextFlags_CallbackHistory: c::Int = 524288;
+
+    /// Callback on each iteration. User code may query cursor position, modify text buffer.
+pub const ImGuiInputTextFlags_CallbackAlways: c::Int = 1048576;
+
+    /// Callback on character inputs to replace or discard them. Modify 'EventChar' to replace or discard, or return 1 in callback to discard.
+pub const ImGuiInputTextFlags_CallbackCharFilter: c::Int = 2097152;
+
+    /// Callback on buffer capacity changes request (beyond 'buf_size' parameter value), allowing the string to grow. Notify when the string wants to be resized (for string types which hold a cache of their Size). You will be provided a new BufSize in the callback and NEED to honor it. (see misc/cpp/imgui_stdlib.h for an example of using this)
+pub const ImGuiInputTextFlags_CallbackResize: c::Int = 4194304;
+
+    /// Callback on any edit. Note that InputText() already returns true on edit + you can always use IsItemEdited(). The callback is useful to manipulate the underlying buffer while focus is active.
+pub const ImGuiInputTextFlags_CallbackEdit: c::Int = 8388608;
+
+    /// Multi-line Word-Wrapping [BETA]
+    /// - Not well tested yet. Please report any incorrect cursor movement, selection behavior etc. bug to https://github.com/ocornut/imgui/issues/3237.
+    /// - Wrapping style is not ideal. Wrapping of long words/sections (e.g. words larger than total available width) may be particularly unpleasing.
+    /// - Wrapping width needs to always account for the possibility of a vertical scrollbar.
+    /// - It is much slower than regular text fields.
+    /// Ballpark estimate of cost on my 2019 desktop PC: for a 100 KB text buffer: +~0.3 ms (Optimized) / +~1.0 ms (Debug build).
+    /// The CPU cost is very roughly proportional to text length, so a 10 KB buffer should cost about ten times less.
+    /// InputTextMultiline(): word-wrap lines that are too long.
+pub const ImGuiInputTextFlags_WordWrap: c::Int = 16777216;
+
+    /// `ImGuiTreeNodeFlags_None` value from Dear ImGui's `ImGuiTreeNodeFlags_` catalog.
+pub const ImGuiTreeNodeFlags_None: c::Int = 0;
+
+    /// Draw as selected
+pub const ImGuiTreeNodeFlags_Selected: c::Int = 1;
+
+    /// Draw frame with background (e.g. for CollapsingHeader)
+pub const ImGuiTreeNodeFlags_Framed: c::Int = 2;
+
+    /// Hit testing will allow subsequent widgets to overlap this one. Require previous frame HoveredId to match before being usable. Shortcut to calling SetNextItemAllowOverlap().
+pub const ImGuiTreeNodeFlags_AllowOverlap: c::Int = 4;
+
+    /// Don't do a TreePush() when open (e.g. for CollapsingHeader) = no extra indent nor pushing on ID stack
+pub const ImGuiTreeNodeFlags_NoTreePushOnOpen: c::Int = 8;
+
+    /// Don't automatically and temporarily open node when Logging is active (by default logging will automatically open tree nodes)
+pub const ImGuiTreeNodeFlags_NoAutoOpenOnLog: c::Int = 16;
+
+    /// Default node to be open
+pub const ImGuiTreeNodeFlags_DefaultOpen: c::Int = 32;
+
+    /// Open on double-click instead of simple click (default for multi-select unless any _OpenOnXXX behavior is set explicitly). Both behaviors may be combined.
+pub const ImGuiTreeNodeFlags_OpenOnDoubleClick: c::Int = 64;
+
+    /// Open when clicking on the arrow part (default for multi-select unless any _OpenOnXXX behavior is set explicitly). Both behaviors may be combined.
+pub const ImGuiTreeNodeFlags_OpenOnArrow: c::Int = 128;
+
+    /// No collapsing, no arrow (use as a convenience for leaf nodes). Note: will always open a tree/id scope and return true. If you never use that scope, add ImGuiTreeNodeFlags_NoTreePushOnOpen.
+pub const ImGuiTreeNodeFlags_Leaf: c::Int = 256;
+
+    /// Display a bullet instead of arrow. IMPORTANT: node can still be marked open/close if you don't set the _Leaf flag!
+pub const ImGuiTreeNodeFlags_Bullet: c::Int = 512;
+
+    /// Use FramePadding (even for an unframed text node) to vertically align text baseline to regular widget height. Equivalent to calling AlignTextToFramePadding() before the node.
+pub const ImGuiTreeNodeFlags_FramePadding: c::Int = 1024;
+
+    /// Extend hit box to the right-most edge, even if not framed. This is not the default in order to allow adding other items on the same line without using AllowOverlap mode.
+pub const ImGuiTreeNodeFlags_SpanAvailWidth: c::Int = 2048;
+
+    /// Extend hit box to the left-most and right-most edges (cover the indent area).
+pub const ImGuiTreeNodeFlags_SpanFullWidth: c::Int = 4096;
+
+    /// Narrow hit box + narrow hovering highlight, will only cover the label text.
+pub const ImGuiTreeNodeFlags_SpanLabelWidth: c::Int = 8192;
+
+    /// Frame will span all columns of its container table (label will still fit in current column)
+pub const ImGuiTreeNodeFlags_SpanAllColumns: c::Int = 16384;
+
+    /// Label will span all columns of its container table
+pub const ImGuiTreeNodeFlags_LabelSpanAllColumns: c::Int = 32768;
+
+    /// ImGuiTreeNodeFlags_NoScrollOnOpen     = 1 << 16,  // FIXME: TODO: Disable automatic scroll on TreePop() if node got just open and contents is not visible
+    /// Nav: left arrow moves back to parent. This is processed in TreePop() when there's an unfulfilled Left nav request remaining.
+pub const ImGuiTreeNodeFlags_NavLeftJumpsToParent: c::Int = 131072;
+
+    /// `ImGuiTreeNodeFlags_CollapsingHeader` value from Dear ImGui's `ImGuiTreeNodeFlags_` catalog.
+pub const ImGuiTreeNodeFlags_CollapsingHeader: c::Int = 26;
+
+    /// [EXPERIMENTAL] Draw lines connecting TreeNode hierarchy. Discuss in GitHub issue #2920.
+    /// Default value is pulled from style.TreeLinesFlags. May be overridden in TreeNode calls.
+    /// No lines drawn
+pub const ImGuiTreeNodeFlags_DrawLinesNone: c::Int = 262144;
+
+    /// Horizontal lines to child nodes. Vertical line drawn down to TreePop() position: cover full contents. Faster (for large trees).
+pub const ImGuiTreeNodeFlags_DrawLinesFull: c::Int = 524288;
+
+    /// Horizontal lines to child nodes. Vertical line drawn down to bottom-most child node. Slower (for large trees).
+pub const ImGuiTreeNodeFlags_DrawLinesToNodes: c::Int = 1048576;
+
+    /// Renamed in 1.92.0
+pub const ImGuiTreeNodeFlags_NavLeftJumpsBackHere: c::Int = 131072;
+
+    /// Renamed in 1.90.7
+pub const ImGuiTreeNodeFlags_SpanTextWidth: c::Int = 8192;
+
+    /// `ImGuiPopupFlags_None` value from Dear ImGui's `ImGuiPopupFlags_` catalog.
+pub const ImGuiPopupFlags_None: c::Int = 0;
+
+    /// For BeginPopupContext*(): open on Left Mouse release. Only one button allowed!
+pub const ImGuiPopupFlags_MouseButtonLeft: c::Int = 4;
+
+    /// For BeginPopupContext*(): open on Right Mouse release. Only one button allowed! (default)
+pub const ImGuiPopupFlags_MouseButtonRight: c::Int = 8;
+
+    /// For BeginPopupContext*(): open on Middle Mouse release. Only one button allowed!
+pub const ImGuiPopupFlags_MouseButtonMiddle: c::Int = 12;
+
+    /// For OpenPopup*(), BeginPopupContext*(): don't reopen same popup if already open (won't reposition, won't reinitialize navigation)
+pub const ImGuiPopupFlags_NoReopen: c::Int = 32;
+
+    /// ImGuiPopupFlags_NoReopenAlwaysNavInit = 1 << 6,   // For OpenPopup*(), BeginPopupContext*(): focus and initialize navigation even when not reopening.
+    /// For OpenPopup*(), BeginPopupContext*(): don't open if there's already a popup at the same level of the popup stack
+pub const ImGuiPopupFlags_NoOpenOverExistingPopup: c::Int = 128;
+
+    /// For BeginPopupContextWindow(): don't return true when hovering items, only when hovering empty space
+pub const ImGuiPopupFlags_NoOpenOverItems: c::Int = 256;
+
+    /// For IsPopupOpen(): ignore the ImGuiID parameter and test for any popup.
+pub const ImGuiPopupFlags_AnyPopupId: c::Int = 1024;
+
+    /// For IsPopupOpen(): search/test at any level of the popup stack (default test in the current level)
+pub const ImGuiPopupFlags_AnyPopupLevel: c::Int = 2048;
+
+    /// `ImGuiPopupFlags_AnyPopup` value from Dear ImGui's `ImGuiPopupFlags_` catalog.
+pub const ImGuiPopupFlags_AnyPopup: c::Int = 3072;
+
+    /// `ImGuiSelectableFlags_None` value from Dear ImGui's `ImGuiSelectableFlags_` catalog.
+pub const ImGuiSelectableFlags_None: c::Int = 0;
+
+    /// Clicking this doesn't close parent popup window (overrides ImGuiItemFlags_AutoClosePopups)
+pub const ImGuiSelectableFlags_NoAutoClosePopups: c::Int = 1;
+
+    /// Frame will span all columns of its container table (text will still fit in current column)
+pub const ImGuiSelectableFlags_SpanAllColumns: c::Int = 2;
+
+    /// Generate press events on double clicks too
+pub const ImGuiSelectableFlags_AllowDoubleClick: c::Int = 4;
+
+    /// Cannot be selected, display grayed out text
+pub const ImGuiSelectableFlags_Disabled: c::Int = 8;
+
+    /// Hit testing will allow subsequent widgets to overlap this one. Require previous frame HoveredId to match before being usable. Shortcut to calling SetNextItemAllowOverlap().
+pub const ImGuiSelectableFlags_AllowOverlap: c::Int = 16;
+
+    /// Make the item be displayed as if it is hovered
+pub const ImGuiSelectableFlags_Highlight: c::Int = 32;
+
+    /// Auto-select when moved into, unless Ctrl is held. Automatic when in a BeginMultiSelect() block.
+pub const ImGuiSelectableFlags_SelectOnNav: c::Int = 64;
+
+    /// Renamed in 1.91.0
+pub const ImGuiSelectableFlags_DontClosePopups: c::Int = 1;
+
+    /// `ImGuiComboFlags_None` value from Dear ImGui's `ImGuiComboFlags_` catalog.
+pub const ImGuiComboFlags_None: c::Int = 0;
+
+    /// Align the popup toward the left by default
+pub const ImGuiComboFlags_PopupAlignLeft: c::Int = 1;
+
+    /// Max ~4 items visible. Tip: If you want your combo popup to be a specific size you can use SetNextWindowSizeConstraints() prior to calling BeginCombo()
+pub const ImGuiComboFlags_HeightSmall: c::Int = 2;
+
+    /// Max ~8 items visible (default)
+pub const ImGuiComboFlags_HeightRegular: c::Int = 4;
+
+    /// Max ~20 items visible
+pub const ImGuiComboFlags_HeightLarge: c::Int = 8;
+
+    /// As many fitting items as possible
+pub const ImGuiComboFlags_HeightLargest: c::Int = 16;
+
+    /// Display on the preview box without the square arrow button
+pub const ImGuiComboFlags_NoArrowButton: c::Int = 32;
+
+    /// Display only a square arrow button
+pub const ImGuiComboFlags_NoPreview: c::Int = 64;
+
+    /// Width dynamically calculated from preview contents
+pub const ImGuiComboFlags_WidthFitPreview: c::Int = 128;
+
+    /// `ImGuiTabBarFlags_None` value from Dear ImGui's `ImGuiTabBarFlags_` catalog.
+pub const ImGuiTabBarFlags_None: c::Int = 0;
+
+    /// Allow manually dragging tabs to re-order them + New tabs are appended at the end of list
+pub const ImGuiTabBarFlags_Reorderable: c::Int = 1;
+
+    /// Automatically select new tabs when they appear
+pub const ImGuiTabBarFlags_AutoSelectNewTabs: c::Int = 2;
+
+    /// Disable buttons to open the tab list popup
+pub const ImGuiTabBarFlags_TabListPopupButton: c::Int = 4;
+
+    /// Disable behavior of closing tabs (that are submitted with p_open != NULL) with middle mouse button. You may handle this behavior manually on user's side with if (IsItemHovered() && IsMouseClicked(2)) *p_open = false.
+pub const ImGuiTabBarFlags_NoCloseWithMiddleMouseButton: c::Int = 8;
+
+    /// Disable scrolling buttons (apply when fitting policy is ImGuiTabBarFlags_FittingPolicyScroll)
+pub const ImGuiTabBarFlags_NoTabListScrollingButtons: c::Int = 16;
+
+    /// Disable tooltips when hovering a tab
+pub const ImGuiTabBarFlags_NoTooltip: c::Int = 32;
+
+    /// Draw selected overline markers over selected tab
+pub const ImGuiTabBarFlags_DrawSelectedOverline: c::Int = 64;
+
+    /// Fitting/Resize policy
+    /// Shrink down tabs when they don't fit, until width is style.TabMinWidthShrink, then enable scrolling. Setting TabMinWidthShrink to FLT_MAX makes this behave like ImGuiTabBarFlags_FittingPolicyScroll.
+pub const ImGuiTabBarFlags_FittingPolicyMixed: c::Int = 128;
+
+    /// Shrink down tabs when they don't fit
+pub const ImGuiTabBarFlags_FittingPolicyShrink: c::Int = 256;
+
+    /// Enable scrolling buttons when tabs don't fit
+pub const ImGuiTabBarFlags_FittingPolicyScroll: c::Int = 512;
+
+    /// Renamed in 1.92.2
+pub const ImGuiTabBarFlags_FittingPolicyResizeDown: c::Int = 256;
+
+    /// `ImGuiTabItemFlags_None` value from Dear ImGui's `ImGuiTabItemFlags_` catalog.
+pub const ImGuiTabItemFlags_None: c::Int = 0;
+
+    /// Display a dot next to the title + set ImGuiTabItemFlags_NoAssumedClosure.
+pub const ImGuiTabItemFlags_UnsavedDocument: c::Int = 1;
+
+    /// Trigger flag to programmatically make the tab selected when calling BeginTabItem()
+pub const ImGuiTabItemFlags_SetSelected: c::Int = 2;
+
+    /// Disable behavior of closing tabs (that are submitted with p_open != NULL) with middle mouse button. You may handle this behavior manually on user's side with if (IsItemHovered() && IsMouseClicked(2)) *p_open = false.
+pub const ImGuiTabItemFlags_NoCloseWithMiddleMouseButton: c::Int = 4;
+
+    /// Don't call PushID()/PopID() on BeginTabItem()/EndTabItem()
+pub const ImGuiTabItemFlags_NoPushId: c::Int = 8;
+
+    /// Disable tooltip for the given tab
+pub const ImGuiTabItemFlags_NoTooltip: c::Int = 16;
+
+    /// Disable reordering this tab or having another tab cross over this tab
+pub const ImGuiTabItemFlags_NoReorder: c::Int = 32;
+
+    /// Enforce the tab position to the left of the tab bar (after the tab list popup button)
+pub const ImGuiTabItemFlags_Leading: c::Int = 64;
+
+    /// Enforce the tab position to the right of the tab bar (before the scrolling buttons)
+pub const ImGuiTabItemFlags_Trailing: c::Int = 128;
+
+    /// Tab is selected when trying to close + closure is not immediately assumed (will wait for user to stop submitting the tab). Otherwise closure is assumed when pressing the X, so if you keep submitting the tab may reappear at end of tab bar.
+pub const ImGuiTabItemFlags_NoAssumedClosure: c::Int = 256;
+
+    /// `ImGuiFocusedFlags_None` value from Dear ImGui's `ImGuiFocusedFlags_` catalog.
+pub const ImGuiFocusedFlags_None: c::Int = 0;
+
+    /// Return true if any children of the window is focused
+pub const ImGuiFocusedFlags_ChildWindows: c::Int = 1;
+
+    /// Test from root window (top most parent of the current hierarchy)
+pub const ImGuiFocusedFlags_RootWindow: c::Int = 2;
+
+    /// Return true if any window is focused. Important: If you are trying to tell how to dispatch your low-level inputs, do NOT use this. Use 'io.WantCaptureMouse' instead! Please read the FAQ!
+pub const ImGuiFocusedFlags_AnyWindow: c::Int = 4;
+
+    /// Do not consider popup hierarchy (do not treat popup emitter as parent of popup) (when used with _ChildWindows or _RootWindow)
+pub const ImGuiFocusedFlags_NoPopupHierarchy: c::Int = 8;
+
+    /// ImGuiFocusedFlags_DockHierarchy               = 1 << 4,   // Consider docking hierarchy (treat dockspace host as parent of docked window) (when used with _ChildWindows or _RootWindow)
+pub const ImGuiFocusedFlags_RootAndChildWindows: c::Int = 3;
+
+    /// Return true if directly over the item/window, not obstructed by another window, not obstructed by an active popup or modal blocking inputs under them.
+pub const ImGuiHoveredFlags_None: c::Int = 0;
+
+    /// IsWindowHovered() only: Return true if any children of the window is hovered
+pub const ImGuiHoveredFlags_ChildWindows: c::Int = 1;
+
+    /// IsWindowHovered() only: Test from root window (top most parent of the current hierarchy)
+pub const ImGuiHoveredFlags_RootWindow: c::Int = 2;
+
+    /// IsWindowHovered() only: Return true if any window is hovered
+pub const ImGuiHoveredFlags_AnyWindow: c::Int = 4;
+
+    /// IsWindowHovered() only: Do not consider popup hierarchy (do not treat popup emitter as parent of popup) (when used with _ChildWindows or _RootWindow)
+pub const ImGuiHoveredFlags_NoPopupHierarchy: c::Int = 8;
+
+    /// ImGuiHoveredFlags_DockHierarchy               = 1 << 4,   // IsWindowHovered() only: Consider docking hierarchy (treat dockspace host as parent of docked window) (when used with _ChildWindows or _RootWindow)
+    /// Return true even if a popup window is normally blocking access to this item/window
+pub const ImGuiHoveredFlags_AllowWhenBlockedByPopup: c::Int = 32;
+
+    /// ImGuiHoveredFlags_AllowWhenBlockedByModal     = 1 << 6,   // Return true even if a modal popup window is normally blocking access to this item/window. FIXME-TODO: Unavailable yet.
+    /// Return true even if an active item is blocking access to this item/window. Useful for Drag and Drop patterns.
+pub const ImGuiHoveredFlags_AllowWhenBlockedByActiveItem: c::Int = 128;
+
+    /// IsItemHovered() only: Return true even if the item uses AllowOverlap mode and is overlapped by another hoverable item.
+pub const ImGuiHoveredFlags_AllowWhenOverlappedByItem: c::Int = 256;
+
+    /// IsItemHovered() only: Return true even if the position is obstructed or overlapped by another window.
+pub const ImGuiHoveredFlags_AllowWhenOverlappedByWindow: c::Int = 512;
+
+    /// IsItemHovered() only: Return true even if the item is disabled
+pub const ImGuiHoveredFlags_AllowWhenDisabled: c::Int = 1024;
+
+    /// IsItemHovered() only: Disable using keyboard/gamepad navigation state when active, always query mouse
+pub const ImGuiHoveredFlags_NoNavOverride: c::Int = 2048;
+
+    /// `ImGuiHoveredFlags_AllowWhenOverlapped` value from Dear ImGui's `ImGuiHoveredFlags_` catalog.
+pub const ImGuiHoveredFlags_AllowWhenOverlapped: c::Int = 768;
+
+    /// `ImGuiHoveredFlags_RectOnly` value from Dear ImGui's `ImGuiHoveredFlags_` catalog.
+pub const ImGuiHoveredFlags_RectOnly: c::Int = 928;
+
+    /// `ImGuiHoveredFlags_RootAndChildWindows` value from Dear ImGui's `ImGuiHoveredFlags_` catalog.
+pub const ImGuiHoveredFlags_RootAndChildWindows: c::Int = 3;
+
+    /// Tooltips mode
+    /// - typically used in IsItemHovered() + SetTooltip() sequence.
+    /// - this is a shortcut to pull flags from 'style.HoverFlagsForTooltipMouse' or 'style.HoverFlagsForTooltipNav' where you can reconfigure desired behavior.
+    /// e.g. 'HoverFlagsForTooltipMouse' defaults to 'ImGuiHoveredFlags_Stationary | ImGuiHoveredFlags_DelayShort | ImGuiHoveredFlags_AllowWhenDisabled'.
+    /// - for frequently actioned or hovered items providing a tooltip, you want may to use ImGuiHoveredFlags_ForTooltip (stationary + delay) so the tooltip doesn't show too often.
+    /// - for items which main purpose is to be hovered, or items with low affordance, or in less consistent apps, prefer no delay or shorter delay.
+    /// Shortcut for standard flags when using IsItemHovered() + SetTooltip() sequence.
+pub const ImGuiHoveredFlags_ForTooltip: c::Int = 4096;
+
+    /// (Advanced) Mouse Hovering delays.
+    /// - generally you can use ImGuiHoveredFlags_ForTooltip to use application-standardized flags.
+    /// - use those if you need specific overrides.
+    /// Require mouse to be stationary for style.HoverStationaryDelay (~0.15 sec) _at least one time_. After this, can move on same item/window. Using the stationary test tends to reduces the need for a long delay.
+pub const ImGuiHoveredFlags_Stationary: c::Int = 8192;
+
+    /// IsItemHovered() only: Return true immediately (default). As this is the default you generally ignore this.
+pub const ImGuiHoveredFlags_DelayNone: c::Int = 16384;
+
+    /// IsItemHovered() only: Return true after style.HoverDelayShort elapsed (~0.15 sec) (shared between items) + requires mouse to be stationary for style.HoverStationaryDelay (once per item).
+pub const ImGuiHoveredFlags_DelayShort: c::Int = 32768;
+
+    /// IsItemHovered() only: Return true after style.HoverDelayNormal elapsed (~0.40 sec) (shared between items) + requires mouse to be stationary for style.HoverStationaryDelay (once per item).
+pub const ImGuiHoveredFlags_DelayNormal: c::Int = 65536;
+
+    /// IsItemHovered() only: Disable shared delay system where moving from one item to the next keeps the previous timer for a short time (standard for tooltips with long delays)
+pub const ImGuiHoveredFlags_NoSharedDelay: c::Int = 131072;
+
+    /// `ImGuiDragDropFlags_None` value from Dear ImGui's `ImGuiDragDropFlags_` catalog.
+pub const ImGuiDragDropFlags_None: c::Int = 0;
+
+    /// BeginDragDropSource() flags
+    /// Disable preview tooltip. By default, a successful call to BeginDragDropSource opens a tooltip so you can display a preview or description of the source contents. This flag disables this behavior.
+pub const ImGuiDragDropFlags_SourceNoPreviewTooltip: c::Int = 1;
+
+    /// By default, when dragging we clear data so that IsItemHovered() will return false, to avoid subsequent user code submitting tooltips. This flag disables this behavior so you can still call IsItemHovered() on the source item.
+pub const ImGuiDragDropFlags_SourceNoDisableHover: c::Int = 2;
+
+    /// Disable the behavior that allows to open tree nodes and collapsing header by holding over them while dragging a source item.
+pub const ImGuiDragDropFlags_SourceNoHoldToOpenOthers: c::Int = 4;
+
+    /// Allow items such as Text(), Image() that have no unique identifier to be used as drag source, by manufacturing a temporary identifier based on their window-relative position. This is extremely unusual within the dear imgui ecosystem and so we made it explicit.
+pub const ImGuiDragDropFlags_SourceAllowNullID: c::Int = 8;
+
+    /// External source (from outside of dear imgui), won't attempt to read current item/window info. Will always return true. Only one Extern source can be active simultaneously.
+pub const ImGuiDragDropFlags_SourceExtern: c::Int = 16;
+
+    /// Automatically expire the payload if the source cease to be submitted (otherwise payloads are persisting while being dragged)
+pub const ImGuiDragDropFlags_PayloadAutoExpire: c::Int = 32;
+
+    /// Hint to specify that the payload may not be copied outside current dear imgui context.
+pub const ImGuiDragDropFlags_PayloadNoCrossContext: c::Int = 64;
+
+    /// Hint to specify that the payload may not be copied outside current process.
+pub const ImGuiDragDropFlags_PayloadNoCrossProcess: c::Int = 128;
+
+    /// AcceptDragDropPayload() flags
+    /// AcceptDragDropPayload() will returns true even before the mouse button is released. You can then call IsDelivery() to test if the payload needs to be delivered.
+pub const ImGuiDragDropFlags_AcceptBeforeDelivery: c::Int = 1024;
+
+    /// Do not draw the default highlight rectangle when hovering over target.
+pub const ImGuiDragDropFlags_AcceptNoDrawDefaultRect: c::Int = 2048;
+
+    /// Request hiding the BeginDragDropSource tooltip from the BeginDragDropTarget site.
+pub const ImGuiDragDropFlags_AcceptNoPreviewTooltip: c::Int = 4096;
+
+    /// Accepting item will render as if hovered. Useful for e.g. a Button() used as a drop target.
+pub const ImGuiDragDropFlags_AcceptDrawAsHovered: c::Int = 8192;
+
+    /// For peeking ahead and inspecting the payload before delivery.
+pub const ImGuiDragDropFlags_AcceptPeekOnly: c::Int = 3072;
+
+    /// Renamed in 1.90.9
+pub const ImGuiDragDropFlags_SourceAutoExpirePayload: c::Int = 32;
+
+    /// signed char / char (with sensible compilers)
+pub const ImGuiDataType_S8: c::Int = 0;
+
+    /// unsigned char
+pub const ImGuiDataType_U8: c::Int = 1;
+
+    /// short
+pub const ImGuiDataType_S16: c::Int = 2;
+
+    /// unsigned short
+pub const ImGuiDataType_U16: c::Int = 3;
+
+    /// int
+pub const ImGuiDataType_S32: c::Int = 4;
+
+    /// unsigned int
+pub const ImGuiDataType_U32: c::Int = 5;
+
+    /// long long / __int64
+pub const ImGuiDataType_S64: c::Int = 6;
+
+    /// unsigned long long / unsigned __int64
+pub const ImGuiDataType_U64: c::Int = 7;
+
+    /// float
+pub const ImGuiDataType_Float: c::Int = 8;
+
+    /// double
+pub const ImGuiDataType_Double: c::Int = 9;
+
+    /// bool (provided for user convenience, not supported by scalar widgets)
+pub const ImGuiDataType_Bool: c::Int = 10;
+
+    /// char* (provided for user convenience, not supported by scalar widgets)
+pub const ImGuiDataType_String: c::Int = 11;
+
+    /// `ImGuiDataType_COUNT` value from Dear ImGui's `ImGuiDataType_` catalog.
+pub const ImGuiDataType_COUNT: c::Int = 12;
+
+    /// `ImGuiDir_None` value from Dear ImGui's `ImGuiDir` catalog.
+pub const ImGuiDir_None: c::Int = -1;
+
+    /// `ImGuiDir_Left` value from Dear ImGui's `ImGuiDir` catalog.
+pub const ImGuiDir_Left: c::Int = 0;
+
+    /// `ImGuiDir_Right` value from Dear ImGui's `ImGuiDir` catalog.
+pub const ImGuiDir_Right: c::Int = 1;
+
+    /// `ImGuiDir_Up` value from Dear ImGui's `ImGuiDir` catalog.
+pub const ImGuiDir_Up: c::Int = 2;
+
+    /// `ImGuiDir_Down` value from Dear ImGui's `ImGuiDir` catalog.
+pub const ImGuiDir_Down: c::Int = 3;
+
+    /// `ImGuiDir_COUNT` value from Dear ImGui's `ImGuiDir` catalog.
+pub const ImGuiDir_COUNT: c::Int = 4;
+
+    /// `ImGuiSortDirection_None` value from Dear ImGui's `ImGuiSortDirection` catalog.
+pub const ImGuiSortDirection_None: c::Int = 0;
+
+    /// Ascending = 0->9, A->Z etc.
+pub const ImGuiSortDirection_Ascending: c::Int = 1;
+
+    /// Descending = 9->0, Z->A etc.
+pub const ImGuiSortDirection_Descending: c::Int = 2;
+
+    /// Keyboard
+pub const ImGuiKey_None: c::Int = 0;
+
+    /// First valid key value (other than 0)
+pub const ImGuiKey_NamedKey_BEGIN: c::Int = 512;
+
+    /// == ImGuiKey_NamedKey_BEGIN
+pub const ImGuiKey_Tab: c::Int = 512;
+
+    /// `ImGuiKey_LeftArrow` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_LeftArrow: c::Int = 513;
+
+    /// `ImGuiKey_RightArrow` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_RightArrow: c::Int = 514;
+
+    /// `ImGuiKey_UpArrow` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_UpArrow: c::Int = 515;
+
+    /// `ImGuiKey_DownArrow` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_DownArrow: c::Int = 516;
+
+    /// `ImGuiKey_PageUp` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_PageUp: c::Int = 517;
+
+    /// `ImGuiKey_PageDown` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_PageDown: c::Int = 518;
+
+    /// `ImGuiKey_Home` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_Home: c::Int = 519;
+
+    /// `ImGuiKey_End` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_End: c::Int = 520;
+
+    /// `ImGuiKey_Insert` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_Insert: c::Int = 521;
+
+    /// `ImGuiKey_Delete` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_Delete: c::Int = 522;
+
+    /// `ImGuiKey_Backspace` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_Backspace: c::Int = 523;
+
+    /// `ImGuiKey_Space` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_Space: c::Int = 524;
+
+    /// `ImGuiKey_Enter` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_Enter: c::Int = 525;
+
+    /// `ImGuiKey_Escape` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_Escape: c::Int = 526;
+
+    /// `ImGuiKey_LeftCtrl` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_LeftCtrl: c::Int = 527;
+
+    /// `ImGuiKey_LeftShift` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_LeftShift: c::Int = 528;
+
+    /// `ImGuiKey_LeftAlt` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_LeftAlt: c::Int = 529;
+
+    /// Also see ImGuiMod_Ctrl, ImGuiMod_Shift, ImGuiMod_Alt, ImGuiMod_Super below!
+pub const ImGuiKey_LeftSuper: c::Int = 530;
+
+    /// `ImGuiKey_RightCtrl` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_RightCtrl: c::Int = 531;
+
+    /// `ImGuiKey_RightShift` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_RightShift: c::Int = 532;
+
+    /// `ImGuiKey_RightAlt` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_RightAlt: c::Int = 533;
+
+    /// `ImGuiKey_RightSuper` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_RightSuper: c::Int = 534;
+
+    /// `ImGuiKey_Menu` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_Menu: c::Int = 535;
+
+    /// `ImGuiKey_0` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_0: c::Int = 536;
+
+    /// `ImGuiKey_1` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_1: c::Int = 537;
+
+    /// `ImGuiKey_2` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_2: c::Int = 538;
+
+    /// `ImGuiKey_3` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_3: c::Int = 539;
+
+    /// `ImGuiKey_4` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_4: c::Int = 540;
+
+    /// `ImGuiKey_5` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_5: c::Int = 541;
+
+    /// `ImGuiKey_6` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_6: c::Int = 542;
+
+    /// `ImGuiKey_7` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_7: c::Int = 543;
+
+    /// `ImGuiKey_8` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_8: c::Int = 544;
+
+    /// `ImGuiKey_9` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_9: c::Int = 545;
+
+    /// `ImGuiKey_A` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_A: c::Int = 546;
+
+    /// `ImGuiKey_B` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_B: c::Int = 547;
+
+    /// `ImGuiKey_C` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_C: c::Int = 548;
+
+    /// `ImGuiKey_D` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_D: c::Int = 549;
+
+    /// `ImGuiKey_E` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_E: c::Int = 550;
+
+    /// `ImGuiKey_F` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_F: c::Int = 551;
+
+    /// `ImGuiKey_G` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_G: c::Int = 552;
+
+    /// `ImGuiKey_H` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_H: c::Int = 553;
+
+    /// `ImGuiKey_I` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_I: c::Int = 554;
+
+    /// `ImGuiKey_J` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_J: c::Int = 555;
+
+    /// `ImGuiKey_K` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_K: c::Int = 556;
+
+    /// `ImGuiKey_L` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_L: c::Int = 557;
+
+    /// `ImGuiKey_M` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_M: c::Int = 558;
+
+    /// `ImGuiKey_N` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_N: c::Int = 559;
+
+    /// `ImGuiKey_O` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_O: c::Int = 560;
+
+    /// `ImGuiKey_P` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_P: c::Int = 561;
+
+    /// `ImGuiKey_Q` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_Q: c::Int = 562;
+
+    /// `ImGuiKey_R` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_R: c::Int = 563;
+
+    /// `ImGuiKey_S` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_S: c::Int = 564;
+
+    /// `ImGuiKey_T` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_T: c::Int = 565;
+
+    /// `ImGuiKey_U` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_U: c::Int = 566;
+
+    /// `ImGuiKey_V` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_V: c::Int = 567;
+
+    /// `ImGuiKey_W` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_W: c::Int = 568;
+
+    /// `ImGuiKey_X` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_X: c::Int = 569;
+
+    /// `ImGuiKey_Y` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_Y: c::Int = 570;
+
+    /// `ImGuiKey_Z` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_Z: c::Int = 571;
+
+    /// `ImGuiKey_F1` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_F1: c::Int = 572;
+
+    /// `ImGuiKey_F2` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_F2: c::Int = 573;
+
+    /// `ImGuiKey_F3` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_F3: c::Int = 574;
+
+    /// `ImGuiKey_F4` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_F4: c::Int = 575;
+
+    /// `ImGuiKey_F5` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_F5: c::Int = 576;
+
+    /// `ImGuiKey_F6` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_F6: c::Int = 577;
+
+    /// `ImGuiKey_F7` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_F7: c::Int = 578;
+
+    /// `ImGuiKey_F8` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_F8: c::Int = 579;
+
+    /// `ImGuiKey_F9` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_F9: c::Int = 580;
+
+    /// `ImGuiKey_F10` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_F10: c::Int = 581;
+
+    /// `ImGuiKey_F11` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_F11: c::Int = 582;
+
+    /// `ImGuiKey_F12` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_F12: c::Int = 583;
+
+    /// `ImGuiKey_F13` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_F13: c::Int = 584;
+
+    /// `ImGuiKey_F14` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_F14: c::Int = 585;
+
+    /// `ImGuiKey_F15` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_F15: c::Int = 586;
+
+    /// `ImGuiKey_F16` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_F16: c::Int = 587;
+
+    /// `ImGuiKey_F17` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_F17: c::Int = 588;
+
+    /// `ImGuiKey_F18` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_F18: c::Int = 589;
+
+    /// `ImGuiKey_F19` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_F19: c::Int = 590;
+
+    /// `ImGuiKey_F20` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_F20: c::Int = 591;
+
+    /// `ImGuiKey_F21` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_F21: c::Int = 592;
+
+    /// `ImGuiKey_F22` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_F22: c::Int = 593;
+
+    /// `ImGuiKey_F23` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_F23: c::Int = 594;
+
+    /// `ImGuiKey_F24` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_F24: c::Int = 595;
+
+    /// '
+pub const ImGuiKey_Apostrophe: c::Int = 596;
+
+    /// ,
+pub const ImGuiKey_Comma: c::Int = 597;
+
+    /// -
+pub const ImGuiKey_Minus: c::Int = 598;
+
+    /// .
+pub const ImGuiKey_Period: c::Int = 599;
+
+    /// /
+pub const ImGuiKey_Slash: c::Int = 600;
+
+    /// ;
+pub const ImGuiKey_Semicolon: c::Int = 601;
+
+    /// =
+pub const ImGuiKey_Equal: c::Int = 602;
+
+    /// [
+pub const ImGuiKey_LeftBracket: c::Int = 603;
+
+    /// \ (this text inhibit multiline comment caused by backslash)
+pub const ImGuiKey_Backslash: c::Int = 604;
+
+    /// ]
+pub const ImGuiKey_RightBracket: c::Int = 605;
+
+    /// `
+pub const ImGuiKey_GraveAccent: c::Int = 606;
+
+    /// `ImGuiKey_CapsLock` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_CapsLock: c::Int = 607;
+
+    /// `ImGuiKey_ScrollLock` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_ScrollLock: c::Int = 608;
+
+    /// `ImGuiKey_NumLock` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_NumLock: c::Int = 609;
+
+    /// `ImGuiKey_PrintScreen` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_PrintScreen: c::Int = 610;
+
+    /// `ImGuiKey_Pause` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_Pause: c::Int = 611;
+
+    /// `ImGuiKey_Keypad0` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_Keypad0: c::Int = 612;
+
+    /// `ImGuiKey_Keypad1` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_Keypad1: c::Int = 613;
+
+    /// `ImGuiKey_Keypad2` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_Keypad2: c::Int = 614;
+
+    /// `ImGuiKey_Keypad3` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_Keypad3: c::Int = 615;
+
+    /// `ImGuiKey_Keypad4` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_Keypad4: c::Int = 616;
+
+    /// `ImGuiKey_Keypad5` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_Keypad5: c::Int = 617;
+
+    /// `ImGuiKey_Keypad6` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_Keypad6: c::Int = 618;
+
+    /// `ImGuiKey_Keypad7` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_Keypad7: c::Int = 619;
+
+    /// `ImGuiKey_Keypad8` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_Keypad8: c::Int = 620;
+
+    /// `ImGuiKey_Keypad9` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_Keypad9: c::Int = 621;
+
+    /// `ImGuiKey_KeypadDecimal` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_KeypadDecimal: c::Int = 622;
+
+    /// `ImGuiKey_KeypadDivide` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_KeypadDivide: c::Int = 623;
+
+    /// `ImGuiKey_KeypadMultiply` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_KeypadMultiply: c::Int = 624;
+
+    /// `ImGuiKey_KeypadSubtract` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_KeypadSubtract: c::Int = 625;
+
+    /// `ImGuiKey_KeypadAdd` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_KeypadAdd: c::Int = 626;
+
+    /// `ImGuiKey_KeypadEnter` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_KeypadEnter: c::Int = 627;
+
+    /// `ImGuiKey_KeypadEqual` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_KeypadEqual: c::Int = 628;
+
+    /// Available on some keyboard/mouses. Often referred as "Browser Back"
+pub const ImGuiKey_AppBack: c::Int = 629;
+
+    /// `ImGuiKey_AppForward` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_AppForward: c::Int = 630;
+
+    /// Non-US backslash.
+pub const ImGuiKey_Oem102: c::Int = 631;
+
+    /// Gamepad
+    /// (analog values are 0.0f to 1.0f)
+    /// (download controller mapping PNG/PSD at http://dearimgui.com/controls_sheets)
+    /// // XBOX        | SWITCH  | PLAYSTA. | -> ACTION
+    /// Menu        | +       | Options  |
+pub const ImGuiKey_GamepadStart: c::Int = 632;
+
+    /// View        | -       | Share    |
+pub const ImGuiKey_GamepadBack: c::Int = 633;
+
+    /// X           | Y       | Square   | Toggle Menu. Hold for Windowing mode (Focus/Move/Resize windows)
+pub const ImGuiKey_GamepadFaceLeft: c::Int = 634;
+
+    /// B           | A       | Circle   | Cancel / Close / Exit
+pub const ImGuiKey_GamepadFaceRight: c::Int = 635;
+
+    /// Y           | X       | Triangle | Open Context Menu
+pub const ImGuiKey_GamepadFaceUp: c::Int = 636;
+
+    /// A           | B       | Cross    | Activate / Open / Toggle. Hold for 0.60f to Activate in Text Input mode (e.g. wired to an on-screen keyboard).
+pub const ImGuiKey_GamepadFaceDown: c::Int = 637;
+
+    /// D-pad Left  | "       | "        | Move / Tweak / Resize Window (in Windowing mode)
+pub const ImGuiKey_GamepadDpadLeft: c::Int = 638;
+
+    /// D-pad Right | "       | "        | Move / Tweak / Resize Window (in Windowing mode)
+pub const ImGuiKey_GamepadDpadRight: c::Int = 639;
+
+    /// D-pad Up    | "       | "        | Move / Tweak / Resize Window (in Windowing mode)
+pub const ImGuiKey_GamepadDpadUp: c::Int = 640;
+
+    /// D-pad Down  | "       | "        | Move / Tweak / Resize Window (in Windowing mode)
+pub const ImGuiKey_GamepadDpadDown: c::Int = 641;
+
+    /// L Bumper    | L       | L1       | Tweak Slower / Focus Previous (in Windowing mode)
+pub const ImGuiKey_GamepadL1: c::Int = 642;
+
+    /// R Bumper    | R       | R1       | Tweak Faster / Focus Next (in Windowing mode)
+pub const ImGuiKey_GamepadR1: c::Int = 643;
+
+    /// L Trigger   | ZL      | L2       | [Analog]
+pub const ImGuiKey_GamepadL2: c::Int = 644;
+
+    /// R Trigger   | ZR      | R2       | [Analog]
+pub const ImGuiKey_GamepadR2: c::Int = 645;
+
+    /// L Stick     | L3      | L3       |
+pub const ImGuiKey_GamepadL3: c::Int = 646;
+
+    /// R Stick     | R3      | R3       |
+pub const ImGuiKey_GamepadR3: c::Int = 647;
+
+    /// |         |          | [Analog] Move Window (in Windowing mode)
+pub const ImGuiKey_GamepadLStickLeft: c::Int = 648;
+
+    /// |         |          | [Analog] Move Window (in Windowing mode)
+pub const ImGuiKey_GamepadLStickRight: c::Int = 649;
+
+    /// |         |          | [Analog] Move Window (in Windowing mode)
+pub const ImGuiKey_GamepadLStickUp: c::Int = 650;
+
+    /// |         |          | [Analog] Move Window (in Windowing mode)
+pub const ImGuiKey_GamepadLStickDown: c::Int = 651;
+
+    /// |         |          | [Analog]
+pub const ImGuiKey_GamepadRStickLeft: c::Int = 652;
+
+    /// |         |          | [Analog]
+pub const ImGuiKey_GamepadRStickRight: c::Int = 653;
+
+    /// |         |          | [Analog]
+pub const ImGuiKey_GamepadRStickUp: c::Int = 654;
+
+    /// |         |          | [Analog]
+pub const ImGuiKey_GamepadRStickDown: c::Int = 655;
+
+    /// Aliases: Mouse Buttons (auto-submitted from AddMouseButtonEvent() calls)
+    /// - This is mirroring the data also written to io.MouseDown[], io.MouseWheel, in a format allowing them to be accessed via standard key API.
+pub const ImGuiKey_MouseLeft: c::Int = 656;
+
+    /// `ImGuiKey_MouseRight` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_MouseRight: c::Int = 657;
+
+    /// `ImGuiKey_MouseMiddle` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_MouseMiddle: c::Int = 658;
+
+    /// `ImGuiKey_MouseX1` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_MouseX1: c::Int = 659;
+
+    /// `ImGuiKey_MouseX2` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_MouseX2: c::Int = 660;
+
+    /// `ImGuiKey_MouseWheelX` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_MouseWheelX: c::Int = 661;
+
+    /// `ImGuiKey_MouseWheelY` value from Dear ImGui's `ImGuiKey` catalog.
+pub const ImGuiKey_MouseWheelY: c::Int = 662;
+
+    /// Keyboard Modifiers (explicitly submitted by backend via AddKeyEvent() calls)
+    /// - Any functions taking a ImGuiKeyChord parameter can binary-or those with regular keys, e.g. Shortcut(ImGuiMod_Ctrl | ImGuiKey_S).
+    /// - Those are written back into io.KeyCtrl, io.KeyShift, io.KeyAlt, io.KeySuper for convenience,
+    /// but may be accessed via standard key API such as IsKeyPressed(), IsKeyReleased(), querying duration etc.
+    /// - Code polling every key (e.g. an interface to detect a key press for input mapping) might want to ignore those
+    /// and prefer using the real keys (e.g. ImGuiKey_LeftCtrl, ImGuiKey_RightCtrl instead of ImGuiMod_Ctrl).
+    /// - In theory the value of keyboard modifiers should be roughly equivalent to a logical or of the equivalent left/right keys.
+    /// In practice: it's complicated; mods are often provided from different sources. Keyboard layout, IME, sticky keys and
+    /// backends tend to interfere and break that equivalence. The safer decision is to relay that ambiguity down to the end-user...
+    /// - On macOS, we swap Cmd(Super) and Ctrl keys at the time of the io.AddKeyEvent() call.
+pub const ImGuiMod_None: c::Int = 0;
+
+    /// Ctrl (non-macOS), Cmd (macOS)
+pub const ImGuiMod_Ctrl: c::Int = 4096;
+
+    /// Shift
+pub const ImGuiMod_Shift: c::Int = 8192;
+
+    /// Option/Menu
+pub const ImGuiMod_Alt: c::Int = 16384;
+
+    /// Windows/Super (non-macOS), Ctrl (macOS)
+pub const ImGuiMod_Super: c::Int = 32768;
+
+    /// Obsoleted in 1.91.5 because it was misleading (since named keys don't start at 0 anymore)
+pub const ImGuiKey_COUNT: c::Int = 667;
+
+    /// Removed in 1.90.7, you can now simply use ImGuiMod_Ctrl
+pub const ImGuiMod_Shortcut: c::Int = 4096;
+
+    /// `ImGuiInputFlags_None` value from Dear ImGui's `ImGuiInputFlags_` catalog.
+pub const ImGuiInputFlags_None: c::Int = 0;
+
+    /// Enable repeat. Return true on successive repeats. Default for legacy IsKeyPressed(). NOT Default for legacy IsMouseClicked(). MUST BE == 1.
+pub const ImGuiInputFlags_Repeat: c::Int = 1;
+
+    /// Flags for Shortcut(), SetNextItemShortcut()
+    /// - Routing policies: RouteGlobal+OverActive >> RouteActive or RouteFocused (if owner is active item) >> RouteGlobal+OverFocused >> RouteFocused (if in focused window stack) >> RouteGlobal.
+    /// - Default policy is RouteFocused. Can select only 1 policy among all available.
+    /// Route to active item only.
+pub const ImGuiInputFlags_RouteActive: c::Int = 1024;
+
+    /// Route to windows in the focus stack (DEFAULT). Deep-most focused window takes inputs. Active item takes inputs over deep-most focused window.
+pub const ImGuiInputFlags_RouteFocused: c::Int = 2048;
+
+    /// Global route (unless a focused window or active item registered the route).
+pub const ImGuiInputFlags_RouteGlobal: c::Int = 4096;
+
+    /// Do not register route, poll keys directly.
+pub const ImGuiInputFlags_RouteAlways: c::Int = 8192;
+
+    /// - Routing options
+    /// Option: global route: higher priority than focused route (unless active item in focused route).
+pub const ImGuiInputFlags_RouteOverFocused: c::Int = 16384;
+
+    /// Option: global route: higher priority than active item. Unlikely you need to use that: will interfere with every active items, e.g. Ctrl+A registered by InputText will be overridden by this. May not be fully honored as user/internal code is likely to always assume they can access keys when active.
+pub const ImGuiInputFlags_RouteOverActive: c::Int = 32768;
+
+    /// Option: global route: will not be applied if underlying background/void is focused (== no Dear ImGui windows are focused). Useful for overlay applications.
+pub const ImGuiInputFlags_RouteUnlessBgFocused: c::Int = 65536;
+
+    /// Option: route evaluated from the point of view of root window rather than current window.
+pub const ImGuiInputFlags_RouteFromRootWindow: c::Int = 131072;
+
+    /// Flags for SetNextItemShortcut()
+    /// Automatically display a tooltip when hovering item [BETA] Unsure of right api (opt-in/opt-out)
+pub const ImGuiInputFlags_Tooltip: c::Int = 262144;
+
+    /// `ImGuiConfigFlags_None` value from Dear ImGui's `ImGuiConfigFlags_` catalog.
+pub const ImGuiConfigFlags_None: c::Int = 0;
+
+    /// Master keyboard navigation enable flag. Enable full Tabbing + directional arrows + Space/Enter to activate. Note: some features such as basic Tabbing and CtrL+Tab are enabled by regardless of this flag (and may be disabled via other means, see #4828, #9218).
+pub const ImGuiConfigFlags_NavEnableKeyboard: c::Int = 1;
+
+    /// Master gamepad navigation enable flag. Backend also needs to set ImGuiBackendFlags_HasGamepad.
+pub const ImGuiConfigFlags_NavEnableGamepad: c::Int = 2;
+
+    /// Instruct dear imgui to disable mouse inputs and interactions.
+pub const ImGuiConfigFlags_NoMouse: c::Int = 16;
+
+    /// Instruct backend to not alter mouse cursor shape and visibility. Use if the backend cursor changes are interfering with yours and you don't want to use SetMouseCursor() to change mouse cursor. You may want to honor requests from imgui by reading GetMouseCursor() yourself instead.
+pub const ImGuiConfigFlags_NoMouseCursorChange: c::Int = 32;
+
+    /// Instruct dear imgui to disable keyboard inputs and interactions. This is done by ignoring keyboard events and clearing existing states.
+pub const ImGuiConfigFlags_NoKeyboard: c::Int = 64;
+
+    /// [Unused] User storage (to allow your backend/engine to communicate to code that may be shared between multiple projects. Those flags are NOT used by core Dear ImGui)
+    /// Application is SRGB-aware.
+pub const ImGuiConfigFlags_IsSRGB: c::Int = 1048576;
+
+    /// Application is using a touch screen instead of a mouse.
+pub const ImGuiConfigFlags_IsTouchScreen: c::Int = 2097152;
+
+    /// [moved/renamed in 1.91.4] -> use bool io.ConfigNavMoveSetMousePos
+pub const ImGuiConfigFlags_NavEnableSetMousePos: c::Int = 4;
+
+    /// [moved/renamed in 1.91.4] -> use bool io.ConfigNavCaptureKeyboard
+pub const ImGuiConfigFlags_NavNoCaptureKeyboard: c::Int = 8;
+
+    /// `ImGuiBackendFlags_None` value from Dear ImGui's `ImGuiBackendFlags_` catalog.
+pub const ImGuiBackendFlags_None: c::Int = 0;
+
+    /// Backend Platform supports gamepad and currently has one connected.
+pub const ImGuiBackendFlags_HasGamepad: c::Int = 1;
+
+    /// Backend Platform supports honoring GetMouseCursor() value to change the OS cursor shape.
+pub const ImGuiBackendFlags_HasMouseCursors: c::Int = 2;
+
+    /// Backend Platform supports io.WantSetMousePos requests to reposition the OS mouse position (only used if io.ConfigNavMoveSetMousePos is set).
+pub const ImGuiBackendFlags_HasSetMousePos: c::Int = 4;
+
+    /// Backend Renderer supports ImDrawCmd::VtxOffset. This enables output of large meshes (64K+ vertices) while still using 16-bit indices.
+pub const ImGuiBackendFlags_RendererHasVtxOffset: c::Int = 8;
+
+    /// Backend Renderer supports ImTextureData requests to create/update/destroy textures. This enables incremental texture updates and texture reloads. See https://github.com/ocornut/imgui/blob/master/docs/BACKENDS.md for instructions on how to upgrade your custom backend.
+pub const ImGuiBackendFlags_RendererHasTextures: c::Int = 16;
+
+    /// `ImGuiCol_Text` value from Dear ImGui's `ImGuiCol_` catalog.
+pub const ImGuiCol_Text: c::Int = 0;
+
+    /// `ImGuiCol_TextDisabled` value from Dear ImGui's `ImGuiCol_` catalog.
+pub const ImGuiCol_TextDisabled: c::Int = 1;
+
+    /// Background of normal windows
+pub const ImGuiCol_WindowBg: c::Int = 2;
+
+    /// Background of child windows
+pub const ImGuiCol_ChildBg: c::Int = 3;
+
+    /// Background of popups, menus, tooltips windows
+pub const ImGuiCol_PopupBg: c::Int = 4;
+
+    /// `ImGuiCol_Border` value from Dear ImGui's `ImGuiCol_` catalog.
+pub const ImGuiCol_Border: c::Int = 5;
+
+    /// `ImGuiCol_BorderShadow` value from Dear ImGui's `ImGuiCol_` catalog.
+pub const ImGuiCol_BorderShadow: c::Int = 6;
+
+    /// Background of checkbox, radio button, plot, slider, text input
+pub const ImGuiCol_FrameBg: c::Int = 7;
+
+    /// `ImGuiCol_FrameBgHovered` value from Dear ImGui's `ImGuiCol_` catalog.
+pub const ImGuiCol_FrameBgHovered: c::Int = 8;
+
+    /// `ImGuiCol_FrameBgActive` value from Dear ImGui's `ImGuiCol_` catalog.
+pub const ImGuiCol_FrameBgActive: c::Int = 9;
+
+    /// Title bar
+pub const ImGuiCol_TitleBg: c::Int = 10;
+
+    /// Title bar when focused
+pub const ImGuiCol_TitleBgActive: c::Int = 11;
+
+    /// Title bar when collapsed
+pub const ImGuiCol_TitleBgCollapsed: c::Int = 12;
+
+    /// `ImGuiCol_MenuBarBg` value from Dear ImGui's `ImGuiCol_` catalog.
+pub const ImGuiCol_MenuBarBg: c::Int = 13;
+
+    /// `ImGuiCol_ScrollbarBg` value from Dear ImGui's `ImGuiCol_` catalog.
+pub const ImGuiCol_ScrollbarBg: c::Int = 14;
+
+    /// `ImGuiCol_ScrollbarGrab` value from Dear ImGui's `ImGuiCol_` catalog.
+pub const ImGuiCol_ScrollbarGrab: c::Int = 15;
+
+    /// `ImGuiCol_ScrollbarGrabHovered` value from Dear ImGui's `ImGuiCol_` catalog.
+pub const ImGuiCol_ScrollbarGrabHovered: c::Int = 16;
+
+    /// `ImGuiCol_ScrollbarGrabActive` value from Dear ImGui's `ImGuiCol_` catalog.
+pub const ImGuiCol_ScrollbarGrabActive: c::Int = 17;
+
+    /// Checkbox tick and RadioButton circle
+pub const ImGuiCol_CheckMark: c::Int = 18;
+
+    /// Checkbox background when Selected, otherwise use FrameBg
+pub const ImGuiCol_CheckboxSelectedBg: c::Int = 19;
+
+    /// `ImGuiCol_SliderGrab` value from Dear ImGui's `ImGuiCol_` catalog.
+pub const ImGuiCol_SliderGrab: c::Int = 20;
+
+    /// `ImGuiCol_SliderGrabActive` value from Dear ImGui's `ImGuiCol_` catalog.
+pub const ImGuiCol_SliderGrabActive: c::Int = 21;
+
+    /// `ImGuiCol_Button` value from Dear ImGui's `ImGuiCol_` catalog.
+pub const ImGuiCol_Button: c::Int = 22;
+
+    /// `ImGuiCol_ButtonHovered` value from Dear ImGui's `ImGuiCol_` catalog.
+pub const ImGuiCol_ButtonHovered: c::Int = 23;
+
+    /// `ImGuiCol_ButtonActive` value from Dear ImGui's `ImGuiCol_` catalog.
+pub const ImGuiCol_ButtonActive: c::Int = 24;
+
+    /// Header* colors are used for CollapsingHeader, TreeNode, Selectable, MenuItem
+pub const ImGuiCol_Header: c::Int = 25;
+
+    /// `ImGuiCol_HeaderHovered` value from Dear ImGui's `ImGuiCol_` catalog.
+pub const ImGuiCol_HeaderHovered: c::Int = 26;
+
+    /// `ImGuiCol_HeaderActive` value from Dear ImGui's `ImGuiCol_` catalog.
+pub const ImGuiCol_HeaderActive: c::Int = 27;
+
+    /// `ImGuiCol_Separator` value from Dear ImGui's `ImGuiCol_` catalog.
+pub const ImGuiCol_Separator: c::Int = 28;
+
+    /// `ImGuiCol_SeparatorHovered` value from Dear ImGui's `ImGuiCol_` catalog.
+pub const ImGuiCol_SeparatorHovered: c::Int = 29;
+
+    /// `ImGuiCol_SeparatorActive` value from Dear ImGui's `ImGuiCol_` catalog.
+pub const ImGuiCol_SeparatorActive: c::Int = 30;
+
+    /// Resize grip in lower-right and lower-left corners of windows.
+pub const ImGuiCol_ResizeGrip: c::Int = 31;
+
+    /// `ImGuiCol_ResizeGripHovered` value from Dear ImGui's `ImGuiCol_` catalog.
+pub const ImGuiCol_ResizeGripHovered: c::Int = 32;
+
+    /// `ImGuiCol_ResizeGripActive` value from Dear ImGui's `ImGuiCol_` catalog.
+pub const ImGuiCol_ResizeGripActive: c::Int = 33;
+
+    /// InputText cursor/caret
+pub const ImGuiCol_InputTextCursor: c::Int = 34;
+
+    /// Tab background, when hovered
+pub const ImGuiCol_TabHovered: c::Int = 35;
+
+    /// Tab background, when tab-bar is focused & tab is unselected
+pub const ImGuiCol_Tab: c::Int = 36;
+
+    /// Tab background, when tab-bar is focused & tab is selected
+pub const ImGuiCol_TabSelected: c::Int = 37;
+
+    /// Tab horizontal overline, when tab-bar is focused & tab is selected
+pub const ImGuiCol_TabSelectedOverline: c::Int = 38;
+
+    /// Tab background, when tab-bar is unfocused & tab is unselected
+pub const ImGuiCol_TabDimmed: c::Int = 39;
+
+    /// Tab background, when tab-bar is unfocused & tab is selected
+pub const ImGuiCol_TabDimmedSelected: c::Int = 40;
+
+    /// ..horizontal overline, when tab-bar is unfocused & tab is selected
+pub const ImGuiCol_TabDimmedSelectedOverline: c::Int = 41;
+
+    /// `ImGuiCol_PlotLines` value from Dear ImGui's `ImGuiCol_` catalog.
+pub const ImGuiCol_PlotLines: c::Int = 42;
+
+    /// `ImGuiCol_PlotLinesHovered` value from Dear ImGui's `ImGuiCol_` catalog.
+pub const ImGuiCol_PlotLinesHovered: c::Int = 43;
+
+    /// `ImGuiCol_PlotHistogram` value from Dear ImGui's `ImGuiCol_` catalog.
+pub const ImGuiCol_PlotHistogram: c::Int = 44;
+
+    /// `ImGuiCol_PlotHistogramHovered` value from Dear ImGui's `ImGuiCol_` catalog.
+pub const ImGuiCol_PlotHistogramHovered: c::Int = 45;
+
+    /// Table header background
+pub const ImGuiCol_TableHeaderBg: c::Int = 46;
+
+    /// Table outer and header borders (prefer using Alpha=1.0 here)
+pub const ImGuiCol_TableBorderStrong: c::Int = 47;
+
+    /// Table inner borders (prefer using Alpha=1.0 here)
+pub const ImGuiCol_TableBorderLight: c::Int = 48;
+
+    /// Table row background (even rows)
+pub const ImGuiCol_TableRowBg: c::Int = 49;
+
+    /// Table row background (odd rows)
+pub const ImGuiCol_TableRowBgAlt: c::Int = 50;
+
+    /// Hyperlink color
+pub const ImGuiCol_TextLink: c::Int = 51;
+
+    /// Selected text inside an InputText
+pub const ImGuiCol_TextSelectedBg: c::Int = 52;
+
+    /// Tree node hierarchy outlines when using ImGuiTreeNodeFlags_DrawLines
+pub const ImGuiCol_TreeLines: c::Int = 53;
+
+    /// Rectangle border highlighting a drop target
+pub const ImGuiCol_DragDropTarget: c::Int = 54;
+
+    /// Rectangle background highlighting a drop target
+pub const ImGuiCol_DragDropTargetBg: c::Int = 55;
+
+    /// Unsaved Document marker (in window title and tabs)
+pub const ImGuiCol_UnsavedMarker: c::Int = 56;
+
+    /// Color of keyboard/gamepad navigation cursor/rectangle, when visible
+pub const ImGuiCol_NavCursor: c::Int = 57;
+
+    /// Highlight window when using Ctrl+Tab
+pub const ImGuiCol_NavWindowingHighlight: c::Int = 58;
+
+    /// Darken/colorize entire screen behind the Ctrl+Tab window list, when active
+pub const ImGuiCol_NavWindowingDimBg: c::Int = 59;
+
+    /// Darken/colorize entire screen behind a modal window, when one is active
+pub const ImGuiCol_ModalWindowDimBg: c::Int = 60;
+
+    /// `ImGuiCol_COUNT` value from Dear ImGui's `ImGuiCol_` catalog.
+pub const ImGuiCol_COUNT: c::Int = 61;
+
+    /// [renamed in 1.90.9]
+pub const ImGuiCol_TabActive: c::Int = 37;
+
+    /// [renamed in 1.90.9]
+pub const ImGuiCol_TabUnfocused: c::Int = 39;
+
+    /// [renamed in 1.90.9]
+pub const ImGuiCol_TabUnfocusedActive: c::Int = 40;
+
+    /// [renamed in 1.91.4]
+pub const ImGuiCol_NavHighlight: c::Int = 57;
+
+    /// Enum name -------------------------- // Member in ImGuiStyle structure (see ImGuiStyle for descriptions)
+    /// float     Alpha
+pub const ImGuiStyleVar_Alpha: c::Int = 0;
+
+    /// float     DisabledAlpha
+pub const ImGuiStyleVar_DisabledAlpha: c::Int = 1;
+
+    /// ImVec2    WindowPadding
+pub const ImGuiStyleVar_WindowPadding: c::Int = 2;
+
+    /// float     WindowRounding
+pub const ImGuiStyleVar_WindowRounding: c::Int = 3;
+
+    /// float     WindowBorderSize
+pub const ImGuiStyleVar_WindowBorderSize: c::Int = 4;
+
+    /// ImVec2    WindowMinSize
+pub const ImGuiStyleVar_WindowMinSize: c::Int = 5;
+
+    /// ImVec2    WindowTitleAlign
+pub const ImGuiStyleVar_WindowTitleAlign: c::Int = 6;
+
+    /// float     ChildRounding
+pub const ImGuiStyleVar_ChildRounding: c::Int = 7;
+
+    /// float     ChildBorderSize
+pub const ImGuiStyleVar_ChildBorderSize: c::Int = 8;
+
+    /// float     PopupRounding
+pub const ImGuiStyleVar_PopupRounding: c::Int = 9;
+
+    /// float     PopupBorderSize
+pub const ImGuiStyleVar_PopupBorderSize: c::Int = 10;
+
+    /// ImVec2    FramePadding
+pub const ImGuiStyleVar_FramePadding: c::Int = 11;
+
+    /// float     FrameRounding
+pub const ImGuiStyleVar_FrameRounding: c::Int = 12;
+
+    /// float     FrameBorderSize
+pub const ImGuiStyleVar_FrameBorderSize: c::Int = 13;
+
+    /// ImVec2    ItemSpacing
+pub const ImGuiStyleVar_ItemSpacing: c::Int = 14;
+
+    /// ImVec2    ItemInnerSpacing
+pub const ImGuiStyleVar_ItemInnerSpacing: c::Int = 15;
+
+    /// float     IndentSpacing
+pub const ImGuiStyleVar_IndentSpacing: c::Int = 16;
+
+    /// ImVec2    CellPadding
+pub const ImGuiStyleVar_CellPadding: c::Int = 17;
+
+    /// float     ScrollbarSize
+pub const ImGuiStyleVar_ScrollbarSize: c::Int = 18;
+
+    /// float     ScrollbarRounding
+pub const ImGuiStyleVar_ScrollbarRounding: c::Int = 19;
+
+    /// float     ScrollbarPadding
+pub const ImGuiStyleVar_ScrollbarPadding: c::Int = 20;
+
+    /// float     GrabMinSize
+pub const ImGuiStyleVar_GrabMinSize: c::Int = 21;
+
+    /// float     GrabRounding
+pub const ImGuiStyleVar_GrabRounding: c::Int = 22;
+
+    /// float     ImageRounding
+pub const ImGuiStyleVar_ImageRounding: c::Int = 23;
+
+    /// float     ImageBorderSize
+pub const ImGuiStyleVar_ImageBorderSize: c::Int = 24;
+
+    /// float     TabRounding
+pub const ImGuiStyleVar_TabRounding: c::Int = 25;
+
+    /// float     TabBorderSize
+pub const ImGuiStyleVar_TabBorderSize: c::Int = 26;
+
+    /// float     TabMinWidthBase
+pub const ImGuiStyleVar_TabMinWidthBase: c::Int = 27;
+
+    /// float     TabMinWidthShrink
+pub const ImGuiStyleVar_TabMinWidthShrink: c::Int = 28;
+
+    /// float     TabBarBorderSize
+pub const ImGuiStyleVar_TabBarBorderSize: c::Int = 29;
+
+    /// float     TabBarOverlineSize
+pub const ImGuiStyleVar_TabBarOverlineSize: c::Int = 30;
+
+    /// float     TableAngledHeadersAngle
+pub const ImGuiStyleVar_TableAngledHeadersAngle: c::Int = 31;
+
+    /// ImVec2  TableAngledHeadersTextAlign
+pub const ImGuiStyleVar_TableAngledHeadersTextAlign: c::Int = 32;
+
+    /// float     TreeLinesSize
+pub const ImGuiStyleVar_TreeLinesSize: c::Int = 33;
+
+    /// float     TreeLinesRounding
+pub const ImGuiStyleVar_TreeLinesRounding: c::Int = 34;
+
+    /// float     DragDropTargetRounding
+pub const ImGuiStyleVar_DragDropTargetRounding: c::Int = 35;
+
+    /// ImVec2    ButtonTextAlign
+pub const ImGuiStyleVar_ButtonTextAlign: c::Int = 36;
+
+    /// ImVec2    SelectableTextAlign
+pub const ImGuiStyleVar_SelectableTextAlign: c::Int = 37;
+
+    /// float     SeparatorSize
+pub const ImGuiStyleVar_SeparatorSize: c::Int = 38;
+
+    /// float     SeparatorTextBorderSize
+pub const ImGuiStyleVar_SeparatorTextBorderSize: c::Int = 39;
+
+    /// ImVec2    SeparatorTextAlign
+pub const ImGuiStyleVar_SeparatorTextAlign: c::Int = 40;
+
+    /// ImVec2    SeparatorTextPadding
+pub const ImGuiStyleVar_SeparatorTextPadding: c::Int = 41;
+
+    /// `ImGuiStyleVar_COUNT` value from Dear ImGui's `ImGuiStyleVar_` catalog.
+pub const ImGuiStyleVar_COUNT: c::Int = 42;
+
+    /// `ImGuiButtonFlags_None` value from Dear ImGui's `ImGuiButtonFlags_` catalog.
+pub const ImGuiButtonFlags_None: c::Int = 0;
+
+    /// React on left mouse button (default)
+pub const ImGuiButtonFlags_MouseButtonLeft: c::Int = 1;
+
+    /// React on right mouse button
+pub const ImGuiButtonFlags_MouseButtonRight: c::Int = 2;
+
+    /// React on center mouse button
+pub const ImGuiButtonFlags_MouseButtonMiddle: c::Int = 4;
+
+    /// InvisibleButton(): do not disable navigation/tabbing. Otherwise disabled by default.
+pub const ImGuiButtonFlags_EnableNav: c::Int = 8;
+
+    /// Hit testing will allow subsequent widgets to overlap this one. Require previous frame HoveredId to match before being usable. Shortcut to calling SetNextItemAllowOverlap().
+pub const ImGuiButtonFlags_AllowOverlap: c::Int = 4096;
+
+    /// `ImGuiColorEditFlags_None` value from Dear ImGui's `ImGuiColorEditFlags_` catalog.
+pub const ImGuiColorEditFlags_None: c::Int = 0;
+
+    /// // ColorEdit, ColorPicker, ColorButton: ignore Alpha component (will only read 3 components from the input pointer).
+pub const ImGuiColorEditFlags_NoAlpha: c::Int = 2;
+
+    /// // ColorEdit: disable picker when clicking on color square.
+pub const ImGuiColorEditFlags_NoPicker: c::Int = 4;
+
+    /// // ColorEdit: disable toggling options menu when right-clicking on inputs/small preview.
+pub const ImGuiColorEditFlags_NoOptions: c::Int = 8;
+
+    /// // ColorEdit, ColorPicker: disable color square preview next to the inputs. (e.g. to show only the inputs)
+pub const ImGuiColorEditFlags_NoSmallPreview: c::Int = 16;
+
+    /// // ColorEdit, ColorPicker: disable inputs sliders/text widgets (e.g. to show only the small preview color square).
+pub const ImGuiColorEditFlags_NoInputs: c::Int = 32;
+
+    /// // ColorEdit, ColorPicker, ColorButton: disable tooltip when hovering the preview.
+pub const ImGuiColorEditFlags_NoTooltip: c::Int = 64;
+
+    /// // ColorEdit, ColorPicker: disable display of inline text label (the label is still forwarded to the tooltip and picker).
+pub const ImGuiColorEditFlags_NoLabel: c::Int = 128;
+
+    /// // ColorPicker: disable bigger color preview on right side of the picker, use small color square preview instead.
+pub const ImGuiColorEditFlags_NoSidePreview: c::Int = 256;
+
+    /// // ColorEdit: disable drag and drop target/source. ColorButton: disable drag and drop source.
+pub const ImGuiColorEditFlags_NoDragDrop: c::Int = 512;
+
+    /// // ColorButton: disable border (which is enforced by default)
+pub const ImGuiColorEditFlags_NoBorder: c::Int = 1024;
+
+    /// // ColorEdit: disable rendering R/G/B/A color marker. May also be disabled globally by setting style.ColorMarkerSize = 0.
+pub const ImGuiColorEditFlags_NoColorMarkers: c::Int = 2048;
+
+    /// Alpha preview
+    /// - Prior to 1.91.8 (2025/01/21): alpha was made opaque in the preview by default using old name ImGuiColorEditFlags_AlphaPreview.
+    /// - We now display the preview as transparent by default. You can use ImGuiColorEditFlags_AlphaOpaque to use old behavior.
+    /// - The new flags may be combined better and allow finer controls.
+    /// // ColorEdit, ColorPicker, ColorButton: disable alpha in the preview,. Contrary to _NoAlpha it may still be edited when calling ColorEdit4()/ColorPicker4(). For ColorButton() this does the same as _NoAlpha.
+pub const ImGuiColorEditFlags_AlphaOpaque: c::Int = 4096;
+
+    /// // ColorEdit, ColorPicker, ColorButton: disable rendering a checkerboard background behind transparent color.
+pub const ImGuiColorEditFlags_AlphaNoBg: c::Int = 8192;
+
+    /// // ColorEdit, ColorPicker, ColorButton: display half opaque / half transparent preview.
+pub const ImGuiColorEditFlags_AlphaPreviewHalf: c::Int = 16384;
+
+    /// User Options (right-click on widget to change some of them).
+    /// // ColorEdit, ColorPicker: show vertical alpha bar/gradient in picker.
+pub const ImGuiColorEditFlags_AlphaBar: c::Int = 262144;
+
+    /// // (WIP) ColorEdit: Currently only disable 0.0f..1.0f limits in RGBA edition (note: you probably want to use ImGuiColorEditFlags_Float flag as well).
+pub const ImGuiColorEditFlags_HDR: c::Int = 524288;
+
+    /// [Display]    // ColorEdit: override _display_ type among RGB/HSV/Hex. ColorPicker: select any combination using one or more of RGB/HSV/Hex.
+pub const ImGuiColorEditFlags_DisplayRGB: c::Int = 1048576;
+
+    /// [Display]    // "
+pub const ImGuiColorEditFlags_DisplayHSV: c::Int = 2097152;
+
+    /// [Display]    // "
+pub const ImGuiColorEditFlags_DisplayHex: c::Int = 4194304;
+
+    /// [DataType]   // ColorEdit, ColorPicker, ColorButton: _display_ values formatted as 0..255.
+pub const ImGuiColorEditFlags_Uint8: c::Int = 8388608;
+
+    /// [DataType]   // ColorEdit, ColorPicker, ColorButton: _display_ values formatted as 0.0f..1.0f floats instead of 0..255 integers. No round-trip of value via integers.
+pub const ImGuiColorEditFlags_Float: c::Int = 16777216;
+
+    /// [Picker]     // ColorPicker: bar for Hue, rectangle for Sat/Value.
+pub const ImGuiColorEditFlags_PickerHueBar: c::Int = 33554432;
+
+    /// [Picker]     // ColorPicker: wheel for Hue, triangle for Sat/Value.
+pub const ImGuiColorEditFlags_PickerHueWheel: c::Int = 67108864;
+
+    /// [Input]      // ColorEdit, ColorPicker: input and output data in RGB format.
+pub const ImGuiColorEditFlags_InputRGB: c::Int = 134217728;
+
+    /// [Input]      // ColorEdit, ColorPicker: input and output data in HSV format.
+pub const ImGuiColorEditFlags_InputHSV: c::Int = 268435456;
+
+    /// Removed in 1.91.8. This is the default now. Will display a checkerboard unless ImGuiColorEditFlags_AlphaNoBg is set.
+pub const ImGuiColorEditFlags_AlphaPreview: c::Int = 0;
+
+    /// `ImGuiSliderFlags_None` value from Dear ImGui's `ImGuiSliderFlags_` catalog.
+pub const ImGuiSliderFlags_None: c::Int = 0;
+
+    /// Make the widget logarithmic (linear otherwise). Consider using ImGuiSliderFlags_NoRoundToFormat with this if using a format-string with small amount of digits.
+pub const ImGuiSliderFlags_Logarithmic: c::Int = 32;
+
+    /// Disable rounding underlying value to match precision of the display format string (e.g. %.3f values are rounded to those 3 digits).
+pub const ImGuiSliderFlags_NoRoundToFormat: c::Int = 64;
+
+    /// Disable Ctrl+Click or Enter key allowing to input text directly into the widget.
+pub const ImGuiSliderFlags_NoInput: c::Int = 128;
+
+    /// Enable wrapping around from max to min and from min to max. Only supported by DragXXX() functions for now.
+pub const ImGuiSliderFlags_WrapAround: c::Int = 256;
+
+    /// Clamp value to min/max bounds when input manually with Ctrl+Click. By default Ctrl+Click allows going out of bounds.
+pub const ImGuiSliderFlags_ClampOnInput: c::Int = 512;
+
+    /// Clamp even if min==max==0.0f. Otherwise due to legacy reason DragXXX functions don't clamp with those values. When your clamping limits are dynamic you almost always want to use it.
+pub const ImGuiSliderFlags_ClampZeroRange: c::Int = 1024;
+
+    /// Disable keyboard modifiers altering tweak speed. Useful if you want to alter tweak speed yourself based on your own logic.
+pub const ImGuiSliderFlags_NoSpeedTweaks: c::Int = 2048;
+
+    /// DragScalarN(), SliderScalarN(): Draw R/G/B/A color markers on each component.
+pub const ImGuiSliderFlags_ColorMarkers: c::Int = 4096;
+
+    /// `ImGuiSliderFlags_AlwaysClamp` value from Dear ImGui's `ImGuiSliderFlags_` catalog.
+pub const ImGuiSliderFlags_AlwaysClamp: c::Int = 1536;
+
+    /// `ImGuiMouseButton_Left` value from Dear ImGui's `ImGuiMouseButton_` catalog.
+pub const ImGuiMouseButton_Left: c::Int = 0;
+
+    /// `ImGuiMouseButton_Right` value from Dear ImGui's `ImGuiMouseButton_` catalog.
+pub const ImGuiMouseButton_Right: c::Int = 1;
+
+    /// `ImGuiMouseButton_Middle` value from Dear ImGui's `ImGuiMouseButton_` catalog.
+pub const ImGuiMouseButton_Middle: c::Int = 2;
+
+    /// `ImGuiMouseButton_COUNT` value from Dear ImGui's `ImGuiMouseButton_` catalog.
+pub const ImGuiMouseButton_COUNT: c::Int = 5;
+
+    /// `ImGuiMouseCursor_None` value from Dear ImGui's `ImGuiMouseCursor_` catalog.
+pub const ImGuiMouseCursor_None: c::Int = -1;
+
+    /// `ImGuiMouseCursor_Arrow` value from Dear ImGui's `ImGuiMouseCursor_` catalog.
+pub const ImGuiMouseCursor_Arrow: c::Int = 0;
+
+    /// When hovering over InputText, etc.
+pub const ImGuiMouseCursor_TextInput: c::Int = 1;
+
+    /// (Unused by Dear ImGui functions)
+pub const ImGuiMouseCursor_ResizeAll: c::Int = 2;
+
+    /// When hovering over a horizontal border
+pub const ImGuiMouseCursor_ResizeNS: c::Int = 3;
+
+    /// When hovering over a vertical border or a column
+pub const ImGuiMouseCursor_ResizeEW: c::Int = 4;
+
+    /// When hovering over the bottom-left corner of a window
+pub const ImGuiMouseCursor_ResizeNESW: c::Int = 5;
+
+    /// When hovering over the bottom-right corner of a window
+pub const ImGuiMouseCursor_ResizeNWSE: c::Int = 6;
+
+    /// (Unused by Dear ImGui functions. Use for e.g. hyperlinks)
+pub const ImGuiMouseCursor_Hand: c::Int = 7;
+
+    /// When waiting for something to process/load.
+pub const ImGuiMouseCursor_Wait: c::Int = 8;
+
+    /// When waiting for something to process/load, but application is still interactive.
+pub const ImGuiMouseCursor_Progress: c::Int = 9;
+
+    /// When hovering something with disallowed interaction. Usually a crossed circle.
+pub const ImGuiMouseCursor_NotAllowed: c::Int = 10;
+
+    /// `ImGuiMouseCursor_COUNT` value from Dear ImGui's `ImGuiMouseCursor_` catalog.
+pub const ImGuiMouseCursor_COUNT: c::Int = 11;
+
+    /// Input is coming from an actual mouse.
+pub const ImGuiMouseSource_Mouse: c::Int = 0;
+
+    /// Input is coming from a touch screen (no hovering prior to initial press, less precise initial press aiming, dual-axis wheeling possible).
+pub const ImGuiMouseSource_TouchScreen: c::Int = 1;
+
+    /// Input is coming from a pressure/magnetic pen (often used in conjunction with high-sampling rates).
+pub const ImGuiMouseSource_Pen: c::Int = 2;
+
+    /// `ImGuiMouseSource_COUNT` value from Dear ImGui's `ImGuiMouseSource` catalog.
+pub const ImGuiMouseSource_COUNT: c::Int = 3;
+
+    /// No condition (always set the variable), same as _Always
+pub const ImGuiCond_None: c::Int = 0;
+
+    /// No condition (always set the variable), same as _None
+pub const ImGuiCond_Always: c::Int = 1;
+
+    /// Set the variable once per runtime session (only the first call will succeed)
+pub const ImGuiCond_Once: c::Int = 2;
+
+    /// Set the variable if the object/window has no persistently saved data (no entry in .ini file)
+pub const ImGuiCond_FirstUseEver: c::Int = 4;
+
+    /// Set the variable if the object/window is appearing after being hidden/inactive (or the first time)
+pub const ImGuiCond_Appearing: c::Int = 8;
+
+    /// Features
+pub const ImGuiTableFlags_None: c::Int = 0;
+
+    /// Enable resizing columns.
+pub const ImGuiTableFlags_Resizable: c::Int = 1;
+
+    /// Enable reordering columns in header row. (Need calling TableSetupColumn() + TableHeadersRow() to display headers, or using ImGuiTableFlags_ContextMenuInBody to access context-menu without headers).
+pub const ImGuiTableFlags_Reorderable: c::Int = 2;
+
+    /// Enable hiding/disabling columns in context menu.
+pub const ImGuiTableFlags_Hideable: c::Int = 4;
+
+    /// Enable sorting. Call TableGetSortSpecs() to obtain sort specs. Also see ImGuiTableFlags_SortMulti and ImGuiTableFlags_SortTristate.
+pub const ImGuiTableFlags_Sortable: c::Int = 8;
+
+    /// Disable persisting columns order, width, visibility and sort settings in the .ini file.
+pub const ImGuiTableFlags_NoSavedSettings: c::Int = 16;
+
+    /// Right-click on columns body/contents will also display table context menu. By default it is available in TableHeadersRow().
+pub const ImGuiTableFlags_ContextMenuInBody: c::Int = 32;
+
+    /// Decorations
+    /// Set each RowBg color with ImGuiCol_TableRowBg or ImGuiCol_TableRowBgAlt (equivalent of calling TableSetBgColor with ImGuiTableBgFlags_RowBg0 on each row manually)
+pub const ImGuiTableFlags_RowBg: c::Int = 64;
+
+    /// Draw horizontal borders between rows.
+pub const ImGuiTableFlags_BordersInnerH: c::Int = 128;
+
+    /// Draw horizontal borders at the top and bottom.
+pub const ImGuiTableFlags_BordersOuterH: c::Int = 256;
+
+    /// Draw vertical borders between columns.
+pub const ImGuiTableFlags_BordersInnerV: c::Int = 512;
+
+    /// Draw vertical borders on the left and right sides.
+pub const ImGuiTableFlags_BordersOuterV: c::Int = 1024;
+
+    /// Draw horizontal borders.
+pub const ImGuiTableFlags_BordersH: c::Int = 384;
+
+    /// Draw vertical borders.
+pub const ImGuiTableFlags_BordersV: c::Int = 1536;
+
+    /// Draw inner borders.
+pub const ImGuiTableFlags_BordersInner: c::Int = 640;
+
+    /// Draw outer borders.
+pub const ImGuiTableFlags_BordersOuter: c::Int = 1280;
+
+    /// Draw all borders.
+pub const ImGuiTableFlags_Borders: c::Int = 1920;
+
+    /// [ALPHA] Disable vertical borders in columns Body (borders will always appear in Headers). -> May move to style
+pub const ImGuiTableFlags_NoBordersInBody: c::Int = 2048;
+
+    /// [ALPHA] Disable vertical borders in columns Body until hovered for resize (borders will always appear in Headers). -> May move to style
+pub const ImGuiTableFlags_NoBordersInBodyUntilResize: c::Int = 4096;
+
+    /// Sizing Policy (read above for defaults)
+    /// Columns default to _WidthFixed or _WidthAuto (if resizable or not resizable), matching contents width.
+pub const ImGuiTableFlags_SizingFixedFit: c::Int = 8192;
+
+    /// Columns default to _WidthFixed or _WidthAuto (if resizable or not resizable), matching the maximum contents width of all columns. Implicitly enable ImGuiTableFlags_NoKeepColumnsVisible.
+pub const ImGuiTableFlags_SizingFixedSame: c::Int = 16384;
+
+    /// Columns default to _WidthStretch with default weights proportional to each columns contents widths.
+pub const ImGuiTableFlags_SizingStretchProp: c::Int = 24576;
+
+    /// Columns default to _WidthStretch with default weights all equal, unless overridden by TableSetupColumn().
+pub const ImGuiTableFlags_SizingStretchSame: c::Int = 32768;
+
+    /// Sizing Extra Options
+    /// Make outer width auto-fit to columns, overriding outer_size.x value. Only available when ScrollX/ScrollY are disabled and Stretch columns are not used.
+pub const ImGuiTableFlags_NoHostExtendX: c::Int = 65536;
+
+    /// Make outer height stop exactly at outer_size.y (prevent auto-extending table past the limit). Only available when ScrollX/ScrollY are disabled. Data below the limit will be clipped and not visible.
+pub const ImGuiTableFlags_NoHostExtendY: c::Int = 131072;
+
+    /// Disable keeping column always minimally visible when ScrollX is off and table gets too small. Not recommended if columns are resizable.
+pub const ImGuiTableFlags_NoKeepColumnsVisible: c::Int = 262144;
+
+    /// Disable distributing remainder width to stretched columns (width allocation on a 100-wide table with 3 columns: Without this flag: 33,33,34. With this flag: 33,33,33). With larger number of columns, resizing will appear to be less smooth.
+pub const ImGuiTableFlags_PreciseWidths: c::Int = 524288;
+
+    /// Clipping
+    /// Disable clipping rectangle for every individual columns (reduce draw command count, items will be able to overflow into other columns). Generally incompatible with TableSetupScrollFreeze().
+pub const ImGuiTableFlags_NoClip: c::Int = 1048576;
+
+    /// Padding
+    /// Default if BordersOuterV is on. Enable outermost padding. Generally desirable if you have headers.
+pub const ImGuiTableFlags_PadOuterX: c::Int = 2097152;
+
+    /// Default if BordersOuterV is off. Disable outermost padding.
+pub const ImGuiTableFlags_NoPadOuterX: c::Int = 4194304;
+
+    /// Disable inner padding between columns (double inner padding if BordersOuterV is on, single inner padding if BordersOuterV is off).
+pub const ImGuiTableFlags_NoPadInnerX: c::Int = 8388608;
+
+    /// Scrolling
+    /// Enable horizontal scrolling. Require 'outer_size' parameter of BeginTable() to specify the container size. Changes default sizing policy. Because this creates a child window, ScrollY is currently generally recommended when using ScrollX.
+pub const ImGuiTableFlags_ScrollX: c::Int = 16777216;
+
+    /// Enable vertical scrolling. Require 'outer_size' parameter of BeginTable() to specify the container size.
+pub const ImGuiTableFlags_ScrollY: c::Int = 33554432;
+
+    /// Sorting
+    /// Hold shift when clicking headers to sort on multiple column. TableGetSortSpecs() may return specs where (SpecsCount > 1).
+pub const ImGuiTableFlags_SortMulti: c::Int = 67108864;
+
+    /// Allow no sorting, disable default sorting. TableGetSortSpecs() may return specs where (SpecsCount == 0).
+pub const ImGuiTableFlags_SortTristate: c::Int = 134217728;
+
+    /// Miscellaneous
+    /// Highlight column headers when hovered (may evolve into a fuller highlight)
+pub const ImGuiTableFlags_HighlightHoveredColumn: c::Int = 268435456;
+
+    /// Input configuration flags
+pub const ImGuiTableColumnFlags_None: c::Int = 0;
+
+    /// Overriding/master disable flag: hide column, won't show in context menu (unlike calling TableSetColumnEnabled() which manipulates the user accessible state)
+pub const ImGuiTableColumnFlags_Disabled: c::Int = 1;
+
+    /// Default as a hidden/disabled column.
+pub const ImGuiTableColumnFlags_DefaultHide: c::Int = 2;
+
+    /// Default as a sorting column.
+pub const ImGuiTableColumnFlags_DefaultSort: c::Int = 4;
+
+    /// Column will stretch. Preferable with horizontal scrolling disabled (default if table sizing policy is _SizingStretchSame or _SizingStretchProp).
+pub const ImGuiTableColumnFlags_WidthStretch: c::Int = 8;
+
+    /// Column will not stretch. Preferable with horizontal scrolling enabled (default if table sizing policy is _SizingFixedFit and table is resizable).
+pub const ImGuiTableColumnFlags_WidthFixed: c::Int = 16;
+
+    /// Disable manual resizing.
+pub const ImGuiTableColumnFlags_NoResize: c::Int = 32;
+
+    /// Disable manual reordering this column, this will also prevent other columns from crossing over this column.
+pub const ImGuiTableColumnFlags_NoReorder: c::Int = 64;
+
+    /// Disable ability to hide/disable this column.
+pub const ImGuiTableColumnFlags_NoHide: c::Int = 128;
+
+    /// Disable clipping for this column (all NoClip columns will render in a same draw command).
+pub const ImGuiTableColumnFlags_NoClip: c::Int = 256;
+
+    /// Disable ability to sort on this field (even if ImGuiTableFlags_Sortable is set on the table).
+pub const ImGuiTableColumnFlags_NoSort: c::Int = 512;
+
+    /// Disable ability to sort in the ascending direction.
+pub const ImGuiTableColumnFlags_NoSortAscending: c::Int = 1024;
+
+    /// Disable ability to sort in the descending direction.
+pub const ImGuiTableColumnFlags_NoSortDescending: c::Int = 2048;
+
+    /// TableHeadersRow() will submit an empty label for this column. Convenient for some small columns. Name will still appear in context menu or in angled headers. You may append into this cell by calling TableSetColumnIndex() right after the TableHeadersRow() call.
+pub const ImGuiTableColumnFlags_NoHeaderLabel: c::Int = 4096;
+
+    /// Disable header text width contribution to automatic column width.
+pub const ImGuiTableColumnFlags_NoHeaderWidth: c::Int = 8192;
+
+    /// Make the initial sort direction Ascending when first sorting on this column (default).
+pub const ImGuiTableColumnFlags_PreferSortAscending: c::Int = 16384;
+
+    /// Make the initial sort direction Descending when first sorting on this column.
+pub const ImGuiTableColumnFlags_PreferSortDescending: c::Int = 32768;
+
+    /// Use current Indent value when entering cell (default for column 0).
+pub const ImGuiTableColumnFlags_IndentEnable: c::Int = 65536;
+
+    /// Ignore current Indent value when entering cell (default for columns > 0). Indentation changes _within_ the cell will still be honored.
+pub const ImGuiTableColumnFlags_IndentDisable: c::Int = 131072;
+
+    /// TableHeadersRow() will submit an angled header row for this column. Note this will add an extra row.
+pub const ImGuiTableColumnFlags_AngledHeader: c::Int = 262144;
+
+    /// Output status flags, read-only via TableGetColumnFlags()
+    /// Status: is enabled == not hidden by user/api (referred to as "Hide" in _DefaultHide and _NoHide) flags.
+pub const ImGuiTableColumnFlags_IsEnabled: c::Int = 16777216;
+
+    /// Status: is visible == is enabled AND not clipped by scrolling.
+pub const ImGuiTableColumnFlags_IsVisible: c::Int = 33554432;
+
+    /// Status: is currently part of the sort specs
+pub const ImGuiTableColumnFlags_IsSorted: c::Int = 67108864;
+
+    /// Status: is hovered by mouse
+pub const ImGuiTableColumnFlags_IsHovered: c::Int = 134217728;
+
+    /// `ImGuiTableRowFlags_None` value from Dear ImGui's `ImGuiTableRowFlags_` catalog.
+pub const ImGuiTableRowFlags_None: c::Int = 0;
+
+    /// Identify header row (set default background color + width of its contents accounted differently for auto column width)
+pub const ImGuiTableRowFlags_Headers: c::Int = 1;
+
+    /// `ImGuiTableBgTarget_None` value from Dear ImGui's `ImGuiTableBgTarget_` catalog.
+pub const ImGuiTableBgTarget_None: c::Int = 0;
+
+    /// Set row background color 0 (generally used for background, automatically set when ImGuiTableFlags_RowBg is used)
+pub const ImGuiTableBgTarget_RowBg0: c::Int = 1;
+
+    /// Set row background color 1 (generally used for selection marking)
+pub const ImGuiTableBgTarget_RowBg1: c::Int = 2;
+
+    /// Set cell background color (top-most color)
+pub const ImGuiTableBgTarget_CellBg: c::Int = 3;
+
+    /// `ImGuiListClipperFlags_None` value from Dear ImGui's `ImGuiListClipperFlags_` catalog.
+pub const ImGuiListClipperFlags_None: c::Int = 0;
+
+    /// [Internal] Disabled modifying table row counters. Avoid assumption that 1 clipper item == 1 table row.
+pub const ImGuiListClipperFlags_NoSetTableRowCounters: c::Int = 1;
+
+    /// `ImGuiMultiSelectFlags_None` value from Dear ImGui's `ImGuiMultiSelectFlags_` catalog.
+pub const ImGuiMultiSelectFlags_None: c::Int = 0;
+
+    /// Disable selecting more than one item. This is available to allow single-selection code to share same code/logic if desired. It essentially disables the main purpose of BeginMultiSelect() tho!
+pub const ImGuiMultiSelectFlags_SingleSelect: c::Int = 1;
+
+    /// Disable Ctrl+A shortcut to select all.
+pub const ImGuiMultiSelectFlags_NoSelectAll: c::Int = 2;
+
+    /// Disable Shift+selection mouse/keyboard support (useful for unordered 2D selection). With BoxSelect is also ensure contiguous SetRange requests are not combined into one. This allows not handling interpolation in SetRange requests.
+pub const ImGuiMultiSelectFlags_NoRangeSelect: c::Int = 4;
+
+    /// Disable selecting items when navigating (useful for e.g. supporting range-select in a list of checkboxes).
+pub const ImGuiMultiSelectFlags_NoAutoSelect: c::Int = 8;
+
+    /// Disable clearing selection when navigating or selecting another one (generally used with ImGuiMultiSelectFlags_NoAutoSelect. useful for e.g. supporting range-select in a list of checkboxes).
+pub const ImGuiMultiSelectFlags_NoAutoClear: c::Int = 16;
+
+    /// Disable clearing selection when clicking/selecting an already selected item.
+pub const ImGuiMultiSelectFlags_NoAutoClearOnReselect: c::Int = 32;
+
+    /// Enable box-selection with same width and same x pos items (e.g. full row Selectable()). Box-selection works better with little bit of spacing between items hit-box in order to be able to aim at empty space.
+pub const ImGuiMultiSelectFlags_BoxSelect1d: c::Int = 64;
+
+    /// Enable box-selection with varying width or varying x pos items support (e.g. different width labels, or 2D layout/grid). This is slower: alters clipping logic so that e.g. horizontal movements will update selection of normally clipped items.
+pub const ImGuiMultiSelectFlags_BoxSelect2d: c::Int = 128;
+
+    /// Disable scrolling when box-selecting and moving mouse near edges of scope.
+pub const ImGuiMultiSelectFlags_BoxSelectNoScroll: c::Int = 256;
+
+    /// Clear selection when pressing Escape while scope is focused.
+pub const ImGuiMultiSelectFlags_ClearOnEscape: c::Int = 512;
+
+    /// Clear selection when clicking on empty location within scope.
+pub const ImGuiMultiSelectFlags_ClearOnClickVoid: c::Int = 1024;
+
+    /// Scope for _BoxSelect and _ClearOnClickVoid is whole window (Default). Use if BeginMultiSelect() covers a whole window or used a single time in same window.
+pub const ImGuiMultiSelectFlags_ScopeWindow: c::Int = 2048;
+
+    /// Scope for _BoxSelect and _ClearOnClickVoid is rectangle encompassing BeginMultiSelect()/EndMultiSelect(). Use if BeginMultiSelect() is called multiple times in same window.
+pub const ImGuiMultiSelectFlags_ScopeRect: c::Int = 4096;
+
+    /// Apply selection on mouse down when clicking on unselected item, on mouse up when clicking on selected item. (Default)
+pub const ImGuiMultiSelectFlags_SelectOnAuto: c::Int = 8192;
+
+    /// Apply selection on mouse down when clicking on any items. Prevents Drag and Drop from being used on multiple-selection, but allows e.g. BoxSelect to always reselect even when clicking inside an existing selection. (Excel style behavior)
+pub const ImGuiMultiSelectFlags_SelectOnClickAlways: c::Int = 16384;
+
+    /// Apply selection on mouse release when clicking an unselected item. Allow dragging an unselected item without altering selection.
+pub const ImGuiMultiSelectFlags_SelectOnClickRelease: c::Int = 32768;
+
+    /// ImGuiMultiSelectFlags_RangeSelect2d       = 1 << 15,  // Shift+Selection uses 2d geometry instead of linear sequence, so possible to use Shift+up/down to select vertically in grid. Analogous to what BoxSelect does.
+    /// [Temporary] Enable navigation wrapping on X axis. Provided as a convenience because we don't have a design for the general Nav API for this yet. When the more general feature be public we may obsolete this flag in favor of new one.
+pub const ImGuiMultiSelectFlags_NavWrapX: c::Int = 65536;
+
+    /// Disable default right-click processing, which selects item on mouse down, and is designed for context-menus.
+pub const ImGuiMultiSelectFlags_NoSelectOnRightClick: c::Int = 131072;
+
+    /// RENAMED in 1.92.6
+pub const ImGuiMultiSelectFlags_SelectOnClick: c::Int = 8192;
+
+    /// `ImGuiSelectionRequestType_None` value from Dear ImGui's `ImGuiSelectionRequestType` catalog.
+pub const ImGuiSelectionRequestType_None: c::Int = 0;
+
+    /// Request app to clear selection (if Selected==false) or select all items (if Selected==true). We cannot set RangeFirstItem/RangeLastItem as its contents is entirely up to user (not necessarily an index)
+pub const ImGuiSelectionRequestType_SetAll: c::Int = 1;
+
+    /// Request app to select/unselect [RangeFirstItem..RangeLastItem] items (inclusive) based on value of Selected. Only EndMultiSelect() request this, app code can read after BeginMultiSelect() and it will always be false.
+pub const ImGuiSelectionRequestType_SetRange: c::Int = 2;
+
+    /// `ImDrawFlags_None` value from Dear ImGui's `ImDrawFlags_` catalog.
+pub const ImDrawFlags_None: c::Int = 0;
+
+    /// AddRect(), AddRectFilled(), PathRect(): enable rounding top-left corner only (when rounding > 0.0f, we default to all corners). Was 0x01.
+pub const ImDrawFlags_RoundCornersTopLeft: c::Int = 16;
+
+    /// AddRect(), AddRectFilled(), PathRect(): enable rounding top-right corner only (when rounding > 0.0f, we default to all corners). Was 0x02.
+pub const ImDrawFlags_RoundCornersTopRight: c::Int = 32;
+
+    /// AddRect(), AddRectFilled(), PathRect(): enable rounding bottom-left corner only (when rounding > 0.0f, we default to all corners). Was 0x04.
+pub const ImDrawFlags_RoundCornersBottomLeft: c::Int = 64;
+
+    /// AddRect(), AddRectFilled(), PathRect(): enable rounding bottom-right corner only (when rounding > 0.0f, we default to all corners). Wax 0x08.
+pub const ImDrawFlags_RoundCornersBottomRight: c::Int = 128;
+
+    /// AddRect(), AddRectFilled(), PathRect(): disable rounding on all corners (when rounding > 0.0f). This is NOT zero, NOT an implicit flag!
+pub const ImDrawFlags_RoundCornersNone: c::Int = 256;
+
+    /// PathStroke(), AddPolyline(): specify that shape should be closed (Important: this is always == 1 for legacy reason)
+pub const ImDrawFlags_Closed: c::Int = 512;
+
+    /// `ImDrawFlags_RoundCornersTop` value from Dear ImGui's `ImDrawFlags_` catalog.
+pub const ImDrawFlags_RoundCornersTop: c::Int = 48;
+
+    /// `ImDrawFlags_RoundCornersBottom` value from Dear ImGui's `ImDrawFlags_` catalog.
+pub const ImDrawFlags_RoundCornersBottom: c::Int = 192;
+
+    /// `ImDrawFlags_RoundCornersLeft` value from Dear ImGui's `ImDrawFlags_` catalog.
+pub const ImDrawFlags_RoundCornersLeft: c::Int = 80;
+
+    /// `ImDrawFlags_RoundCornersRight` value from Dear ImGui's `ImDrawFlags_` catalog.
+pub const ImDrawFlags_RoundCornersRight: c::Int = 160;
+
+    /// `ImDrawFlags_RoundCornersAll` value from Dear ImGui's `ImDrawFlags_` catalog.
+pub const ImDrawFlags_RoundCornersAll: c::Int = 240;
+
+    /// `ImDrawListFlags_None` value from Dear ImGui's `ImDrawListFlags_` catalog.
+pub const ImDrawListFlags_None: c::Int = 0;
+
+    /// Enable anti-aliased lines/borders (*2 the number of triangles for 1.0f wide line or lines thin enough to be drawn using textures, otherwise *3 the number of triangles)
+pub const ImDrawListFlags_AntiAliasedLines: c::Int = 1;
+
+    /// Enable anti-aliased lines/borders using textures when possible. Require backend to render with bilinear filtering (NOT point/nearest filtering).
+pub const ImDrawListFlags_AntiAliasedLinesUseTex: c::Int = 2;
+
+    /// Enable anti-aliased edge around filled shapes (rounded rectangles, circles).
+pub const ImDrawListFlags_AntiAliasedFill: c::Int = 4;
+
+    /// Can emit 'VtxOffset > 0' to allow large meshes. Set when 'ImGuiBackendFlags_RendererHasVtxOffset' is enabled.
+pub const ImDrawListFlags_AllowVtxOffset: c::Int = 8;
+
+    /// 4 components per pixel, each is unsigned 8-bit. Total size = TexWidth * TexHeight * 4
+pub const ImTextureFormat_RGBA32: c::Int = 0;
+
+    /// 1 component per pixel, each is unsigned 8-bit. Total size = TexWidth * TexHeight
+pub const ImTextureFormat_Alpha8: c::Int = 1;
+
+    /// `ImTextureStatus_OK` value from Dear ImGui's `ImTextureStatus` catalog.
+pub const ImTextureStatus_OK: c::Int = 0;
+
+    /// Backend destroyed the texture.
+pub const ImTextureStatus_Destroyed: c::Int = 1;
+
+    /// Requesting backend to create the texture. Set status OK when done.
+pub const ImTextureStatus_WantCreate: c::Int = 2;
+
+    /// Requesting backend to update specific blocks of pixels (write to texture portions which have never been used before). Set status OK when done.
+pub const ImTextureStatus_WantUpdates: c::Int = 3;
+
+    /// Requesting backend to destroy the texture. Set status to Destroyed when done.
+pub const ImTextureStatus_WantDestroy: c::Int = 4;
+
+    /// `ImFontAtlasFlags_None` value from Dear ImGui's `ImFontAtlasFlags_` catalog.
+pub const ImFontAtlasFlags_None: c::Int = 0;
+
+    /// Don't round the height to next power of two
+pub const ImFontAtlasFlags_NoPowerOfTwoHeight: c::Int = 1;
+
+    /// Don't build software mouse cursors into the atlas (save a little texture memory)
+pub const ImFontAtlasFlags_NoMouseCursors: c::Int = 2;
+
+    /// Don't build thick line textures into the atlas (save a little texture memory, allow support for point/nearest filtering). The AntiAliasedLinesUseTex features uses them, otherwise they will be rendered using polygons (more expensive for CPU/GPU).
+pub const ImFontAtlasFlags_NoBakedLines: c::Int = 4;
+
+    /// `ImFontFlags_None` value from Dear ImGui's `ImFontFlags_` catalog.
+pub const ImFontFlags_None: c::Int = 0;
+
+    /// Disable throwing an error/assert when calling AddFontXXX() with missing file/data. Calling code is expected to check AddFontXXX() return value.
+pub const ImFontFlags_NoLoadError: c::Int = 2;
+
+    /// [Internal] Disable loading new glyphs.
+pub const ImFontFlags_NoLoadGlyphs: c::Int = 4;
+
+    /// [Internal] Disable loading new baked sizes, disable garbage collecting current ones. e.g. if you want to lock a font to a single size. Important: if you use this to preload given sizes, consider the possibility of multiple font density used on Retina display.
+pub const ImFontFlags_LockBakedSizes: c::Int = 8;
+
+    /// [Internal] Reference size was not set explicitly.
+pub const ImFontFlags_ImplicitRefSize: c::Int = 16;
+
+    /// `ImGuiViewportFlags_None` value from Dear ImGui's `ImGuiViewportFlags_` catalog.
+pub const ImGuiViewportFlags_None: c::Int = 0;
+
+    /// Represent a Platform Window
+pub const ImGuiViewportFlags_IsPlatformWindow: c::Int = 1;
+
+    /// Represent a Platform Monitor (unused yet)
+pub const ImGuiViewportFlags_IsPlatformMonitor: c::Int = 2;
+
+    /// Platform Window: Is created/managed by the application (rather than a dear imgui backend)
+pub const ImGuiViewportFlags_OwnedByApp: c::Int = 4;
