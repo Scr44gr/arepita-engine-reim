@@ -1,2 +1,3 @@
 /// Opt-in Dear ImGui integration for Arepita's SDL3 and wgpu renderer.
 pub from self::debug_ui import DebugUi, DebugUiError;
+pub from self::plugin import ImGuiPlugin, create_imgui_plugin;

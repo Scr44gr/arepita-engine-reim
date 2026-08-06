@@ -21,15 +21,16 @@ position and velocity into one packed 16-byte record; this is the native data
 layout used to test the optimization opportunity that is unavailable to the
 Python/NumPy version without changing its public component model.
 
-On Windows, use the local launcher. It temporarily exposes the vendored SDL3,
-wgpu-native, and media-codec libraries without changing the user's PATH:
+Run the benchmark from the engine repository root:
 
 ```powershell
-.\run.ps1
+reimer run .\benches\bunnymark --release
 ```
 
-On another supported platform, expose the matching native vendor libraries
-and run `reimer run . --release` from this directory.
+The project receives SDL3, wgpu-native, and the media codecs through transitive
+manifest dependencies. Reimer resolves those native files without manual
+`PATH` or `LIB` configuration. Other platforms require matching native target
+entries and artifacts in the vendor manifests.
 
 Press Escape or close the window to stop early. A normal run performs 60
 warm-up frames followed by 600 measured frames.

@@ -1,0 +1,139 @@
+from arepita_engine::app::native import AppStats, InputCapture, NativeAppError, NativeExtension, NativeFrame, WindowMetrics;
+from arepita_engine::platform import Event, Window;
+from arepita_engine::render import RenderFrame, Renderer;
+from self::debug_ui import DebugUi, DebugUiError;
+
+/// Owns Dear ImGui and one statically typed set of application panels.
+///
+/// `State` remains in the panel callback type, allowing panels to inspect and
+/// edit the active application without reflection or game-specific engine APIs.
+pub struct ImGuiPlugin<State, Panels> {
+    ui: DebugUi,
+    panels: Panels,
+    draw_panels: fn(
+        &mut Panels,
+        &mut DebugUi,
+        &mut State,
+        NativeFrame,
+        WindowMetrics,
+        AppStats,
+    ) -> Result<(), DebugUiError>,
+}
+
+impl<State, Panels> ImGuiPlugin<State, Panels> {
+    /// Creates the Dear ImGui backend and takes ownership of its panels.
+    pub fn create(
+        renderer: &Renderer,
+        window: &Window,
+        panels: Panels,
+        draw_panels: fn(
+            &mut Panels,
+            &mut DebugUi,
+            &mut State,
+            NativeFrame,
+            WindowMetrics,
+            AppStats,
+        ) -> Result<(), DebugUiError>,
+    ) -> Result<ImGuiPlugin<State, Panels>, DebugUiError> {
+        let ui = DebugUi::create(renderer, window)?;
+        Ok(ImGuiPlugin {
+            ui: ui,
+            panels: panels,
+            draw_panels: draw_panels,
+        })
+    }
+}
+
+fn observe_imgui_event<State, Panels>(
+    plugin: &mut ImGuiPlugin<State, Panels>,
+    event: &Event,
+) {
+    let _ = plugin.ui.process_event(event);
+}
+
+fn imgui_input_capture<State, Panels>(
+    plugin: &ImGuiPlugin<State, Panels>,
+) -> InputCapture {
+    InputCapture {
+        keyboard: plugin.ui.wants_keyboard(),
+        mouse: plugin.ui.wants_mouse(),
+    }
+}
+
+fn begin_imgui_frame<State, Panels>(
+    plugin: &mut ImGuiPlugin<State, Panels>,
+    state: &mut State,
+    frame: NativeFrame,
+    window: WindowMetrics,
+    stats: AppStats,
+) -> Result<(), NativeAppError> {
+    map_extension_frame(plugin.ui.new_frame())?;
+    let draw_panels = plugin.draw_panels;
+    map_extension_frame(draw_panels(
+        &mut plugin.panels,
+        &mut plugin.ui,
+        state,
+        frame,
+        window,
+        stats,
+    ))
+}
+
+fn render_imgui<State, Panels>(
+    plugin: &mut ImGuiPlugin<State, Panels>,
+    frame: &RenderFrame,
+) -> Result<(), NativeAppError> {
+    map_extension_frame(plugin.ui.render(frame))
+}
+
+fn release_imgui<State, Panels>(plugin: ImGuiPlugin<State, Panels>) {
+    plugin.ui.deinit();
+}
+
+/// Creates the native extension descriptor expected by `run_native`.
+///
+/// The panel callback receives native timing, window, and allocation metrics
+/// together with mutable application state. Backend failures are translated to
+/// `NativeAppError` at this package boundary.
+pub fn create_imgui_plugin<State, Panels>(
+    renderer: &Renderer,
+    window: &Window,
+    panels: Panels,
+    draw_panels: fn(
+        &mut Panels,
+        &mut DebugUi,
+        &mut State,
+        NativeFrame,
+        WindowMetrics,
+        AppStats,
+    ) -> Result<(), DebugUiError>,
+) -> Result<NativeExtension<State, ImGuiPlugin<State, Panels>>, NativeAppError> {
+    let plugin = match ImGuiPlugin::create(
+        renderer,
+        window,
+        panels,
+        draw_panels,
+    ) {
+        Ok(value) => value,
+        Err(_) => {
+            return Err(NativeAppError::ExtensionInitializationFailed);
+        },
+    };
+    Ok(NativeExtension::new(
+        plugin,
+        observe_imgui_event::<State, Panels>,
+        imgui_input_capture::<State, Panels>,
+        begin_imgui_frame::<State, Panels>,
+        render_imgui::<State, Panels>,
+        release_imgui::<State, Panels>,
+    ))
+}
+
+fn map_extension_frame<T>(
+    result: Result<T, DebugUiError>,
+) -> Result<T, NativeAppError> {
+    match result {
+        Ok(value) => Ok(value),
+        Err(_) => Err(NativeAppError::ExtensionFrameFailed),
+    }
+}

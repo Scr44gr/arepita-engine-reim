@@ -6,7 +6,7 @@ from std::string import String;
 from sdl3 import Event, Gamepad, GamepadAxis, GamepadButton, GamepadDeviceChange, GamepadId, GamepadKind;
 import sdl3::gamepad as native_gamepad;
 from self::window import WindowHost;
-from super::app import LocalResource;
+from super::app::resource import LocalResource;
 
 const AXIS_COUNT: usize = 6;
 const BUTTON_COUNT: usize = 26;

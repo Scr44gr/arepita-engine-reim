@@ -7,6 +7,11 @@ edition = "2026"
 sdl3 = { path = "../sdl3", version = "^3.4" }
 wgpu = { path = "../wgpu", version = "^29.0" }
 
+[native.windows-x86_64]
+library-paths = ["native/windows-x86_64"]
+link-libraries = ["imgui"]
+runtime-files = ["native/windows-x86_64/imgui.dll"]
+
 [profile.debug]
 optimization = 0
 

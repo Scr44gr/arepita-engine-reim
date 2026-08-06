@@ -35,16 +35,19 @@ surface format. Start the UI with `new_frame`, build widgets, then call
 frame. Use `wants_mouse` and `wants_keyboard` to prevent captured debug input
 from reaching gameplay systems.
 
-Validate the vendored lifecycle package from the repository root:
+Validate the vendor package and the engine-owned adapter from the repository
+root:
 
 ```powershell
-vendor\imgui\tools\invoke.ps1 -Project vendor\imgui -Command test -Release
+reimer check vendor\imgui --locked
+reimer check extensions\imgui --locked
 ```
 
 Arepita applications should consume the engine-owned adapter in
-`extensions/imgui` instead of calling the raw vendor package directly. For a
-distributable application, the build helper copies `imgui.dll`, `SDL3.dll`, and
-`wgpu_native.dll` beside the generated program.
+`extensions/imgui` instead of calling the raw vendor package directly. Native
+dependencies are declared transitively in the vendor manifests; Reimer stages
+`imgui.dll`, `SDL3.dll`, `wgpu_bridge.dll`, and `wgpu_native.dll` beside a
+distributable program without wrapper scripts or `PATH`/`LIB` changes.
 
 ## Reproduce the bindings and native bridge
 

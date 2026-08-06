@@ -4,15 +4,16 @@ from self::entity import Entities, Entity, EntityError;
 from self::query import Query;
 from self::registry import ComponentSet, Registry, create_registry;
 from self::store import Component, ComponentStore;
-from self::system import EmptySystems, System, SystemChain, SystemList;
+from self::system import System, SystemId, SystemRegistry, SystemRegistryError;
 from super::app import EmptyResources, ManagedResource, PipelineState, Resource, ResourceRegistry, ResourceSet, SystemPipeline;
-from super::app::resource import empty_resource_registry;
+from super::app::resource import empty_resource_registry, resource_registry;
 
 /// Recoverable world lifecycle and storage failures.
 @derive(Copy, Clone, Debug, Eq)
 pub enum WorldError {
     OutOfMemory,
     EntityCapacityExhausted,
+    SystemCapacityExhausted,
     InvalidEntity,
     Released,
 }
@@ -24,50 +25,124 @@ pub enum WorldError {
 /// the precise stores required by each typed `Query`.
 pub struct World<
     Resources: ResourceSet,
-    Systems: SystemList,
     Storage: ComponentSet,
 > {
     entities: Entities,
     resources: Resources,
     storage: Storage,
-    systems: Systems,
+    systems: SystemRegistry<Resources, Storage>,
     released: bool,
 }
 
 impl<
     Resources: ResourceSet,
-    Systems: SystemList,
     Storage: ComponentSet,
-> World<Resources, Systems, Storage> {
+> World<Resources, Storage> {
     /// Returns whether the world has released all owned storage.
     pub fn is_released(&self) -> bool {
         self.released
     }
 
-    /// Adds a system whose required query is inferred from its function type.
+    /// Adds an Update system whose required query is inferred from its type.
     ///
-    /// The returned world owns the extended static system chain. Calls may be
-    /// fluently chained before binding the final world.
+    /// Registration keeps the world's concrete type stable and returns a
+    /// monotonic ID that can later enable, disable, or remove the system.
     pub fn add_system<Current: System>(
-        self,
+        &mut self,
+        system: Current,
+    ) -> Result<SystemId, WorldError> {
+        self.add_system_to(SystemPipeline::Update, system)
+    }
+
+    /// Installs one cohesive feature without exposing scheduler storage.
+    ///
+    /// The plugin receives this existing mutable world, so registration keeps
+    /// the world's concrete type and ownership unchanged.
+    pub fn add_plugin(
+        &mut self,
+        plugin: fn(&mut World<Resources, Storage>) -> Result<(), WorldError>,
+    ) -> Result<(), WorldError> {
+        if self.is_released() {
+            return Err(WorldError::Released);
+        }
+        plugin(self)
+    }
+
+    /// Installs an ordered fixed set of cohesive features without allocating.
+    ///
+    /// Installation stops at the first error. Systems registered by earlier
+    /// plugins remain installed, matching repeated `add_plugin` calls.
+    pub fn add_plugins<const N: usize>(
+        &mut self,
+        plugins: [fn(&mut World<Resources, Storage>) -> Result<(), WorldError>; N],
+    ) -> Result<(), WorldError> {
+        if self.is_released() {
+            return Err(WorldError::Released);
+        }
+        let mut index: usize = 0;
+        while index < N {
+            plugins[index](self)?;
+            index += 1;
+        }
+        Ok(())
+    }
+
+    /// Adds a system to an explicit engine pipeline.
+    pub fn add_system_to<Current: System>(
+        &mut self,
         pipeline: SystemPipeline,
         system: Current,
-    ) -> World<
-        Resources,
-        SystemChain<Systems, Current>,
-        Storage
-    > {
-        World {
-            entities: self.entities,
-            resources: self.resources,
-            storage: self.storage,
-            systems: SystemChain::new(
-                self.systems,
-                pipeline,
-                system,
-            ),
-            released: self.released,
+    ) -> Result<SystemId, WorldError> {
+        if self.is_released() {
+            return Err(WorldError::Released);
         }
+        match self.systems.add(pipeline, system) {
+            Ok(id) => Ok(id),
+            Err(SystemRegistryError::OutOfMemory) => Err(WorldError::OutOfMemory),
+            Err(SystemRegistryError::IdExhausted) => {
+                Err(WorldError::SystemCapacityExhausted)
+            },
+            Err(SystemRegistryError::Released) => Err(WorldError::Released),
+            _ => Err(WorldError::OutOfMemory),
+        }
+    }
+
+    /// Reserves room for additional systems in one execution pipeline.
+    ///
+    /// Capacity planning is allocation-only: it does not register systems,
+    /// consume IDs, or change execution order.
+    pub fn reserve_systems(
+        &mut self,
+        pipeline: SystemPipeline,
+        additional: usize,
+    ) -> Result<(), WorldError> {
+        if self.is_released() {
+            return Err(WorldError::Released);
+        }
+        match self.systems.reserve(pipeline, additional) {
+            Ok(_) => Ok(()),
+            Err(SystemRegistryError::OutOfMemory) => Err(WorldError::OutOfMemory),
+            Err(SystemRegistryError::IdExhausted) => {
+                Err(WorldError::SystemCapacityExhausted)
+            },
+            Err(SystemRegistryError::Released) => Err(WorldError::Released),
+            _ => Err(WorldError::OutOfMemory),
+        }
+    }
+
+    /// Enables or disables one registered system without changing its order.
+    pub fn set_system_enabled(&mut self, id: SystemId, enabled: bool) -> bool {
+        !self.is_released() && self.systems.set_enabled(id, enabled)
+    }
+
+    /// Removes one registered system while preserving survivor order.
+    pub fn remove_system(&mut self, id: SystemId) -> bool {
+        !self.is_released() && self.systems.remove(id)
+    }
+
+    /// Returns the number of systems registered in every pipeline.
+    pub fn system_count(&self) -> usize {
+        if self.is_released() { 0 } else { self.systems.len() }
     }
 
     /// Runs one engine pipeline in registration order without allocating.
@@ -75,7 +150,7 @@ impl<
         if self.is_released() {
             return;
         }
-        self.systems.run_pipeline<Resources, Storage>(
+        self.systems.run_pipeline(
             pipeline,
             &mut self.entities,
             &mut self.resources,
@@ -334,7 +409,9 @@ impl<
         if self.is_released() {
             return 0;
         }
-        self.entities.allocated_bytes() + self.storage.component_allocated_bytes()
+        self.entities.allocated_bytes()
+            + self.storage.component_allocated_bytes()
+            + self.systems.allocated_bytes()
     }
 
     /// Releases entity and component storage exactly once.
@@ -342,6 +419,7 @@ impl<
         if self.is_released() {
             return;
         }
+        self.systems.release();
         self.resources.release_resources();
         self.storage.release_components();
         self.entities.deinit();
@@ -351,33 +429,11 @@ impl<
 
 impl<
     Resources: ResourceSet,
-    Systems: SystemList,
     Storage: ComponentSet,
-> PipelineState for World<Resources, Systems, Storage> {
+> PipelineState for World<Resources, Storage> {
     fn execute_pipeline(&mut self, pipeline: SystemPipeline) {
         World::run_pipeline(self, pipeline);
     }
-}
-
-impl<
-    Systems: SystemList,
-    Storage: ComponentSet,
-    ...Resources: ManagedResource,
-> World<ResourceRegistry<...Resources>, Systems, Storage> {
-    /// Adds a typed resource and transfers its ownership to the world.
-    pub fn add_resource<T: ManagedResource>(
-        self,
-        value: T,
-    ) -> World<ResourceRegistry<T, ...Resources>, Systems, Storage> {
-        World {
-            entities: self.entities,
-            resources: self.resources.prepend(value),
-            storage: self.storage,
-            systems: self.systems,
-            released: self.released,
-        }
-    }
-
 }
 
 /// Creates an empty world whose component set is fixed at compile time.
@@ -390,32 +446,70 @@ pub fn world<...Components: Component>(
 ) -> Result<
     World<
         EmptyResources,
-        EmptySystems,
         Registry<...Components>
     >,
     WorldError
 > {
+    world_with_resources<EmptyResources, ...Components>(
+        allocator,
+        empty_resource_registry(),
+    )
+}
+
+/// Creates a world from one complete resource registry.
+///
+/// Resources become part of the world in one move. Systems can then be added
+/// through `&mut World` without changing the world's concrete type.
+pub fn world_with_resources<
+    Resources: ResourceSet,
+    ...Components: Component,
+>(
+    allocator: &Allocator,
+    resources: Resources,
+) -> Result<World<Resources, Registry<...Components>>, WorldError> {
+    let mut resources = resources;
     let entities_result: Result<Entities, AllocError> = Entities::new(allocator);
     let mut entities = match entities_result {
         Ok(value) => value,
         Err(_) => {
+            resources.release_resources();
             return Err(WorldError::OutOfMemory);
         },
     };
     let registry_result: Result<Registry<...Components>, AllocError> =
         create_registry<...Components>(allocator);
-    let component_registry = match registry_result {
+    let mut component_registry = match registry_result {
         Ok(value) => value,
         Err(_) => {
             entities.deinit();
+            resources.release_resources();
+            return Err(WorldError::OutOfMemory);
+        },
+    };
+    let systems_result: Result<
+        SystemRegistry<Resources, Registry<...Components>>,
+        SystemRegistryError
+    > = SystemRegistry::new(allocator);
+    let systems = match systems_result {
+        Ok(value) => value,
+        Err(SystemRegistryError::IdExhausted) => {
+            component_registry.release_components();
+            entities.deinit();
+            resources.release_resources();
+            return Err(WorldError::SystemCapacityExhausted);
+        },
+        Err(_) => {
+            component_registry.release_components();
+            entities.deinit();
+            resources.release_resources();
             return Err(WorldError::OutOfMemory);
         },
     };
     Ok(World {
         entities: entities,
-        resources: empty_resource_registry(),
+        resources: resources,
         storage: component_registry,
-        systems: EmptySystems {},
+        systems: systems,
         released: false,
     })
 }
@@ -462,13 +556,96 @@ fn scored_movement_system(
     movement_system(query);
 }
 
+fn record_first_system(score: &mut WorldScore) {
+    score.value = score.value * 10 + 1;
+}
+
+fn record_second_system(score: &mut WorldScore) {
+    score.value = score.value * 10 + 2;
+}
+
+type WorldTestState = World<
+    ResourceRegistry<WorldScore>,
+    Registry<WorldPosition>
+>;
+
+fn ordered_world_test_plugin(world: &mut WorldTestState) -> Result<(), WorldError> {
+    world.add_system(record_first_system)?;
+    world.add_system(record_second_system)?;
+    Ok(())
+}
+
+fn first_world_test_plugin(world: &mut WorldTestState) -> Result<(), WorldError> {
+    world.add_system(record_first_system)?;
+    Ok(())
+}
+
+fn second_world_test_plugin(world: &mut WorldTestState) -> Result<(), WorldError> {
+    world.add_system(record_second_system)?;
+    Ok(())
+}
+
+fn world_score_equals(
+    world: &WorldTestState,
+    expected: i32,
+) -> bool {
+    match world.resource<WorldScore>() {
+        Some(score) => score.value == expected,
+        None => false,
+    }
+}
+
+@test
+fn world_should_install_plugins_in_declared_order() {
+    let allocator = general_allocator();
+    let created: Result<WorldTestState, WorldError> = world_with_resources<
+        ResourceRegistry<WorldScore>,
+        WorldPosition,
+    >(
+        &allocator,
+        resource_registry(WorldScore { value: 0 }),
+    );
+    let mut world = created.expect("world allocation should succeed");
+    defer world.deinit();
+
+    world
+        .add_plugin(ordered_world_test_plugin)
+        .expect("plugin installation should succeed");
+
+    assert(world.system_count() == 2);
+    world.run_pipeline(SystemPipeline::Update);
+    assert(world_score_equals(&world, 12));
+}
+
+@test
+fn world_should_install_an_ordered_plugin_collection() {
+    let allocator = general_allocator();
+    let created: Result<WorldTestState, WorldError> = world_with_resources<
+        ResourceRegistry<WorldScore>,
+        WorldPosition,
+    >(
+        &allocator,
+        resource_registry(WorldScore { value: 0 }),
+    );
+    let mut world = created.expect("world allocation should succeed");
+    defer world.deinit();
+
+    let plugins: [fn(&mut WorldTestState) -> Result<(), WorldError>; 2] =
+        [first_world_test_plugin, second_world_test_plugin];
+    world
+        .add_plugins(plugins)
+        .expect("plugin collection installation should succeed");
+
+    world.run_pipeline(SystemPipeline::Update);
+    assert(world_score_equals(&world, 12));
+}
+
 @test
 fn world_should_reject_components_for_stale_entities() {
     let allocator = general_allocator();
     let created: Result<
         World<
             EmptyResources,
-            EmptySystems,
             Registry<WorldPosition>
         >,
         WorldError
@@ -500,7 +677,6 @@ fn world_should_spawn_complete_typed_bundles() {
     let created: Result<
         World<
             EmptyResources,
-            EmptySystems,
             Registry<WorldPosition, WorldVelocity>
         >,
         WorldError
@@ -534,7 +710,6 @@ fn world_should_inject_queries_into_registered_systems() {
     let created: Result<
         World<
             EmptyResources,
-            EmptySystems,
             Registry<WorldPosition, WorldVelocity>
         >,
         WorldError
@@ -558,10 +733,17 @@ fn world_should_inject_queries_into_registered_systems() {
         _ => false,
     });
 
-    let world = world.add_system(SystemPipeline::Update, movement_system);
-    let world = world.add_system(SystemPipeline::Render, movement_system);
-    let mut world = world.add_system(SystemPipeline::Update, movement_system);
+    let first = world
+        .add_system(movement_system)
+        .expect("first movement system registration should succeed");
+    let render = world
+        .add_system_to(SystemPipeline::Render, movement_system)
+        .expect("render movement system registration should succeed");
+    let second = world
+        .add_system(movement_system)
+        .expect("second movement system registration should succeed");
     defer world.deinit();
+    assert(first.raw() < render.raw() && render.raw() < second.raw());
     world.run_pipeline(SystemPipeline::Update);
 
     assert(match world.get<WorldPosition>(entity) {
@@ -580,23 +762,188 @@ fn world_should_own_typed_resources_across_system_registration() {
     let allocator = general_allocator();
     let created: Result<
         World<
-            EmptyResources,
-            EmptySystems,
+            ResourceRegistry<WorldScore>,
             Registry<WorldPosition, WorldVelocity>
         >,
         WorldError
-    > = world<WorldPosition, WorldVelocity>(&allocator);
-    let world = match created {
+    > = world_with_resources<
+        ResourceRegistry<WorldScore>,
+        WorldPosition,
+        WorldVelocity,
+    >(
+        &allocator,
+        resource_registry(WorldScore { value: 40 }),
+    );
+    let mut world = match created {
         Ok(value) => value,
         Err(_) => panic("world allocation should succeed"),
     };
-    let world = world.add_resource(WorldScore { value: 40 });
-    let world = world.add_system(SystemPipeline::Update, scored_movement_system);
-    let mut world = world.add_system(SystemPipeline::Update, scored_movement_system);
+    world
+        .add_system(scored_movement_system)
+        .expect("first scored system registration should succeed");
+    world
+        .add_system(scored_movement_system)
+        .expect("second scored system registration should succeed");
     defer world.deinit();
     world.run_pipeline(SystemPipeline::Update);
     assert(match world.resource<WorldScore>() {
         Some(score) => score.value == 42,
         None => false,
+    });
+}
+
+@test
+fn world_should_manage_registered_systems_by_stable_id() {
+    let allocator = general_allocator();
+    let created: Result<
+        World<ResourceRegistry<WorldScore>, Registry<WorldPosition>>,
+        WorldError
+    > = world_with_resources<ResourceRegistry<WorldScore>, WorldPosition>(
+        &allocator,
+        resource_registry(WorldScore { value: 0 }),
+    );
+    let mut world = created.expect("world allocation should succeed");
+    defer world.deinit();
+
+    let first = world
+        .add_system(record_first_system)
+        .expect("first system registration should succeed");
+    let second = world
+        .add_system(record_second_system)
+        .expect("second system registration should succeed");
+
+    assert(first.raw() == 0 && second.raw() == 1);
+    assert(world.system_count() == 2);
+    world.run_pipeline(SystemPipeline::Update);
+    assert(world_score_equals(&world, 12));
+
+    assert(world.set_system_enabled(first, false));
+    world.run_pipeline(SystemPipeline::Update);
+    assert(world_score_equals(&world, 122));
+
+    assert(world.set_system_enabled(first, true));
+    assert(world.remove_system(second));
+    assert(!world.remove_system(second));
+    assert(world.system_count() == 1);
+    world.run_pipeline(SystemPipeline::Update);
+    assert(world_score_equals(&world, 1221));
+
+    let replacement = world
+        .add_system(record_second_system)
+        .expect("replacement system registration should succeed");
+    assert(replacement.raw() == 2);
+    world.run_pipeline(SystemPipeline::Update);
+    assert(world_score_equals(&world, 122112));
+}
+
+@test
+fn system_ids_should_reject_foreign_and_replacement_worlds() {
+    let allocator = general_allocator();
+    let first_created: Result<
+        World<ResourceRegistry<WorldScore>, Registry<WorldPosition>>,
+        WorldError
+    > = world_with_resources<ResourceRegistry<WorldScore>, WorldPosition>(
+        &allocator,
+        resource_registry(WorldScore { value: 0 }),
+    );
+    let second_created: Result<
+        World<ResourceRegistry<WorldScore>, Registry<WorldPosition>>,
+        WorldError
+    > = world_with_resources<ResourceRegistry<WorldScore>, WorldPosition>(
+        &allocator,
+        resource_registry(WorldScore { value: 0 }),
+    );
+    let mut first_world = first_created.expect("first world should allocate");
+    let mut second_world = second_created.expect("second world should allocate");
+    defer first_world.deinit();
+    defer second_world.deinit();
+
+    let first_id = first_world
+        .add_system(record_first_system)
+        .expect("first world system should register");
+    let second_id = second_world
+        .add_system(record_first_system)
+        .expect("second world system should register");
+
+    assert(first_id.raw() == 0 && second_id.raw() == 0);
+    assert(first_id != second_id);
+    assert(!first_world.set_system_enabled(second_id, false));
+    assert(!second_world.remove_system(first_id));
+    first_world.run_pipeline(SystemPipeline::Update);
+    second_world.run_pipeline(SystemPipeline::Update);
+    assert(world_score_equals(&first_world, 1));
+    assert(world_score_equals(&second_world, 1));
+
+    first_world.deinit();
+    let replacement_created: Result<
+        World<ResourceRegistry<WorldScore>, Registry<WorldPosition>>,
+        WorldError
+    > = world_with_resources<ResourceRegistry<WorldScore>, WorldPosition>(
+        &allocator,
+        resource_registry(WorldScore { value: 0 }),
+    );
+    let mut replacement = replacement_created.expect("replacement world should allocate");
+    defer replacement.deinit();
+    let replacement_id = replacement
+        .add_system(record_first_system)
+        .expect("replacement system should register");
+
+    assert(replacement_id.raw() == 0);
+    assert(replacement_id != first_id);
+    assert(!replacement.set_system_enabled(first_id, false));
+    replacement.run_pipeline(SystemPipeline::Update);
+    assert(world_score_equals(&replacement, 1));
+}
+
+@test
+fn world_should_reserve_system_capacity_without_assigning_ids() {
+    let allocator = general_allocator();
+    let created: Result<
+        World<ResourceRegistry<WorldScore>, Registry<WorldPosition>>,
+        WorldError
+    > = world_with_resources<ResourceRegistry<WorldScore>, WorldPosition>(
+        &allocator,
+        resource_registry(WorldScore { value: 0 }),
+    );
+    let mut world = created.expect("world allocation should succeed");
+    defer world.deinit();
+
+    let before_reservation = world.allocated_bytes();
+    world
+        .reserve_systems(SystemPipeline::Update, 2)
+        .expect("system capacity reservation should succeed");
+    let reserved_bytes = world.allocated_bytes();
+    let first = world
+        .add_system(record_first_system)
+        .expect("first reserved registration should succeed");
+    let second = world
+        .add_system(record_second_system)
+        .expect("second reserved registration should succeed");
+
+    assert(reserved_bytes > before_reservation);
+    assert(world.allocated_bytes() == reserved_bytes);
+    assert(first.raw() == 0 && second.raw() == 1);
+}
+
+@test
+fn world_should_reject_system_reservation_after_release() {
+    let allocator = general_allocator();
+    let created: Result<
+        World<ResourceRegistry<WorldScore>, Registry<WorldPosition>>,
+        WorldError
+    > = world_with_resources<ResourceRegistry<WorldScore>, WorldPosition>(
+        &allocator,
+        resource_registry(WorldScore { value: 0 }),
+    );
+    let mut world = created.expect("world allocation should succeed");
+    world.deinit();
+
+    assert(match world.reserve_systems(SystemPipeline::Update, 1) {
+        Err(WorldError::Released) => true,
+        _ => false,
+    });
+    assert(match world.add_plugin(ordered_world_test_plugin) {
+        Err(WorldError::Released) => true,
+        _ => false,
     });
 }

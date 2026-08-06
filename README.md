@@ -13,10 +13,12 @@ The project is under active development. The current usable slice provides:
 - library-defined `@derive(Component)` validation;
 - variadic, statically typed heterogeneous component registries;
 - allocation-free queries with compiler-checked disjoint store access;
-- `World::add_system` query injection with static dispatch and no registry
-  plumbing in gameplay systems;
-- `World::add_resource` ownership and typed resource access without string
-  lookup or per-resource allocation;
+- `World::add_system` query and resource injection with a stable world type,
+  explicit pipelines, and world-local system IDs;
+- statically typed plugin functions installed with `World::add_plugin`, keeping
+  feature registration beside feature code without virtual dispatch;
+- world-owned typed resources assembled once without string lookup or
+  per-resource allocation;
 - direct mutable component slices for allocation-free iteration and parallel
   chunk processing;
 - allocation-free two-component joins for ordinary function systems;
@@ -44,7 +46,7 @@ The project is under active development. The current usable slice provides:
 ## Component example
 
 ```reimer
-from arepita_engine::ecs import Component, Entity, Query, world;
+from arepita_engine::ecs import Component, Entity, Query, SystemPipeline, world;
 from std::alloc import general_allocator;
 
 @derive(Copy, Component)
@@ -76,35 +78,61 @@ Create a world, attach data, and register the ordinary function system:
 ```reimer
 let allocator = general_allocator();
 let mut world = world<Position, Velocity>(&allocator)?;
+defer world.deinit();
 let entity = world.spawn()?;
 let position = Position { x: 0.0, y: 0.0 };
 let velocity = Velocity { x: 1.0, y: 0.0 };
 let _ = world.insert<Position>(entity, position)?;
 let _ = world.insert<Velocity>(entity, velocity)?;
 
-let mut world = world.add_system(movement_system);
-defer world.deinit();
-world.run_systems();
+let movement_id = world.add_system(movement_system)?;
+world.run_pipeline(SystemPipeline::Update);
 ```
 
 The system signature declares its component access. `World` constructs the
 matching `Query` immediately before the call, and the registry remains an
-internal storage detail. Additional systems use the same fluent API:
+internal storage detail. Registration mutates the existing world instead of
+changing its concrete type. The returned `SystemId` belongs only to that world
+and can disable, re-enable, or remove the system while keeping gameplay code
+independent from the scheduler's storage. Do not persist its raw number or
+reuse the ID with another or recreated world; those control operations reject
+foreign IDs:
 
 ```reimer
-let mut world = world
-    .add_resource(GameSettings { movement_speed: 96.0 })
-    .add_system(movement_system)
-    .add_system(collision_system);
+let collision_id = world.add_system_to(
+    SystemPipeline::Physics,
+    collision_system,
+)?;
+
+let _ = world.set_system_enabled(movement_id, false);
+let _ = world.set_system_enabled(movement_id, true);
+let _ = world.remove_system(collision_id);
 ```
+
+Group cohesive registration in an ordinary plugin function. Plugins mutate the
+existing world in place, preserve deterministic registration order, and return
+the first recoverable setup error:
+
+```reimer
+fn movement_plugin(world: &mut GameWorld) -> Result<(), WorldError> {
+    world.add_system(movement_system)?;
+    Ok(())
+}
+
+world.add_plugin(movement_plugin)?;
+```
+
+Several plugins with the same world target can be installed as one ordered,
+fixed array with `world.add_plugins(plugins)?`; iteration does not allocate.
 
 Value resources implement `ManagedResource` with a no-op cleanup method.
 Resources that own allocations, worker threads, or native handles delegate the
-method to their idempotent `release` operation. The world releases resources in
-reverse registration order:
+method to their idempotent `release` operation. The world releases all owned
+resources during `deinit`, before component and entity storage:
 
 ```reimer
-from arepita_engine::app import ManagedResource, Resource;
+from arepita_engine::app import ManagedResource, Resource, ResourceRegistry, resources;
+from arepita_engine::ecs import Registry, World, world_with_resources;
 
 @derive(Copy, Resource)
 struct GameSettings {
@@ -117,9 +145,20 @@ impl ManagedResource for GameSettings {
     }
 }
 
-let mut world = world
-    .add_resource(GameSettings { movement_speed: 96.0 })
-    .add_system(movement_system);
+type GameWorld = World<
+    ResourceRegistry<GameSettings>,
+    Registry<Position, Velocity>
+>;
+
+let owned_resources = resources((
+    GameSettings { movement_speed: 96.0 },
+));
+let mut world: GameWorld = world_with_resources(
+    &allocator,
+    owned_resources,
+)?;
+defer world.deinit();
+let _ = world.add_system(movement_system)?;
 
 match world.resource_mut<GameSettings>() {
     Some(settings) => settings.movement_speed = 104.0,
@@ -131,10 +170,13 @@ Direct `Registry` and `World::query` access remain available for advanced
 custom runners and isolated storage code. Normal gameplay does not need to
 touch either registry.
 
-The renderer follows the same ownership model. `WindowHost` owns SDL, while a
-single `Renderer` owns the surface, device, queue, pipeline, and buffers in a
-safe release order. See [`examples/sprites`](examples/sprites) for a complete
-native program.
+Native games run through `run_native`, which owns SDL, input, clocks, pipeline
+dispatch, rendering, presentation, and cleanup. Game code retains domain state,
+assets, scene extraction, audio translation, and persistence policy. The
+low-level `WindowHost` and `Renderer` APIs remain available for backend-focused
+examples and tools. See the
+[native runtime ownership guide](docs/architecture/native-runtime.md) for the
+frame order and extension boundary.
 
 ## Development
 

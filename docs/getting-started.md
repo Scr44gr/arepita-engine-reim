@@ -18,9 +18,10 @@ cargo run -q -p reimer-cli -- check ..\arepita-engine --refresh
 cargo run -q -p reimer-cli -- test ..\arepita-engine --release --refresh
 ```
 
-Native tests and examples need the SDL3 and wgpu-native library directories in
-`PATH` and `LIB`. The repository-level development script configures those
-paths without changing the machine-wide environment:
+Each vendor declares its host libraries and runtime files in `reimer.toml`.
+Reimer resolves those relative paths for `run` and `test`, and stages the
+required runtime files beside built executables. No machine-wide `PATH` or
+`LIB` configuration is required:
 
 ```powershell
 .\tools\dev.ps1 test
@@ -41,12 +42,12 @@ available:
 arepita_engine = { package = "arepita-engine", path = "../arepita-engine", version = "^0.1" }
 ```
 
-Application code can then import only the layer it needs:
+Application code can then import only the layer it needs. Native games should
+start from the engine-owned runner:
 
 ```reimer
-from arepita_engine::ecs import Component, Entities, Query, Registry;
-from arepita_engine::platform import Gamepads, Input, WindowHost;
-from arepita_engine::render import Renderer, SpriteBatch;
+from arepita_engine::app import NativeAppConfig, run_native;
+from arepita_engine::ecs import Component, Entity, Query;
 from arepita_engine::ui import UiRect, UiViewport, button, image, text;
 ```
 
@@ -57,9 +58,12 @@ draw calls.
 ## Ownership rule
 
 Every owning engine type exposes an idempotent `release` or `deinit` method.
-Register it with `defer` immediately after successful creation. The high-level
-`Renderer` owns its GPU children and releases them in dependency order, while
-the application continues to own the SDL `WindowHost`.
+Register it with `defer` immediately after successful creation in low-level
+tools. Normal games use `run_native`, which owns SDL, input, clocks, rendering,
+presentation, and native cleanup. The game retains only domain state, assets,
+scene extraction, audio translation, and persistence hooks. See
+[Native runtime ownership](architecture/native-runtime.md) for the complete
+frame order and extension boundary.
 
 No engine-facing API requires `unsafe`. Native pointer work remains inside the
 vendored SDL3, wgpu, and platform adapters.

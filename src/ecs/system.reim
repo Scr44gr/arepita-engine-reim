@@ -1,11 +1,16 @@
-from self::entity import Entities;
-from self::query import Query, QueryMut;
-from self::registry import ComponentSet;
-from self::store import Component;
-from super::app import ManagedResource, ResourceSet, SystemPipeline;
+from std::alloc import AllocError, Allocator, FixedBufferAllocator;
+from std::collections import Vec;
 
-/// Internal static-dispatch contract implemented by registered systems.
-pub trait System {
+from self::entity import Entities;
+from self::identity import next_registry_namespace;
+from self::query import Query, QueryMut;
+from self::registry import ComponentSet, Registry;
+from self::store import Component;
+from super::app import ManagedResource, Resource, ResourceRegistry, ResourceSet, SystemPipeline;
+
+/// Internal static-dispatch contract implemented only for thin function
+/// pointer signatures owned by this module.
+pub trait System: Copy {
     /// Runs the system against a compatible component registry.
     fn run<Resources: ResourceSet, Storage: ComponentSet>(
         &mut self,
@@ -15,34 +20,333 @@ pub trait System {
     );
 }
 
-/// Internal static-dispatch contract implemented by system chains.
-pub trait SystemList {
-    /// Runs linked systems in registration order for one pipeline.
-    fn run_pipeline<Resources: ResourceSet, Storage: ComponentSet>(
+/// Stable identifier assigned when a system enters one world.
+///
+/// The visible number is local and monotonic, while an internal process-unique
+/// namespace prevents IDs from affecting another or replacement world.
+@derive(Copy, Clone, Debug, Eq, Hash)
+pub struct SystemId {
+    namespace: u64,
+    pipeline: SystemPipeline,
+    raw: usize,
+}
+
+impl SystemId {
+    /// Returns the world-local numeric identifier.
+    pub fn raw(&self) -> usize {
+        self.raw
+    }
+}
+
+/// Recoverable failures while changing a world's system registry.
+@derive(Copy, Clone, Debug, Eq)
+pub enum SystemRegistryError {
+    OutOfMemory,
+    IdExhausted,
+    Released,
+}
+
+/// One type-erased system paired with its exact monomorphized runner.
+@derive(Copy)
+struct SystemEntry<Resources, Storage> {
+    id: SystemId,
+    address: usize,
+    runner: fn(
+        usize,
+        &mut Entities,
+        &mut Resources,
+        &mut Storage,
+    ) -> (),
+    enabled: bool,
+}
+
+struct SystemStage<Resources, Storage> {
+    entries: Vec<SystemEntry<Resources, Storage>>,
+}
+
+impl<Resources, Storage> SystemStage<Resources, Storage> {
+    fn empty(allocator: &Allocator) -> SystemStage<Resources, Storage> {
+        SystemStage { entries: Vec::empty(allocator) }
+    }
+
+    fn push(
         &mut self,
-        pipeline: SystemPipeline,
+        entry: SystemEntry<Resources, Storage>,
+    ) -> Result<(), SystemRegistryError> {
+        match self.entries.push(entry) {
+            Ok(_) => Ok(()),
+            Err(AllocError::OutOfMemory) => Err(SystemRegistryError::OutOfMemory),
+            _ => Err(SystemRegistryError::OutOfMemory),
+        }
+    }
+
+    fn reserve(&mut self, additional: usize) -> Result<(), SystemRegistryError> {
+        match self.entries.reserve(additional) {
+            Ok(_) => Ok(()),
+            Err(AllocError::OutOfMemory) => Err(SystemRegistryError::OutOfMemory),
+            _ => Err(SystemRegistryError::OutOfMemory),
+        }
+    }
+
+    fn run(
+        &self,
         entities: &mut Entities,
         resources: &mut Resources,
         storage: &mut Storage,
-    );
+    ) {
+        let mut index: usize = 0;
+        while index < self.entries.len() {
+            let entry = match self.entries.get_ref(index) {
+                Some(value) => value,
+                None => panic("system stage storage became inconsistent"),
+            };
+            if entry.enabled {
+                let runner = entry.runner;
+                runner(entry.address, entities, resources, storage);
+            }
+            index += 1;
+        }
+    }
+
+    fn set_enabled(&mut self, id: SystemId, enabled: bool) -> bool {
+        let mut index: usize = 0;
+        while index < self.entries.len() {
+            let entry = match self.entries.get_mut(index) {
+                Some(value) => value,
+                None => panic("system stage storage became inconsistent"),
+            };
+            if entry.id == id {
+                entry.enabled = enabled;
+                return true;
+            }
+            index += 1;
+        }
+        false
+    }
+
+    fn remove(&mut self, id: SystemId) -> bool {
+        let mut index: usize = 0;
+        while index < self.entries.len() {
+            let matches = match self.entries.get(index) {
+                Some(value) => value.id == id,
+                None => panic("system stage storage became inconsistent"),
+            };
+            if matches {
+                let _ = self.entries.remove(index);
+                return true;
+            }
+            index += 1;
+        }
+        false
+    }
+
+    fn len(&self) -> usize {
+        self.entries.len()
+    }
+
+    fn allocated_bytes(&self) -> usize {
+        self.entries.allocated_bytes()
+    }
+
+    fn release(&mut self) {
+        self.entries.release();
+    }
 }
 
-/// Empty system-list terminator used by a newly created world.
-pub struct EmptySystems {}
+/// Runtime registry for heterogeneous systems owned by one concrete world.
+///
+/// Each pipeline owns an independent packed stage, so execution visits only
+/// systems registered for that pipeline. The public world type stays stable as
+/// systems are added, removed, enabled, or disabled.
+pub struct SystemRegistry<Resources, Storage> {
+    input: SystemStage<Resources, Storage>,
+    update: SystemStage<Resources, Storage>,
+    physics: SystemStage<Resources, Storage>,
+    async_update: SystemStage<Resources, Storage>,
+    render: SystemStage<Resources, Storage>,
+    render_ui: SystemStage<Resources, Storage>,
+    namespace: u64,
+    next_id: usize,
+    released: bool,
+}
 
-impl SystemList for EmptySystems {
-    fn run_pipeline<Resources: ResourceSet, Storage: ComponentSet>(
+impl<Resources, Storage> SystemRegistry<Resources, Storage> {
+    /// Creates an empty registry with a process-unique owner namespace.
+    pub fn new(
+        allocator: &Allocator,
+    ) -> Result<SystemRegistry<Resources, Storage>, SystemRegistryError> {
+        let namespace = match next_registry_namespace() {
+            Some(value) => value,
+            None => { return Err(SystemRegistryError::IdExhausted); },
+        };
+        Ok(SystemRegistry {
+            input: SystemStage::empty(allocator),
+            update: SystemStage::empty(allocator),
+            physics: SystemStage::empty(allocator),
+            async_update: SystemStage::empty(allocator),
+            render: SystemStage::empty(allocator),
+            render_ui: SystemStage::empty(allocator),
+            namespace: namespace,
+            next_id: 0,
+            released: false,
+        })
+    }
+
+    /// Reserves room for `additional` registrations in one pipeline.
+    ///
+    /// Reservation does not assign IDs or change execution order. A successful
+    /// call guarantees those registrations can be appended without another
+    /// allocation unless systems are added to the same pipeline first.
+    pub fn reserve(
         &mut self,
+        pipeline: SystemPipeline,
+        additional: usize,
+    ) -> Result<(), SystemRegistryError> {
+        if self.released {
+            return Err(SystemRegistryError::Released);
+        }
+        match pipeline {
+            SystemPipeline::Input => self.input.reserve(additional),
+            SystemPipeline::Update => self.update.reserve(additional),
+            SystemPipeline::Physics => self.physics.reserve(additional),
+            SystemPipeline::AsyncUpdate => self.async_update.reserve(additional),
+            SystemPipeline::Render => self.render.reserve(additional),
+            SystemPipeline::RenderUi => self.render_ui.reserve(additional),
+        }
+    }
+
+    /// Registers a function system and returns its monotonic world-local ID.
+    pub fn add<Current: System>(
+        &mut self,
+        pipeline: SystemPipeline,
+        system: Current,
+    ) -> Result<SystemId, SystemRegistryError> {
+        if self.released {
+            return Err(SystemRegistryError::Released);
+        }
+        let next_id = match self.next_id.checked_add(1) {
+            Some(value) => value,
+            None => { return Err(SystemRegistryError::IdExhausted); },
+        };
+        let runner: fn(
+            usize,
+            &mut Entities,
+            &mut Resources,
+            &mut Storage,
+        ) -> () = dispatch_system::<Current, Resources, Storage>;
+        let entry: SystemEntry<Resources, Storage> = SystemEntry {
+            id: SystemId {
+                namespace: self.namespace,
+                pipeline: pipeline,
+                raw: self.next_id,
+            },
+            address: system as usize,
+            runner: runner,
+            enabled: true,
+        };
+        match pipeline {
+            SystemPipeline::Input => self.input.push(entry)?,
+            SystemPipeline::Update => self.update.push(entry)?,
+            SystemPipeline::Physics => self.physics.push(entry)?,
+            SystemPipeline::AsyncUpdate => self.async_update.push(entry)?,
+            SystemPipeline::Render => self.render.push(entry)?,
+            SystemPipeline::RenderUi => self.render_ui.push(entry)?,
+        }
+        self.next_id = next_id;
+        Ok(entry.id)
+    }
+
+    pub fn run_pipeline(
+        &self,
         pipeline: SystemPipeline,
         entities: &mut Entities,
         resources: &mut Resources,
         storage: &mut Storage,
     ) {
-        let _ = self;
-        let _ = pipeline;
-        let _ = resources;
-        let _ = storage;
+        if self.released { return; }
+        match pipeline {
+            SystemPipeline::Input => self.input.run(entities, resources, storage),
+            SystemPipeline::Update => self.update.run(entities, resources, storage),
+            SystemPipeline::Physics => self.physics.run(entities, resources, storage),
+            SystemPipeline::AsyncUpdate => {
+                self.async_update.run(entities, resources, storage)
+            },
+            SystemPipeline::Render => self.render.run(entities, resources, storage),
+            SystemPipeline::RenderUi => self.render_ui.run(entities, resources, storage),
+        }
     }
+
+    /// Enables or disables a registered system without changing its order.
+    pub fn set_enabled(&mut self, id: SystemId, enabled: bool) -> bool {
+        if self.released || id.namespace != self.namespace { return false; }
+        match id.pipeline {
+            SystemPipeline::Input => self.input.set_enabled(id, enabled),
+            SystemPipeline::Update => self.update.set_enabled(id, enabled),
+            SystemPipeline::Physics => self.physics.set_enabled(id, enabled),
+            SystemPipeline::AsyncUpdate => self.async_update.set_enabled(id, enabled),
+            SystemPipeline::Render => self.render.set_enabled(id, enabled),
+            SystemPipeline::RenderUi => self.render_ui.set_enabled(id, enabled),
+        }
+    }
+
+    /// Removes a registered system while preserving the order of survivors.
+    pub fn remove(&mut self, id: SystemId) -> bool {
+        if self.released || id.namespace != self.namespace { return false; }
+        match id.pipeline {
+            SystemPipeline::Input => self.input.remove(id),
+            SystemPipeline::Update => self.update.remove(id),
+            SystemPipeline::Physics => self.physics.remove(id),
+            SystemPipeline::AsyncUpdate => self.async_update.remove(id),
+            SystemPipeline::Render => self.render.remove(id),
+            SystemPipeline::RenderUi => self.render_ui.remove(id),
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        self.input.len()
+            + self.update.len()
+            + self.physics.len()
+            + self.async_update.len()
+            + self.render.len()
+            + self.render_ui.len()
+    }
+
+    pub fn allocated_bytes(&self) -> usize {
+        self.input.allocated_bytes()
+            + self.update.allocated_bytes()
+            + self.physics.allocated_bytes()
+            + self.async_update.allocated_bytes()
+            + self.render.allocated_bytes()
+            + self.render_ui.allocated_bytes()
+    }
+
+    pub fn release(&mut self) {
+        if self.released { return; }
+        self.render_ui.release();
+        self.render.release();
+        self.async_update.release();
+        self.physics.release();
+        self.update.release();
+        self.input.release();
+        self.released = true;
+    }
+}
+
+fn dispatch_system<
+    Current: System,
+    Resources: ResourceSet,
+    Storage: ComponentSet,
+>(
+    address: usize,
+    entities: &mut Entities,
+    resources: &mut Resources,
+    storage: &mut Storage,
+) {
+    // `add` derives both values from the same concrete `Current` function
+    // pointer. Entries are private, so this reverse cast cannot be forged by
+    // gameplay code.
+    let mut system = unsafe { address as Current };
+    system.run<Resources, Storage>(entities, resources, storage);
 }
 
 impl<WriteResource: ManagedResource> System for fn(&mut WriteResource) -> () {
@@ -236,40 +540,6 @@ impl<
         >();
         let function = *self;
         function(selected.0, selected.1, selected.2, selected.3);
-    }
-}
-
-/// A function system whose query is inferred from its parameter type.
-pub struct QuerySystem<Write: Component, ...Read: Component> {
-    function: fn(&mut Query<Write, ...Read>) -> (),
-}
-
-impl<Write: Component, ...Read: Component> QuerySystem<Write, ...Read> {
-    /// Wraps a typed query function for static dispatch.
-    pub fn new(
-        function: fn(&mut Query<Write, ...Read>) -> (),
-    ) -> QuerySystem<Write, ...Read> {
-        QuerySystem { function: function }
-    }
-
-}
-
-impl<Write: Component, ...Read: Component> System for QuerySystem<Write, ...Read> {
-    fn run<Resources: ResourceSet, Storage: ComponentSet>(
-        &mut self,
-        entities: &mut Entities,
-        resources: &mut Resources,
-        storage: &mut Storage,
-    ) {
-        let _ = resources;
-        let mut query = match storage.component_query<Write, ...Read>() {
-            Some(value) => value,
-            None => {
-                return;
-            },
-        };
-        let function = self.function;
-        function(&mut query);
     }
 }
 
@@ -641,44 +911,58 @@ impl<
     }
 }
 
-/// One statically linked system preceded by an existing system list.
-pub struct SystemChain<Previous: SystemList, Current: System> {
-    previous: Previous,
-    pipeline: SystemPipeline,
-    current: Current,
+@derive(Copy, Resource)
+struct SystemTestCounter {
+    value: i32,
 }
 
-impl<Previous: SystemList, Current: System> SystemChain<Previous, Current> {
-    /// Appends `current` after an existing system list.
-    pub fn new(
-        previous: Previous,
-        pipeline: SystemPipeline,
-        current: Current,
-    ) -> SystemChain<Previous, Current> {
-        SystemChain {
-            previous: previous,
-            pipeline: pipeline,
-            current: current,
-        }
+impl ManagedResource for SystemTestCounter {
+    fn release_resource(&mut self) {
+        let _ = self;
     }
 }
 
-impl<Previous: SystemList, Current: System> SystemList for SystemChain<Previous, Current> {
-    fn run_pipeline<Resources: ResourceSet, Storage: ComponentSet>(
-        &mut self,
-        pipeline: SystemPipeline,
-        entities: &mut Entities,
-        resources: &mut Resources,
-        storage: &mut Storage,
+@derive(Copy, Component)
+struct SystemTestComponent {
+    value: i32,
+}
+
+const SYSTEM_TEST_STAGE_BYTES: usize = size_of<SystemEntry<
+    ResourceRegistry<SystemTestCounter>,
+    Registry<SystemTestComponent>,
+>>() * 4;
+
+fn increment_system_test_counter(counter: &mut SystemTestCounter) {
+    counter.value += 1;
+}
+
+@test
+fn failed_system_registration_should_not_consume_an_id() {
+    let mut storage: [usize; 64] = [0; 64];
+    let data = &mut storage[0] as *mut usize as *mut u8;
+    let fixed = FixedBufferAllocator::init(data, SYSTEM_TEST_STAGE_BYTES)
+        .expect("fixed system registry allocator should initialize");
+    defer fixed.deinit();
+    let mut registry: SystemRegistry<
+        ResourceRegistry<SystemTestCounter>,
+        Registry<SystemTestComponent>,
+    > = SystemRegistry::new(fixed.allocator())
+        .expect("system registry namespace should be available");
+    defer registry.release();
+
+    registry
+        .reserve(SystemPipeline::Update, 1)
+        .expect("Update stage reservation should fill the fixed allocator");
+    assert(match registry.add(
+        SystemPipeline::Input,
+        increment_system_test_counter,
     ) {
-        self.previous.run_pipeline<Resources, Storage>(
-            pipeline,
-            entities,
-            resources,
-            storage,
-        );
-        if self.pipeline == pipeline {
-            self.current.run<Resources, Storage>(entities, resources, storage);
-        }
-    }
+        Err(SystemRegistryError::OutOfMemory) => true,
+        _ => false,
+    });
+    let registered = registry
+        .add(SystemPipeline::Update, increment_system_test_counter)
+        .expect("reserved Update registration should not allocate");
+
+    assert(registered.raw() == 0);
 }

@@ -5,6 +5,14 @@ edition = "2026"
 
 [dependencies]
 
+[native.windows-x86_64]
+library-paths = ["native/windows-x86_64"]
+link-libraries = ["wgpu_native", "wgpu_bridge"]
+runtime-files = [
+    "native/windows-x86_64/wgpu_bridge.dll",
+    "native/windows-x86_64/wgpu_native.dll",
+]
+
 [profile.debug]
 optimization = 0
 

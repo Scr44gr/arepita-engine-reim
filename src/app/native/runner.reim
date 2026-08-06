@@ -1,0 +1,344 @@
+from std::alloc import Allocator, general_allocator;
+
+from sdl3 import Window;
+from self::config import NativeAppConfig;
+from self::frame import AppStats, ExitReason, NativeFrame, WindowMetrics;
+from self::plugin import NativeAppError, NativeExtension, NativeGame, NativeState;
+from super::clock import FrameClock;
+from super::fixed_clock import FixedClock;
+from super::lifecycle import PipelineState, SystemPipeline;
+from super::super::platform::gamepads import Gamepads;
+from super::super::platform::state import Input;
+from super::super::platform::window import WindowHost;
+from super::super::render::renderer import Renderer;
+from super::super::render::sprite_batch import SpriteBatch;
+
+/// Owns and drives one complete SDL3 + wgpu application session.
+///
+/// `create_game` runs after the window, renderer, and engine sprite storage are
+/// ready. It may upload immutable rendering assets through the borrowed
+/// renderer, but it never takes ownership of native engine resources.
+pub fn run_native<
+    State: NativeState,
+    GameOwner,
+    ExtensionOwner,
+>(
+    title: cstr,
+    config: NativeAppConfig,
+    create_game: fn(
+        &Allocator,
+        &mut Renderer,
+        &Window,
+    ) -> Result<(State, NativeGame<State, GameOwner>), NativeAppError>,
+    create_extension: fn(
+        &Renderer,
+        &Window,
+    ) -> Result<NativeExtension<State, ExtensionOwner>, NativeAppError>,
+) -> Result<ExitReason, NativeAppError> {
+    if !config.is_valid() {
+        return Err(NativeAppError::InvalidConfiguration);
+    }
+    let fixed_clock = match FixedClock::new(
+        config.fixed_step,
+        config.maximum_fixed_steps,
+    ) {
+        Some(value) => value,
+        None => { return Err(NativeAppError::InvalidConfiguration); },
+    };
+    let allocator = general_allocator();
+    let mut host = match WindowHost::create(
+        title,
+        config.width,
+        config.height,
+    ) {
+        Ok(value) => value,
+        Err(_) => { return Err(NativeAppError::WindowInitializationFailed); },
+    };
+    defer host.release();
+    let mut gamepads = match Gamepads::create(
+        &host,
+        &allocator,
+        config.gamepad_capacity,
+    ) {
+        Ok(value) => value,
+        Err(_) => { return Err(NativeAppError::GamepadInitializationFailed); },
+    };
+    defer gamepads.release();
+    let window = match host.window() {
+        Ok(value) => value,
+        Err(_) => { return Err(NativeAppError::WindowInitializationFailed); },
+    };
+    let mut renderer = match Renderer::create(window, config.sprite_capacity) {
+        Ok(value) => value,
+        Err(_) => { return Err(NativeAppError::RendererInitializationFailed); },
+    };
+    defer renderer.release();
+    let mut batch = match SpriteBatch::with_capacity(
+        &allocator,
+        config.sprite_capacity,
+    ) {
+        Ok(value) => value,
+        Err(_) => { return Err(NativeAppError::SpriteStorageUnavailable); },
+    };
+    defer batch.deinit();
+    match batch.prepare_sorting(config.sprite_capacity) {
+        Ok(_) => {},
+        Err(_) => { return Err(NativeAppError::SpriteStorageUnavailable); },
+    }
+
+    let created = create_game(&allocator, &mut renderer, window);
+    let game_state = match created {
+        Ok(value) => value,
+        Err(error) => { return Err(error); },
+    };
+    let mut state = game_state.0;
+    defer state.release();
+    let mut game = game_state.1;
+    defer game.release();
+    let created_extension = create_extension(&renderer, window);
+    let mut extension = match created_extension {
+        Ok(value) => value,
+        Err(error) => {
+            let _ = game.shutdown(&mut state, ExitReason::Fatal);
+            return Err(error);
+        },
+    };
+    defer extension.release();
+
+    let outcome = run_native_session(
+        config,
+        fixed_clock,
+        &host,
+        window,
+        &mut gamepads,
+        &mut renderer,
+        &mut batch,
+        &mut state,
+        &mut game,
+        &mut extension,
+    );
+    match outcome {
+        Ok(reason) => match game.shutdown(&mut state, reason) {
+            Ok(_) => Ok(reason),
+            Err(error) => Err(error),
+        },
+        Err(error) => {
+            let _ = game.shutdown(&mut state, ExitReason::Fatal);
+            Err(error)
+        },
+    }
+}
+
+fn run_native_session<
+    State: NativeState,
+    GameOwner,
+    ExtensionOwner,
+>(
+    config: NativeAppConfig,
+    fixed_clock: FixedClock,
+    host: &WindowHost,
+    window: &Window,
+    gamepads: &mut Gamepads,
+    renderer: &mut Renderer,
+    batch: &mut SpriteBatch,
+    state: &mut State,
+    game: &mut NativeGame<State, GameOwner>,
+    extension: &mut NativeExtension<State, ExtensionOwner>,
+) -> Result<ExitReason, NativeAppError> {
+    let mut fixed_clock = fixed_clock;
+    let mut input = Input::new();
+    let mut clock = FrameClock::start(config.maximum_delta);
+    while state.running() {
+        input.begin_frame();
+        let mut window_closed = false;
+        let mut polling = true;
+        while polling {
+            match host.poll_event() {
+                Some(event) => {
+                    // Raw state is always complete. Capture is applied only
+                    // when game state translates this snapshot into intent.
+                    input.observe_event(&event);
+                    let _ = gamepads.handle_event(&event);
+                    extension.observe_event(&event);
+                    if event.is_quit() {
+                        window_closed = true;
+                    }
+                    if event.is_window_size_changed() {
+                        match renderer.resize() {
+                            Ok(_) => {},
+                            Err(_) => {
+                                return Err(NativeAppError::ResizeFailed);
+                            },
+                        }
+                    }
+                },
+                None => { polling = false; },
+            }
+        }
+        input.update();
+        gamepads.update();
+        if window_closed {
+            return Ok(ExitReason::WindowClosed);
+        }
+
+        clock.tick();
+        let fixed = fixed_clock.advance(clock.delta());
+        let frame = NativeFrame {
+            index: clock.frame(),
+            delta: clock.delta(),
+            elapsed: clock.elapsed(),
+            fixed_step: fixed_clock.step(),
+            fixed_step_seconds: fixed_clock.step_seconds(),
+            fixed_steps: fixed.steps,
+            interpolation: fixed.interpolation,
+            dropped: fixed.dropped,
+            input_capture: extension.input_capture(),
+        };
+        let metrics = WindowMetrics::new(
+            renderer.width(),
+            renderer.height(),
+            window.pixel_density(),
+        );
+        game.capture_frame(
+            state,
+            &input,
+            &*gamepads,
+            frame,
+            metrics,
+        )?;
+        execute_simulation_pipelines(state, frame.fixed_steps);
+        if !state.running() {
+            return Ok(ExitReason::StateRequested);
+        }
+        game.service_audio(state, frame)?;
+
+        if !renderer.is_suspended() && metrics.is_drawable() {
+            let stats = AppStats {
+                frame_index: frame.index,
+                state_allocated_bytes: state.allocated_bytes(),
+                sprite_batch_allocated_bytes: batch.allocated_bytes(),
+                renderer_allocated_bytes: renderer.allocated_gpu_bytes(),
+            };
+            extension.begin_frame(state, frame, metrics, stats)?;
+            execute_render_pipelines(state);
+            prepare_sprite_batch(game, &*state, renderer, batch, frame, metrics)?;
+            let frame_result = renderer.draw_sprites_to_frame(
+                &*batch,
+                config.clear_color,
+            );
+            let render_frame = match frame_result {
+                Ok(value) => value.0,
+                Err(_) => {
+                    return Err(NativeAppError::FrameSubmissionFailed);
+                },
+            };
+            let extension_result = extension.render(&render_frame);
+            match extension_result {
+                Ok(_) => match renderer.present_frame(render_frame) {
+                    Ok(_) => {},
+                    Err(_) => {
+                        return Err(NativeAppError::PresentationFailed);
+                    },
+                },
+                Err(error) => {
+                    render_frame.discard();
+                    return Err(error);
+                },
+            }
+        }
+    }
+    Ok(ExitReason::StateRequested)
+}
+
+fn prepare_sprite_batch<
+    State: NativeState,
+    GameOwner,
+>(
+    game: &mut NativeGame<State, GameOwner>,
+    state: &State,
+    renderer: &mut Renderer,
+    batch: &mut SpriteBatch,
+    frame: NativeFrame,
+    window: WindowMetrics,
+) -> Result<(), NativeAppError> {
+    let required = game.required_sprite_capacity(state, frame, window);
+    match renderer.reserve_sprites(required) {
+        Ok(_) => {},
+        Err(_) => { return Err(NativeAppError::SpriteCapacityUnavailable); },
+    }
+    batch.clear();
+    if batch.capacity() < required {
+        match batch.reserve(required) {
+            Ok(_) => {},
+            Err(_) => {
+                return Err(NativeAppError::SpriteCapacityUnavailable);
+            },
+        }
+    }
+    match batch.prepare_sorting(required) {
+        Ok(_) => {},
+        Err(_) => { return Err(NativeAppError::SpriteCapacityUnavailable); },
+    }
+    game.extract_sprites(state, renderer, batch, frame, window)?;
+    if batch.len() > required {
+        return Err(NativeAppError::SpriteCapacityUnavailable);
+    }
+    match batch.sort_back_to_front() {
+        Ok(_) => Ok(()),
+        Err(_) => Err(NativeAppError::SpriteOrderingFailed),
+    }
+}
+
+fn execute_simulation_pipelines<State: PipelineState>(
+    state: &mut State,
+    fixed_steps: u32,
+) {
+    state.execute_pipeline(SystemPipeline::Input);
+    let mut step: u32 = 0;
+    while step < fixed_steps {
+        state.execute_pipeline(SystemPipeline::Update);
+        state.execute_pipeline(SystemPipeline::Physics);
+        step += 1;
+    }
+    state.execute_pipeline(SystemPipeline::AsyncUpdate);
+}
+
+fn execute_render_pipelines<State: PipelineState>(state: &mut State) {
+    state.execute_pipeline(SystemPipeline::Render);
+    state.execute_pipeline(SystemPipeline::RenderUi);
+}
+
+struct PipelineTrace {
+    value: u64,
+}
+
+impl PipelineState for PipelineTrace {
+    fn execute_pipeline(&mut self, pipeline: SystemPipeline) {
+        let digit: u64 = match pipeline {
+            SystemPipeline::Input => 1,
+            SystemPipeline::Update => 2,
+            SystemPipeline::Physics => 3,
+            SystemPipeline::AsyncUpdate => 4,
+            SystemPipeline::Render => 5,
+            SystemPipeline::RenderUi => 6,
+        };
+        self.value = self.value * 10 + digit;
+    }
+}
+
+@test
+fn native_runner_should_repeat_only_fixed_simulation_pipelines() {
+    let mut trace = PipelineTrace { value: 0 };
+    execute_simulation_pipelines(&mut trace, 3);
+    assert(trace.value == 12_323_234);
+    execute_render_pipelines(&mut trace);
+    assert(trace.value == 1_232_323_456);
+}
+
+@test
+fn native_runner_should_keep_zero_step_frames_ordered() {
+    let mut trace = PipelineTrace { value: 0 };
+    execute_simulation_pipelines(&mut trace, 0);
+    execute_render_pipelines(&mut trace);
+    assert(trace.value == 1_456);
+}

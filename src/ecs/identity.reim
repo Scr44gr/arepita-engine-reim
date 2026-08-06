@@ -1,0 +1,17 @@
+@link("runtime")
+extern "C" {
+    fn runtime_process_unique_id() -> u64;
+}
+
+/// Returns one process-unique registry namespace, or `None` after exhaustion.
+///
+/// The unsafe native ABI remains contained here; system registration exposes
+/// only safe `SystemId` values to engine and gameplay code.
+pub fn next_registry_namespace() -> Option<u64> {
+    let namespace = unsafe { runtime_process_unique_id() };
+    if namespace == 0 {
+        None
+    } else {
+        Some(namespace)
+    }
+}

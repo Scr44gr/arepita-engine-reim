@@ -2,7 +2,7 @@ from std::alloc import general_allocator;
 from std::io import println;
 from std::string import String;
 
-from arepita_engine::ecs import Component, Entity, Query, world;
+from arepita_engine::ecs import Component, Entity, Query, SystemPipeline, world;
 
 @derive(Copy, Component)
 struct Position {
@@ -39,10 +39,10 @@ fn run() -> i32 {
             return 3;
         },
     };
+    defer world.deinit();
     let first = match world.spawn() {
         Ok(value) => value,
         Err(_) => {
-            world.deinit();
             return 3;
         },
     };
@@ -51,7 +51,6 @@ fn run() -> i32 {
         Ok(_) => false,
         _ => true,
     } {
-        world.deinit();
         return 3;
     }
     let velocity = Velocity { x: 3.0, y: -1.0 };
@@ -59,13 +58,13 @@ fn run() -> i32 {
         Ok(_) => false,
         _ => true,
     } {
-        world.deinit();
         return 3;
     }
 
-    let mut world = world.add_system(movement_system);
-    defer world.deinit();
-    world.run_systems();
+    let movement_system_id = world
+        .add_system(movement_system)
+        .expect("movement system registration should succeed");
+    world.run_pipeline(SystemPipeline::Update);
 
     let position = match world.get<Position>(first) {
         Some(value) => value,
@@ -81,7 +80,7 @@ fn run() -> i32 {
     };
     defer message.deinit();
     if match message.push_format(
-        f"entity={first.index()} position=({position.x}, {position.y}) allocated={world.allocated_bytes()} bytes",
+        f"entity={first.index()} system={movement_system_id.raw()} position=({position.x}, {position.y}) allocated={world.allocated_bytes()} bytes",
     ) {
         Ok(_) => false,
         Err(_) => true,

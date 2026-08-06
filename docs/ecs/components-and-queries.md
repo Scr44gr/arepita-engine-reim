@@ -21,10 +21,11 @@ components should hold small values or generational handles.
 
 ## World storage
 
-`World<...>` owns entity allocation and one packed store for every listed
-component type. Reimer expands the component pack at compile time, validates
-that store types are unique, and lowers access to constant tuple fields. There
-is no runtime type-name hash, erased pointer, or query allocation.
+`World<Resources, Storage>` owns entity allocation, one typed resource registry,
+and one packed store for every listed component type. Reimer expands the
+component pack at compile time, validates that store types are unique, and
+lowers access to constant tuple fields. Queries use no runtime type-name hash,
+erased component pointer, or allocation.
 
 ```reimer
 from arepita_engine::ecs import world;
@@ -73,6 +74,8 @@ the world; the engine injects the query immediately before each call. Gameplay
 code never needs to pass the registry manually.
 
 ```reimer
+from arepita_engine::ecs import Entity, Query, SystemPipeline;
+
 fn integrate(
     entity: Entity,
     position: &mut Position,
@@ -88,8 +91,8 @@ fn movement_system(query: &mut Query<Position, Velocity>) {
     let _ = query.for_each(integrate);
 }
 
-let mut world = world.add_system(movement_system);
-world.run_systems();
+let movement_id = world.add_system(movement_system)?;
+world.run_pipeline(SystemPipeline::Update);
 ```
 
 The first query type is writable and drives dense iteration. Every remaining
@@ -98,11 +101,49 @@ correct when membership or dense order differs. Read values arrive in a tuple
 matching their signature order. Components are compact `Copy` data, while the
 writable value is borrowed in place.
 
-System registration creates a static type chain and allocates nothing. Query
-construction and iteration also allocate nothing. The generated loop is
-specialized for its complete component list, and every store access becomes a
-constant field address. `World::query` and `Registry` remain available for
-advanced custom runners.
+System registration appends one entry to Update by default and returns a
+monotonic ID owned by that world. `add_system_to` selects another pipeline. A
+`SystemId` is an opaque control handle, not a persistent or cross-world key;
+another or recreated world rejects it even when the visible `raw()` values
+match. The world's type remains unchanged, so a
+single mutable binding can register any number of heterogeneous systems.
+Registration may grow pipeline storage; pipeline execution, query construction,
+and iteration allocate nothing. Each entry retains an exact monomorphized
+runner, and every component-store access becomes a constant field address.
+`World::query` and `Registry` remain available for advanced custom runners.
+
+## Feature plugins
+
+An ordinary plugin function owns registration for one cohesive feature or
+application composition. It receives the exact world type, mutates that world
+in place, and propagates `WorldError` with `?`:
+
+```reimer
+fn movement_plugin(world: &mut GameWorld) -> Result<(), WorldError> {
+    world.add_system(movement_system)?;
+    world.add_system_to(SystemPipeline::Physics, collision_system)?;
+    Ok(())
+}
+
+world.add_plugin(movement_plugin)?;
+```
+
+Use `add_plugins` with a fixed function array when the composition root owns
+several feature or pipeline plugins. The array order is the installation order,
+and iteration allocates nothing.
+
+The native runner still owns pipeline execution. Game plugins choose pipelines
+while registering systems; frame code does not call `run_pipeline` manually.
+Keep ordering inside the application composition only when systems have a real
+data or gameplay dependency.
+
+Use the ID to control a system without exposing registry internals:
+
+```reimer
+let _ = world.set_system_enabled(movement_id, false);
+let _ = world.set_system_enabled(movement_id, true);
+let _ = world.remove_system(movement_id);
+```
 
 ## Direct two-component joins
 

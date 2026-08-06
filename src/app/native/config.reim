@@ -1,0 +1,96 @@
+from std::time import Duration;
+
+from super::super::render::context import ClearColor;
+
+/// Immutable native application and frame-loop configuration.
+@derive(Copy, Clone, Debug)
+pub struct NativeAppConfig {
+    pub width: i32,
+    pub height: i32,
+    pub gamepad_capacity: usize,
+    pub maximum_delta: Duration,
+    pub fixed_step: Duration,
+    pub maximum_fixed_steps: u32,
+    pub sprite_capacity: usize,
+    pub clear_color: ClearColor,
+}
+
+impl NativeAppConfig {
+    /// Creates a practical 60 Hz native configuration with bounded catch-up.
+    pub fn new(width: i32, height: i32) -> NativeAppConfig {
+        NativeAppConfig {
+            width: width,
+            height: height,
+            gamepad_capacity: 4,
+            maximum_delta: Duration::from_milliseconds(100),
+            fixed_step: Duration::from_nanoseconds(16_666_667),
+            maximum_fixed_steps: 8,
+            sprite_capacity: 4_096,
+            clear_color: ClearColor::rgba(0.0, 0.0, 0.0, 1.0),
+        }
+    }
+
+    /// Replaces the fixed simulation policy.
+    pub fn with_fixed_timestep(
+        self,
+        fixed_step: Duration,
+        maximum_fixed_steps: u32,
+        maximum_delta: Duration,
+    ) -> NativeAppConfig {
+        let mut config = self;
+        config.fixed_step = fixed_step;
+        config.maximum_fixed_steps = maximum_fixed_steps;
+        config.maximum_delta = maximum_delta;
+        config
+    }
+
+    /// Replaces the maximum number of stable gamepad slots.
+    pub fn with_gamepad_capacity(self, capacity: usize) -> NativeAppConfig {
+        let mut config = self;
+        config.gamepad_capacity = capacity;
+        config
+    }
+
+    /// Replaces the initial no-growth sprite capacity.
+    pub fn with_sprite_capacity(self, capacity: usize) -> NativeAppConfig {
+        let mut config = self;
+        config.sprite_capacity = capacity;
+        config
+    }
+
+    /// Replaces the linear frame clear color.
+    pub fn with_clear_color(self, clear_color: ClearColor) -> NativeAppConfig {
+        let mut config = self;
+        config.clear_color = clear_color;
+        config
+    }
+
+    /// Reports whether every bounded native-loop setting is usable.
+    pub fn is_valid(&self) -> bool {
+        self.width > 0
+            && self.height > 0
+            && self.gamepad_capacity > 0
+            && !self.maximum_delta.is_zero()
+            && !self.fixed_step.is_zero()
+            && self.maximum_fixed_steps > 0
+            && self.sprite_capacity > 0
+    }
+}
+
+@test
+fn native_app_config_should_reject_zero_sized_budgets() {
+    let valid = NativeAppConfig::new(960, 540);
+    assert(valid.is_valid());
+    let no_gamepads = valid.with_gamepad_capacity(0);
+    assert(!no_gamepads.is_valid());
+    let no_sprites = valid.with_sprite_capacity(0);
+    assert(!no_sprites.is_valid());
+    let no_width = NativeAppConfig::new(0, 540);
+    assert(!no_width.is_valid());
+    let no_fixed_step = valid.with_fixed_timestep(
+        Duration::from_nanoseconds(0),
+        8,
+        Duration::from_milliseconds(100),
+    );
+    assert(!no_fixed_step.is_valid());
+}

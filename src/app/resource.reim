@@ -27,7 +27,7 @@ pub trait ResourceSet {
     fn split_resources_mut<...Selected: ManagedResource>(
         &mut self,
     ) -> (...Selected => &mut Selected);
-    /// Releases every owned resource in reverse registration order.
+    /// Releases every owned resource exactly once.
     fn release_resources(&mut self);
 }
 
@@ -50,6 +50,17 @@ pub fn empty_resource_registry() -> EmptyResources {
 /// Creates a typed registry containing one owned resource.
 pub fn resource_registry<T: ManagedResource>(value: T) -> ResourceRegistry<T> {
     ResourceRegistry { values: (value,) }
+}
+
+/// Creates one heterogeneous registry from a complete resource tuple.
+///
+/// Every concrete resource type must occur exactly once. The tuple is moved
+/// into the registry without per-resource allocation or runtime type lookup.
+pub fn resources<...Resources: ManagedResource>(
+    values: (...Resources),
+) -> ResourceRegistry<...Resources> {
+    values.assert_unique_types();
+    ResourceRegistry { values: values }
 }
 
 impl<...Resources: ManagedResource> ResourceRegistry<...Resources> {

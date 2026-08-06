@@ -1,0 +1,334 @@
+from sdl3 import Event, Window;
+from self::frame import AppStats, ExitReason, InputCapture, NativeFrame, WindowMetrics;
+from super::lifecycle import PipelineState;
+from super::super::platform::gamepads import Gamepads;
+from super::super::platform::state import Input;
+from super::super::render::context import RenderFrame;
+from super::super::render::renderer import Renderer;
+from super::super::render::sprite_batch import SpriteBatch;
+
+/// Typed failures produced while creating or driving a native application.
+@derive(Copy, Clone, Debug, Eq)
+pub enum NativeAppError {
+    InvalidConfiguration,
+    WindowInitializationFailed,
+    GamepadInitializationFailed,
+    RendererInitializationFailed,
+    SpriteStorageUnavailable,
+    GameInitializationFailed,
+    ExtensionInitializationFailed,
+    FrameCaptureFailed,
+    ResizeFailed,
+    AudioServiceFailed,
+    SpriteCapacityUnavailable,
+    SpriteExtractionFailed,
+    SpriteOrderingFailed,
+    FrameSubmissionFailed,
+    ExtensionFrameFailed,
+    PresentationFailed,
+    ShutdownFailed,
+}
+
+/// Application state whose pipelines and final ownership are engine-driven.
+pub trait NativeState: PipelineState {
+    /// Reports whether the active state wants another native frame.
+    fn running(&self) -> bool;
+    /// Reports application-owned memory for engine-level telemetry.
+    fn allocated_bytes(&self) -> usize;
+    /// Releases the complete state exactly once.
+    fn release(&mut self);
+}
+
+/// Statically dispatched game integration around the native engine loop.
+///
+/// Reimer monomorphizes this descriptor and every callback for `State` and
+/// `Owner`. It provides stateful plugin composition without virtual dispatch or
+/// a heterogeneous runtime map. `Owner` contains only game-specific assets and
+/// audio state; Arepita retains every native engine owner.
+pub struct NativeGame<State, Owner> {
+    owner: Owner,
+    capture_frame_callback: fn(
+        &mut Owner,
+        &mut State,
+        &Input,
+        &Gamepads,
+        NativeFrame,
+        WindowMetrics,
+    ) -> Result<(), NativeAppError>,
+    service_audio_callback: fn(
+        &mut Owner,
+        &mut State,
+        NativeFrame,
+    ) -> Result<(), NativeAppError>,
+    required_sprite_capacity_callback: fn(
+        &Owner,
+        &State,
+        NativeFrame,
+        WindowMetrics,
+    ) -> usize,
+    extract_sprites_callback: fn(
+        &mut Owner,
+        &State,
+        &mut Renderer,
+        &mut SpriteBatch,
+        NativeFrame,
+        WindowMetrics,
+    ) -> Result<(), NativeAppError>,
+    shutdown_callback: fn(
+        &mut Owner,
+        &mut State,
+        ExitReason,
+    ) -> Result<(), NativeAppError>,
+    release_callback: fn(&mut Owner) -> (),
+}
+
+impl<State, Owner> NativeGame<State, Owner> {
+    /// Binds one owned game runtime to its statically typed lifecycle callbacks.
+    pub fn new(
+        owner: Owner,
+        capture_frame: fn(
+            &mut Owner,
+            &mut State,
+            &Input,
+            &Gamepads,
+            NativeFrame,
+            WindowMetrics,
+        ) -> Result<(), NativeAppError>,
+        service_audio: fn(
+            &mut Owner,
+            &mut State,
+            NativeFrame,
+        ) -> Result<(), NativeAppError>,
+        required_sprite_capacity: fn(
+            &Owner,
+            &State,
+            NativeFrame,
+            WindowMetrics,
+        ) -> usize,
+        extract_sprites: fn(
+            &mut Owner,
+            &State,
+            &mut Renderer,
+            &mut SpriteBatch,
+            NativeFrame,
+            WindowMetrics,
+        ) -> Result<(), NativeAppError>,
+        shutdown: fn(
+            &mut Owner,
+            &mut State,
+            ExitReason,
+        ) -> Result<(), NativeAppError>,
+        release: fn(&mut Owner) -> (),
+    ) -> NativeGame<State, Owner> {
+        NativeGame {
+            owner: owner,
+            capture_frame_callback: capture_frame,
+            service_audio_callback: service_audio,
+            required_sprite_capacity_callback: required_sprite_capacity,
+            extract_sprites_callback: extract_sprites,
+            shutdown_callback: shutdown,
+            release_callback: release,
+        }
+    }
+
+    pub fn capture_frame(
+        &mut self,
+        state: &mut State,
+        input: &Input,
+        gamepads: &Gamepads,
+        frame: NativeFrame,
+        window: WindowMetrics,
+    ) -> Result<(), NativeAppError> {
+        let callback = self.capture_frame_callback;
+        callback(&mut self.owner, state, input, gamepads, frame, window)
+    }
+
+    pub fn service_audio(
+        &mut self,
+        state: &mut State,
+        frame: NativeFrame,
+    ) -> Result<(), NativeAppError> {
+        let callback = self.service_audio_callback;
+        callback(&mut self.owner, state, frame)
+    }
+
+    pub fn required_sprite_capacity(
+        &self,
+        state: &State,
+        frame: NativeFrame,
+        window: WindowMetrics,
+    ) -> usize {
+        let callback = self.required_sprite_capacity_callback;
+        callback(&self.owner, state, frame, window)
+    }
+
+    pub fn extract_sprites(
+        &mut self,
+        state: &State,
+        renderer: &mut Renderer,
+        batch: &mut SpriteBatch,
+        frame: NativeFrame,
+        window: WindowMetrics,
+    ) -> Result<(), NativeAppError> {
+        let callback = self.extract_sprites_callback;
+        callback(&mut self.owner, state, renderer, batch, frame, window)
+    }
+
+    pub fn shutdown(
+        &mut self,
+        state: &mut State,
+        reason: ExitReason,
+    ) -> Result<(), NativeAppError> {
+        let callback = self.shutdown_callback;
+        callback(&mut self.owner, state, reason)
+    }
+
+    /// Releases game-specific owners before the state and renderer.
+    pub fn release(&mut self) {
+        let callback = self.release_callback;
+        callback(&mut self.owner);
+    }
+}
+
+/// Optional statically linked development layer around a native frame.
+pub struct NativeExtension<State, Owner> {
+    owner: Owner,
+    observe_event_callback: fn(&mut Owner, &Event) -> (),
+    input_capture_callback: fn(&Owner) -> InputCapture,
+    begin_frame_callback: fn(
+        &mut Owner,
+        &mut State,
+        NativeFrame,
+        WindowMetrics,
+        AppStats,
+    ) -> Result<(), NativeAppError>,
+    render_callback: fn(
+        &mut Owner,
+        &RenderFrame,
+    ) -> Result<(), NativeAppError>,
+    release_callback: fn(Owner) -> (),
+}
+
+impl<State, Owner> NativeExtension<State, Owner> {
+    /// Binds one optional extension to the shared native-frame lifecycle.
+    pub fn new(
+        owner: Owner,
+        observe_event: fn(&mut Owner, &Event) -> (),
+        input_capture: fn(&Owner) -> InputCapture,
+        begin_frame: fn(
+            &mut Owner,
+            &mut State,
+            NativeFrame,
+            WindowMetrics,
+            AppStats,
+        ) -> Result<(), NativeAppError>,
+        render: fn(
+            &mut Owner,
+            &RenderFrame,
+        ) -> Result<(), NativeAppError>,
+        release: fn(Owner) -> (),
+    ) -> NativeExtension<State, Owner> {
+        NativeExtension {
+            owner: owner,
+            observe_event_callback: observe_event,
+            input_capture_callback: input_capture,
+            begin_frame_callback: begin_frame,
+            render_callback: render,
+            release_callback: release,
+        }
+    }
+
+    pub fn observe_event(&mut self, event: &Event) {
+        let callback = self.observe_event_callback;
+        callback(&mut self.owner, event);
+    }
+
+    pub fn input_capture(&self) -> InputCapture {
+        let callback = self.input_capture_callback;
+        callback(&self.owner)
+    }
+
+    pub fn begin_frame(
+        &mut self,
+        state: &mut State,
+        frame: NativeFrame,
+        window: WindowMetrics,
+        stats: AppStats,
+    ) -> Result<(), NativeAppError> {
+        let callback = self.begin_frame_callback;
+        callback(&mut self.owner, state, frame, window, stats)
+    }
+
+    pub fn render(&mut self, frame: &RenderFrame) -> Result<(), NativeAppError> {
+        let callback = self.render_callback;
+        callback(&mut self.owner, frame)
+    }
+
+    /// Consumes the descriptor so extensions with consuming cleanup remain safe.
+    pub fn release(self) {
+        let callback = self.release_callback;
+        callback(self.owner);
+    }
+}
+
+/// Zero-sized extension used by builds without development tooling.
+@derive(Copy)
+pub struct NoNativeExtension {}
+
+fn no_native_extension_observe(
+    owner: &mut NoNativeExtension,
+    event: &Event,
+) {
+    let _ = owner;
+    let _ = event;
+}
+
+fn no_native_extension_capture(owner: &NoNativeExtension) -> InputCapture {
+    let _ = owner;
+    InputCapture::none()
+}
+
+fn no_native_extension_begin<State>(
+    owner: &mut NoNativeExtension,
+    state: &mut State,
+    frame: NativeFrame,
+    window: WindowMetrics,
+    stats: AppStats,
+) -> Result<(), NativeAppError> {
+    let _ = owner;
+    let _ = state;
+    let _ = frame;
+    let _ = window;
+    let _ = stats;
+    Ok(())
+}
+
+fn no_native_extension_render(
+    owner: &mut NoNativeExtension,
+    frame: &RenderFrame,
+) -> Result<(), NativeAppError> {
+    let _ = owner;
+    let _ = frame;
+    Ok(())
+}
+
+fn no_native_extension_release(owner: NoNativeExtension) {
+    let _ = owner;
+}
+
+/// Creates the no-op extension without introducing optional native backends.
+pub fn create_no_native_extension<State>(
+    renderer: &Renderer,
+    window: &Window,
+) -> Result<NativeExtension<State, NoNativeExtension>, NativeAppError> {
+    let _ = renderer;
+    let _ = window;
+    Ok(NativeExtension::new(
+        NoNativeExtension {},
+        no_native_extension_observe,
+        no_native_extension_capture,
+        no_native_extension_begin::<State>,
+        no_native_extension_render,
+        no_native_extension_release,
+    ))
+}

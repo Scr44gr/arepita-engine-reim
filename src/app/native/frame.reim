@@ -1,0 +1,93 @@
+from std::time import Duration;
+
+/// Per-device input ownership selected by an optional native extension.
+@derive(Copy, Clone, Debug, Eq)
+pub struct InputCapture {
+    pub keyboard: bool,
+    pub mouse: bool,
+}
+
+impl InputCapture {
+    pub fn none() -> InputCapture {
+        InputCapture { keyboard: false, mouse: false }
+    }
+
+    pub fn keyboard_only() -> InputCapture {
+        InputCapture { keyboard: true, mouse: false }
+    }
+
+    pub fn mouse_only() -> InputCapture {
+        InputCapture { keyboard: false, mouse: true }
+    }
+
+    pub fn all() -> InputCapture {
+        InputCapture { keyboard: true, mouse: true }
+    }
+
+    pub fn captures_keyboard(&self) -> bool { self.keyboard }
+
+    pub fn captures_mouse(&self) -> bool { self.mouse }
+}
+
+/// Drawable window measurements sampled at the frame boundary.
+@derive(Copy, Clone, Debug)
+pub struct WindowMetrics {
+    pub width: u32,
+    pub height: u32,
+    pub pixel_density: f32,
+}
+
+impl WindowMetrics {
+    pub fn new(width: u32, height: u32, pixel_density: f32) -> WindowMetrics {
+        WindowMetrics {
+            width: width,
+            height: height,
+            pixel_density: pixel_density,
+        }
+    }
+
+    pub fn is_drawable(&self) -> bool { self.width > 0 && self.height > 0 }
+}
+
+/// Immutable timing and input-ownership snapshot for one rendered frame.
+@derive(Copy, Clone, Debug)
+pub struct NativeFrame {
+    pub index: u64,
+    pub delta: Duration,
+    pub elapsed: Duration,
+    pub fixed_step: Duration,
+    pub fixed_step_seconds: f32,
+    pub fixed_steps: u32,
+    pub interpolation: f32,
+    pub dropped: Duration,
+    pub input_capture: InputCapture,
+}
+
+/// Engine-owned measurements available to development extensions.
+@derive(Copy, Clone, Debug)
+pub struct AppStats {
+    pub frame_index: u64,
+    pub state_allocated_bytes: usize,
+    pub sprite_batch_allocated_bytes: usize,
+    pub renderer_allocated_bytes: u64,
+}
+
+/// Why the native application crossed its shutdown boundary.
+@derive(Copy, Clone, Debug, Eq)
+pub enum ExitReason {
+    WindowClosed,
+    StateRequested,
+    Fatal,
+}
+
+@test
+fn input_capture_should_keep_devices_independent() {
+    let keyboard = InputCapture::keyboard_only();
+    assert(keyboard.captures_keyboard());
+    assert(!keyboard.captures_mouse());
+    let mouse = InputCapture::mouse_only();
+    assert(!mouse.captures_keyboard());
+    assert(mouse.captures_mouse());
+    let all = InputCapture::all();
+    assert(all.captures_keyboard() && all.captures_mouse());
+}

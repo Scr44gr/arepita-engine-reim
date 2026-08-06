@@ -11,12 +11,6 @@ if ([string]::IsNullOrWhiteSpace($CompilerRoot)) {
 }
 $CompilerRoot = (Resolve-Path $CompilerRoot).Path
 
-$sdlPath = (Resolve-Path (Join-Path $engineRoot "vendor\sdl3\native\windows-x86_64")).Path
-$wgpuPath = (Resolve-Path (Join-Path $engineRoot "vendor\wgpu\native\windows-x86_64")).Path
-$codecPath = (Resolve-Path (Join-Path $engineRoot "vendor\media-codecs\native\windows-x86_64")).Path
-$env:PATH = "$sdlPath;$wgpuPath;$codecPath;$env:PATH"
-$env:LIB = "$sdlPath;$wgpuPath;$codecPath;$env:LIB"
-
 function Invoke-Reimer {
     param([string[]]$Arguments)
 

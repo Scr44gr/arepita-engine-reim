@@ -547,6 +547,68 @@ impl Device {
         }
     }
 
+    /// Binds one sampler and two sampled textures to a pipeline layout.
+    pub fn create_dual_texture_bind_group(
+        &self,
+        layout: &BindGroupLayout,
+        sampler: &Sampler,
+        primary_view: &TextureView,
+        auxiliary_view: &TextureView,
+    ) -> Result<BindGroup, Error> {
+        require_live(self.raw)?;
+        require_live(layout.raw)?;
+        require_live(sampler.raw)?;
+        require_live(primary_view.raw)?;
+        require_live(auxiliary_view.raw)?;
+        let entries = [
+            types::WGPUBindGroupEntry {
+                next_in_chain: c::null<types::WGPUChainedStruct>(),
+                binding: 0,
+                buffer: c::null<()>(),
+                offset: 0,
+                size: 0,
+                sampler: sampler.raw,
+                texture_view: c::null<()>(),
+            },
+            types::WGPUBindGroupEntry {
+                next_in_chain: c::null<types::WGPUChainedStruct>(),
+                binding: 1,
+                buffer: c::null<()>(),
+                offset: 0,
+                size: 0,
+                sampler: c::null<()>(),
+                texture_view: primary_view.raw,
+            },
+            types::WGPUBindGroupEntry {
+                next_in_chain: c::null<types::WGPUChainedStruct>(),
+                binding: 2,
+                buffer: c::null<()>(),
+                offset: 0,
+                size: 0,
+                sampler: c::null<()>(),
+                texture_view: auxiliary_view.raw,
+            },
+        ];
+        let descriptor = types::WGPUBindGroupDescriptor {
+            next_in_chain: c::null<types::WGPUChainedStruct>(),
+            label: empty_string_view(),
+            layout: layout.raw,
+            entry_count: 3,
+            entries: slice::as_ptr(&entries),
+        };
+        let raw = unsafe {
+            api::wgpuDeviceCreateBindGroup(
+                self.raw,
+                &descriptor as *const types::WGPUBindGroupDescriptor,
+            )
+        };
+        if c::is_null_mut(raw) {
+            Err(Error::ResourceCreationFailed)
+        } else {
+            Ok(BindGroup { raw: raw })
+        }
+    }
+
     /// Creates a WGSL shader module from borrowed UTF-8 source text.
     pub fn create_shader_module_wgsl(
         &self,

@@ -1,6 +1,6 @@
 from sdl3 import Event, KeyboardState, MouseButton, MouseState, Scancode;
 import sdl3::input as sdl_input;
-from super::app import ManagedResource, Resource;
+from super::app::resource import ManagedResource, Resource;
 
 /// Frame-to-frame keyboard and mouse resource.
 ///

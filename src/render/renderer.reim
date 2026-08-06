@@ -208,6 +208,45 @@ impl Renderer {
         )
     }
 
+    /// Replaces the application-defined auxiliary sprite texture.
+    ///
+    /// Custom material shaders can sample it from group 0, binding 2. The
+    /// renderer keeps a 1x1 white fallback bound until an application opts in.
+    pub fn set_sprite_auxiliary_rgba8(
+        &mut self,
+        width: u32,
+        height: u32,
+        pixels: &[u8],
+    ) -> Result<(), RendererError> {
+        if self.released {
+            return Err(RendererError::Released);
+        }
+        self.sprites.set_auxiliary_rgba8(
+            &self.context,
+            width,
+            height,
+            pixels,
+        )
+    }
+
+    /// Updates the existing auxiliary texture without replacing GPU handles.
+    pub fn update_sprite_auxiliary_rgba8(
+        &self,
+        width: u32,
+        height: u32,
+        pixels: &[u8],
+    ) -> Result<(), RendererError> {
+        if self.released {
+            return Err(RendererError::Released);
+        }
+        self.sprites.update_auxiliary_rgba8(
+            &self.context,
+            width,
+            height,
+            pixels,
+        )
+    }
+
     /// Returns persistent GPU buffer memory tracked by the renderer.
     pub fn allocated_gpu_bytes(&self) -> u64 {
         if self.released { 0 } else { self.sprites.allocated_bytes() }

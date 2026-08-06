@@ -2,7 +2,7 @@ from std::alloc import AllocError, Allocator, ArenaAllocator, general_allocator;
 from std::collections import Vec;
 
 /// Engine-owned execution pipelines.
-@derive(Copy, Clone, Debug, Eq)
+@derive(Copy, Clone, Debug, Eq, Hash)
 pub enum SystemPipeline {
     Input,
     Update,
@@ -33,9 +33,21 @@ impl<State: PipelineState> Engine<State> {
 
     /// Runs the standard Arepita frame pipelines.
     pub fn run_frame(&mut self) {
+        self.run_frame_steps(1);
+    }
+
+    /// Runs input and presentation once around `fixed_steps` simulation ticks.
+    ///
+    /// This keeps catch-up simulation from polling input or presenting the
+    /// same frame repeatedly. Each fixed tick executes Update before Physics.
+    pub fn run_frame_steps(&mut self, fixed_steps: u32) {
         self.state.execute_pipeline(SystemPipeline::Input);
-        self.state.execute_pipeline(SystemPipeline::Update);
-        self.state.execute_pipeline(SystemPipeline::Physics);
+        let mut step: u32 = 0;
+        while step < fixed_steps {
+            self.state.execute_pipeline(SystemPipeline::Update);
+            self.state.execute_pipeline(SystemPipeline::Physics);
+            step += 1;
+        }
         self.state.execute_pipeline(SystemPipeline::AsyncUpdate);
         self.state.execute_pipeline(SystemPipeline::Render);
         self.state.execute_pipeline(SystemPipeline::RenderUi);
@@ -313,4 +325,12 @@ fn engine_should_own_standard_pipeline_order() {
     let mut engine = Engine::new(state);
     engine.run_frame();
     assert(engine.state().value == 150);
+}
+
+@test
+fn engine_should_repeat_only_fixed_simulation_pipelines() {
+    let state = TestState { value: 0, released: false };
+    let mut engine = Engine::new(state);
+    engine.run_frame_steps(3);
+    assert(engine.state().value == 726);
 }

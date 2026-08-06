@@ -27,11 +27,14 @@ Add the path dependency:
 wgpu = { path = "../reimer/vendor/wgpu", version = "^29.0" }
 ```
 
-Run the native initialization and mapped-buffer example:
+Run the engine's manifest-backed wgpu window example:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File vendor\wgpu\tools\invoke.ps1 -Project examples\wgpu_info
+reimer run examples\wgpu-clear --release
 ```
+
+The package manifest supplies the loader and linker inputs transitively, so
+the command does not require a wrapper or `PATH`/`LIB` changes.
 
 For window surfaces, use the separate `vendor/wgpu-sdl3` adapter. Keeping the
 adapter separate prevents SDL-specific handles and lifetimes from leaking into

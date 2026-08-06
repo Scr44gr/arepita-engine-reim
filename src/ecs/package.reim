@@ -6,10 +6,13 @@ pub from self::store import Component, ComponentStore, for_each2_mut;
 pub from self::registry import ComponentSet, Registry;
 /// Allocation-free heterogeneous registry queries.
 pub from self::query import Query, QueryMut;
-/// Entity and component ownership without direct registry access.
-pub from self::world import World, WorldError, world;
-/// Static system contracts used by generic world integrations.
-pub from self::system import EmptySystems, QuerySystem, System, SystemChain, SystemList;
+/// Entity and component ownership plus feature composition.
+pub from self::world import World, WorldError, world, world_with_resources;
+/// Runtime system registration.
+///
+/// The erased dispatch contract remains private so external code cannot forge
+/// the address/runner pairing protected by `SystemId`.
+pub from self::system import SystemId;
 pub from super::app import SystemPipeline;
 /// Generational entity lifecycle types.
 pub from self::entity import Entity, Entities, EntityError;

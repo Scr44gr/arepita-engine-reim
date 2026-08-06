@@ -92,15 +92,17 @@ The repository currently ships the official SDL 3.4.12 Visual C++ x64
 `SDL3-devel-3.4.12-VC.zip`, whose SHA-256 is recorded in `checksums.sha256`.
 The SDL source and binaries use the zlib license in `LICENSE.txt`.
 
-Run a dependent project with the vendored loader and linker paths:
+The package manifest declares the host library path and runtime file, so a
+dependent project can use the normal Reimer commands without changing `PATH`
+or `LIB`:
 
 ```powershell
-.\vendor\sdl3\tools\invoke.ps1 -Project ..\voxel-space-reimer -Command run -Release -Locked
+reimer run ..\voxel-space-reimer --release --locked
 ```
 
-For `build`, the launcher also copies `SDL3.dll` beside the generated
-executable. Other operating systems can use the same source binding after a
-matching, version-pinned native directory and launcher branch are added.
+For `build`, Reimer copies `SDL3.dll` beside the generated executable. Other
+operating systems can use the same source binding after a matching,
+version-pinned native directory and `[native.<os>-<arch>]` table are added.
 
 ## Updating SDL
 
