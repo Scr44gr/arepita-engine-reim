@@ -133,6 +133,54 @@ impl<Write: Component, ...Read: Component> Query<Write, ...Read> {
         }
         matched
     }
+
+    /// Runs `system` for a bounded contiguous range of the driving store.
+    ///
+    /// This is intended for deterministic time slicing: callers can divide
+    /// `candidate_count()` into stable ranges and process one range per frame
+    /// without scanning every component first.
+    pub fn for_each_range_with<Context>(
+        &mut self,
+        start: usize,
+        maximum: usize,
+        context: &mut Context,
+        system: fn(&mut Context, Entity, &mut Write, (...Read)) -> (),
+    ) -> usize {
+        let length = self.stores.0.len();
+        if start >= length || maximum == 0 { return 0; }
+        let remaining = length - start;
+        let selected = if maximum < remaining { maximum } else { remaining };
+        let end = start + selected;
+        let mut matched: usize = 0;
+        let mut index = start;
+        while index < end {
+            let entity = match self.stores.0.entity_at(index) {
+                Some(value) => value,
+                None => panic("query driving entity index became inconsistent"),
+            };
+            let reads: (...Read) = (
+                ...Read => {
+                    let selected_store = self.stores.get_type<&ComponentStore<Read>>();
+                    let store = *selected_store;
+                    match store.get(entity) {
+                        Some(value) => value,
+                        None => {
+                            index += 1;
+                            continue;
+                        },
+                    }
+                },
+            );
+            let write = match self.stores.0.value_mut_at(index) {
+                Some(value) => value,
+                None => panic("query driving value index became inconsistent"),
+            };
+            system(context, entity, write, reads);
+            matched += 1;
+            index += 1;
+        }
+        matched
+    }
 }
 
 impl<First: Component, ...Rest: Component> QueryMut<First, ...Rest> {
@@ -293,6 +341,61 @@ impl<First: Component, ...Rest: Component> QueryMut<First, ...Rest> {
                         &mut ComponentStore<Rest>
                     >();
                     let store = &mut **selected;
+                    match store.get_mut(entity) {
+                        Some(value) => value,
+                        None => {
+                            index += 1;
+                            continue;
+                        },
+                    }
+                },
+            );
+            let first = match self.stores.0.value_mut_at(index) {
+                Some(value) => value,
+                None => panic("query driving value index became inconsistent"),
+            };
+            system(context, entity, first, rest);
+            matched += 1;
+            index += 1;
+        }
+        matched
+    }
+
+    /// Mutably visits a bounded contiguous range of the driving store.
+    ///
+    /// The range is clamped to the current dense length, making it suitable
+    /// for frame-to-frame work partitioning even as entities are added or
+    /// removed at structural barriers.
+    pub fn for_each_range_with<Context>(
+        &mut self,
+        start: usize,
+        maximum: usize,
+        context: &mut Context,
+        system: fn(
+            &mut Context,
+            Entity,
+            &mut First,
+            (...Rest => &mut Rest),
+        ) -> (),
+    ) -> usize {
+        let length = self.stores.0.len();
+        if start >= length || maximum == 0 { return 0; }
+        let remaining = length - start;
+        let selected = if maximum < remaining { maximum } else { remaining };
+        let end = start + selected;
+        let mut matched: usize = 0;
+        let mut index = start;
+        while index < end {
+            let entity = match self.stores.0.entity_at(index) {
+                Some(value) => value,
+                None => panic("query driving entity index became inconsistent"),
+            };
+            let rest: (...Rest => &mut Rest) = (
+                ...Rest => {
+                    let selected_store = self.stores.get_type_mut<
+                        &mut ComponentStore<Rest>
+                    >();
+                    let store = &mut **selected_store;
                     match store.get_mut(entity) {
                         Some(value) => value,
                         None => {

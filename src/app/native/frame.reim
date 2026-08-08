@@ -1,5 +1,7 @@
 from std::time import Duration;
 
+from super::super::render::context import RendererBackend;
+
 /// Per-device input ownership selected by an optional native extension.
 @derive(Copy, Clone, Debug, Eq)
 pub struct InputCapture {
@@ -70,6 +72,19 @@ pub struct AppStats {
     pub state_allocated_bytes: usize,
     pub sprite_batch_allocated_bytes: usize,
     pub renderer_allocated_bytes: u64,
+    /// Game-renderer work from the last frame that completed presentation.
+    pub render_draw_calls: u32,
+    pub rendered_sprite_instances: u32,
+    pub uploaded_sprite_bytes: u64,
+    pub renderer_backend: RendererBackend,
+    /// CPU timings from the last frame that completed presentation.
+    pub audio_service_ms: f64,
+    pub extension_begin_ms: f64,
+    pub render_pipeline_ms: f64,
+    pub sprite_extraction_ms: f64,
+    pub game_render_ms: f64,
+    pub extension_render_ms: f64,
+    pub presentation_ms: f64,
 }
 
 /// Why the native application crossed its shutdown boundary.

@@ -403,6 +403,82 @@ fn heterogeneous_registry_should_run_a_typed_query() {
 }
 
 @test
+fn heterogeneous_registry_should_limit_a_query_to_one_dense_range() {
+    let allocator = general_allocator();
+    let mut entities = match Entities::new(&allocator) {
+        Ok(value) => value,
+        Err(_) => panic("entity allocation should succeed"),
+    };
+    defer entities.deinit();
+    let created: Result<Registry<QueryPosition, QueryVelocity>, AllocError> =
+        Registry::new(&allocator);
+    let mut registry = match created {
+        Ok(value) => value,
+        Err(_) => panic("registry allocation should succeed"),
+    };
+    defer registry.deinit();
+    let first = match entities.spawn() {
+        Ok(value) => value,
+        Err(_) => panic("first entity spawn should succeed"),
+    };
+    let second = match entities.spawn() {
+        Ok(value) => value,
+        Err(_) => panic("second entity spawn should succeed"),
+    };
+    let third = match entities.spawn() {
+        Ok(value) => value,
+        Err(_) => panic("third entity spawn should succeed"),
+    };
+    let inserted = [first, second, third];
+    let mut index: usize = 0;
+    while index < 3 {
+        let entity = inserted[index];
+        let position = QueryPosition { x: index as i32 };
+        match registry.insert<QueryPosition>(entity, position) {
+            Ok(_) => {},
+            Err(_) => panic("position insertion should succeed"),
+        }
+        let velocity = QueryVelocity { x: 10 };
+        match registry.insert<QueryVelocity>(entity, velocity) {
+            Ok(_) => {},
+            Err(_) => panic("velocity insertion should succeed"),
+        }
+        index += 1;
+    }
+    {
+        let mut query = match registry.query<QueryPosition, QueryVelocity>() {
+            Some(value) => value,
+            None => panic("range query construction should succeed"),
+        };
+        let mut scale = QueryScale { factor: 1 };
+        assert(
+            query.for_each_range_with(
+                1,
+                1,
+                &mut scale,
+                integrate_query_position_with_scale,
+            ) == 1,
+            "range query should process only the selected dense row",
+        );
+    };
+    let first_position = match registry.get<QueryPosition>(first) {
+        Some(value) => value,
+        None => panic("first position should remain present"),
+    };
+    let second_position = match registry.get<QueryPosition>(second) {
+        Some(value) => value,
+        None => panic("second position should remain present"),
+    };
+    let third_position = match registry.get<QueryPosition>(third) {
+        Some(value) => value,
+        None => panic("third position should remain present"),
+    };
+    assert(first_position.x == 0);
+    assert(second_position.x == 11);
+    assert(third_position.x == 2);
+}
+
+@test
 fn mutable_query_should_insert_a_complete_typed_bundle() {
     let allocator = general_allocator();
     let mut entities = match Entities::new(&allocator) {

@@ -5,7 +5,7 @@ from sdl3 import Window;
 import sdl3::raw::constants as sdl_constants;
 import sdl3::raw::functions as sdl;
 import sdl3::raw::types as sdl_types;
-from wgpu import Adapter, Error as WgpuError, Instance, Surface as WgpuSurface;
+from wgpu import Adapter, BackendType, Error as WgpuError, Instance, Surface as WgpuSurface;
 import wgpu::raw::constants as wgpu_constants;
 import wgpu::raw::types as types;
 
@@ -68,6 +68,14 @@ impl WindowSurface {
     /// Requests an adapter capable of presenting to this surface.
     pub fn request_adapter(&self) -> Result<Adapter, WgpuError> {
         self.surface.request_adapter()
+    }
+
+    /// Requests a presentation adapter implemented by one graphics API.
+    pub fn request_adapter_with_backend(
+        &self,
+        backend: BackendType,
+    ) -> Result<Adapter, WgpuError> {
+        self.surface.request_adapter_with_backend(backend)
     }
 
     /// Releases the surface and optional Metal view in place.

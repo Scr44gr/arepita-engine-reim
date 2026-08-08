@@ -1,4 +1,4 @@
-from wgpu import Adapter, BindGroup, Buffer, Color, Device, Error as WgpuError, PresentMode as WgpuPresentMode, Queue, RenderFrame as WgpuRenderFrame, RenderPipeline, SurfaceFrame;
+from wgpu import Adapter, BackendType as WgpuBackendType, BindGroup, Buffer, Color, Device, Error as WgpuError, PresentMode as WgpuPresentMode, Queue, RenderFrame as WgpuRenderFrame, RenderPipeline, SurfaceFrame;
 import wgpu::raw::types as types;
 from wgpu_sdl3 import WindowSurface;
 
@@ -37,6 +37,24 @@ pub enum PresentationMode {
     Immediate,
     /// Presents only the newest queued frame without tearing.
     Mailbox,
+}
+
+/// Native graphics API used by the wgpu renderer.
+@derive(Copy, Clone, Debug, Eq)
+pub enum RendererBackend {
+    Automatic,
+    Vulkan,
+    OpenGl,
+}
+
+impl RendererBackend {
+    fn into_wgpu(self) -> WgpuBackendType {
+        match self {
+            RendererBackend::Automatic => WgpuBackendType::Automatic,
+            RendererBackend::Vulkan => WgpuBackendType::Vulkan,
+            RendererBackend::OpenGl => WgpuBackendType::OpenGl,
+        }
+    }
 }
 
 impl PresentationMode {
@@ -85,6 +103,7 @@ pub struct GpuContext {
     queue: Queue,
     format: types::WGPUTextureFormat,
     presentation_mode: PresentationMode,
+    backend: RendererBackend,
     width: u32,
     height: u32,
     suspended: bool,
@@ -104,7 +123,20 @@ impl GpuContext {
         surface: &mut WindowSurface,
         presentation_mode: PresentationMode,
     ) -> Result<GpuContext, RendererError> {
-        let mut adapter = match surface.request_adapter() {
+        GpuContext::create_with_options(
+            surface,
+            presentation_mode,
+            RendererBackend::Automatic,
+        )
+    }
+
+    /// Creates a native context using explicit presentation and backend policy.
+    pub fn create_with_options(
+        surface: &mut WindowSurface,
+        presentation_mode: PresentationMode,
+        backend: RendererBackend,
+    ) -> Result<GpuContext, RendererError> {
+        let mut adapter = match surface.request_adapter_with_backend(backend.into_wgpu()) {
             Ok(value) => value,
             Err(_) => {
                 return Err(RendererError::AdapterUnavailable);
@@ -177,6 +209,7 @@ impl GpuContext {
             queue: queue,
             format: format,
             presentation_mode: presentation_mode,
+            backend: backend,
             width: width,
             height: height,
             suspended: suspended,
@@ -199,6 +232,16 @@ impl GpuContext {
                 return Err(RendererError::WindowSizeUnavailable);
             },
         };
+        // Explicitly retire the previous swapchain before changing dimensions.
+        // Some native backends may otherwise yield one suboptimal image with
+        // the old extent immediately after a maximize/DPI transition.
+        let wgpu_surface = surface.surface_mut();
+        match wgpu_surface.unconfigure() {
+            Ok(_) => {},
+            Err(_) => {
+                return Err(RendererError::SurfaceConfigurationFailed);
+            },
+        }
         if size.width <= 0 || size.height <= 0 {
             self.width = 0;
             self.height = 0;
@@ -208,7 +251,6 @@ impl GpuContext {
         self.width = size.width as u32;
         self.height = size.height as u32;
         self.suspended = false;
-        let wgpu_surface = surface.surface_mut();
         match wgpu_surface.configure_with_present_mode(
             &self.adapter,
             &self.device,
@@ -241,6 +283,31 @@ impl GpuContext {
             Ok(value) => Ok(Frame { inner: value }),
             Err(_) => Err(RendererError::FrameUnavailable),
         }
+    }
+
+    /// Probes the surface until it yields the configured presentation extent.
+    ///
+    /// Native backends may return one stale/suboptimal image immediately after
+    /// a resize. The probe owns and discards that image before any renderer or
+    /// extension records commands against it.
+    pub fn surface_extent_ready(
+        &self,
+        surface: &WindowSurface,
+    ) -> Result<bool, RendererError> {
+        if self.released {
+            return Err(RendererError::Released);
+        }
+        if self.suspended {
+            return Ok(false);
+        }
+        let wgpu_surface = surface.surface();
+        let frame = match wgpu_surface.acquire() {
+            Ok(value) => value,
+            Err(_) => { return Err(RendererError::FrameUnavailable); },
+        };
+        let ready = frame.width() == self.width && frame.height() == self.height;
+        frame.discard();
+        Ok(ready)
     }
 
     /// Clears and presents one frame without allocating host-side memory.
@@ -340,6 +407,9 @@ impl GpuContext {
         self.presentation_mode
     }
 
+    /// Returns the graphics backend requested when this context was created.
+    pub fn backend(&self) -> RendererBackend { self.backend }
+
     /// Returns whether the context has crossed its final release barrier.
     pub fn is_released(&self) -> bool { self.released }
 
@@ -373,6 +443,12 @@ pub struct RenderFrame {
 }
 
 impl RenderFrame {
+    /// Returns the actual acquired render-target width.
+    pub fn width(&self) -> u32 { self.inner.width() }
+
+    /// Returns the actual acquired render-target height.
+    pub fn height(&self) -> u32 { self.inner.height() }
+
     /// Records one instanced draw without ending or presenting the frame.
     pub fn draw_instances(
         &mut self,
@@ -389,6 +465,34 @@ impl RenderFrame {
             vertex_buffer,
             vertex_count,
             instance_count,
+            byte_length,
+        ) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(RendererError::FrameRenderFailed),
+        }
+    }
+
+    /// Records one ranged instanced draw with a secondary uniform binding.
+    pub fn draw_instances_with_uniform(
+        &mut self,
+        pipeline: &RenderPipeline,
+        texture_bind_group: &BindGroup,
+        uniform_bind_group: &BindGroup,
+        vertex_buffer: &Buffer,
+        vertex_count: u32,
+        instance_count: u32,
+        byte_offset: u64,
+        byte_length: u64,
+    ) -> Result<(), RendererError> {
+        let inner: &mut WgpuRenderFrame = &mut self.inner;
+        match inner.draw_instanced_with_uniform(
+            pipeline,
+            texture_bind_group,
+            uniform_bind_group,
+            vertex_buffer,
+            vertex_count,
+            instance_count,
+            byte_offset,
             byte_length,
         ) {
             Ok(_) => Ok(()),

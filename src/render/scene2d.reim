@@ -1,4 +1,5 @@
 from std::alloc import AllocError, general_allocator;
+from std::math import absolute, cosine, sine;
 
 from self::sprite_batch import AtlasRegion, BatchError, SpriteBatch, SpriteColor, SpriteInstance;
 from super::app import ManagedResource, Resource;
@@ -56,6 +57,19 @@ impl Camera2D {
         let clip_y = -(transform.y - self.center_y) / half_height;
         let clip_width = sprite.width * transform.scale_x / half_width;
         let clip_height = sprite.height * transform.scale_y / half_height;
+        let rotation_cosine = absolute(cosine(transform.rotation));
+        let rotation_sine = absolute(sine(transform.rotation));
+        let extent_x = absolute(clip_width) * 0.5 * rotation_cosine
+            + absolute(clip_height) * 0.5 * rotation_sine;
+        let extent_y = absolute(clip_width) * 0.5 * rotation_sine
+            + absolute(clip_height) * 0.5 * rotation_cosine;
+        if clip_x + extent_x <= -1.0
+            || clip_x - extent_x >= 1.0
+            || clip_y + extent_y <= -1.0
+            || clip_y - extent_y >= 1.0
+        {
+            return None;
+        }
         Some(
             SpriteInstance::new(clip_x, clip_y, clip_width, clip_height)
                 .with_rotation(-transform.rotation)
@@ -244,4 +258,23 @@ fn extraction_should_project_matching_entities_without_growth() {
     assert(instance.position_y == 0.0);
     assert(instance.size_x == 0.2);
     assert(instance.size_y == 0.2);
+}
+
+@test
+fn camera_projection_should_cull_offscreen_sprites_conservatively() {
+    let camera = Camera2D::new(320.0, 180.0);
+    let sprite = Sprite::new(32.0, 18.0);
+    match camera.project(Transform2D::at(160.0, 90.0), sprite) {
+        Some(_) => {},
+        None => panic("visible sprite was culled"),
+    }
+    match camera.project(Transform2D::at(400.0, 90.0), sprite) {
+        Some(_) => panic("offscreen sprite was retained"),
+        None => {},
+    }
+    let edge = Transform2D::at(330.0, 90.0).with_rotation(0.785398);
+    match camera.project(edge, sprite) {
+        Some(_) => {},
+        None => panic("rotated edge sprite was culled"),
+    }
 }

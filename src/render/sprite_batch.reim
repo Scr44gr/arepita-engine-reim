@@ -461,12 +461,17 @@ impl SpriteBatch {
     }
 
     /// Releases instance storage.
+    pub fn release(&mut self) {
+        self.instances.release();
+        self.sort_scratch.release();
+        self.sort_counts.release();
+        self.sort_offsets.release();
+    }
+
+    /// Releases instance storage by value.
     pub fn deinit(self) {
         let mut owned = self;
-        owned.instances.release();
-        owned.sort_scratch.release();
-        owned.sort_counts.release();
-        owned.sort_offsets.release();
+        owned.release();
     }
 }
 

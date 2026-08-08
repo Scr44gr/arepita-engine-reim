@@ -1,6 +1,6 @@
 from std::time import Duration;
 
-from super::super::render::context import ClearColor;
+from super::super::render::context import ClearColor, RendererBackend;
 
 /// Immutable native application and frame-loop configuration.
 @derive(Copy, Clone, Debug)
@@ -13,6 +13,7 @@ pub struct NativeAppConfig {
     pub maximum_fixed_steps: u32,
     pub sprite_capacity: usize,
     pub clear_color: ClearColor,
+    pub renderer_backend: RendererBackend,
 }
 
 impl NativeAppConfig {
@@ -27,6 +28,7 @@ impl NativeAppConfig {
             maximum_fixed_steps: 8,
             sprite_capacity: 4_096,
             clear_color: ClearColor::rgba(0.0, 0.0, 0.0, 1.0),
+            renderer_backend: RendererBackend::Automatic,
         }
     }
 
@@ -65,6 +67,16 @@ impl NativeAppConfig {
         config
     }
 
+    /// Selects the native graphics API used to request the presentation adapter.
+    pub fn with_renderer_backend(
+        self,
+        backend: RendererBackend,
+    ) -> NativeAppConfig {
+        let mut config = self;
+        config.renderer_backend = backend;
+        config
+    }
+
     /// Reports whether every bounded native-loop setting is usable.
     pub fn is_valid(&self) -> bool {
         self.width > 0
@@ -93,4 +105,6 @@ fn native_app_config_should_reject_zero_sized_budgets() {
         Duration::from_milliseconds(100),
     );
     assert(!no_fixed_step.is_valid());
+    let opengl = valid.with_renderer_backend(RendererBackend::OpenGl);
+    assert(opengl.renderer_backend == RendererBackend::OpenGl);
 }

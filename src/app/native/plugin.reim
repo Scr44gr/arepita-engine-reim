@@ -3,9 +3,10 @@ from self::frame import AppStats, ExitReason, InputCapture, NativeFrame, WindowM
 from super::lifecycle import PipelineState;
 from super::super::platform::gamepads import Gamepads;
 from super::super::platform::state import Input;
-from super::super::render::context import RenderFrame;
+from super::super::render::context import ClearColor, RenderFrame;
 from super::super::render::renderer import Renderer;
 from super::super::render::sprite_batch import SpriteBatch;
+from super::super::render::sprite_renderer import RenderReport;
 
 /// Typed failures produced while creating or driving a native application.
 @derive(Copy, Clone, Debug, Eq)
@@ -74,6 +75,15 @@ pub struct NativeGame<State, Owner> {
         NativeFrame,
         WindowMetrics,
     ) -> Result<(), NativeAppError>,
+    render_sprites_callback: fn(
+        &mut Owner,
+        &State,
+        &mut Renderer,
+        &SpriteBatch,
+        ClearColor,
+        NativeFrame,
+        WindowMetrics,
+    ) -> Result<(RenderFrame, RenderReport), NativeAppError>,
     shutdown_callback: fn(
         &mut Owner,
         &mut State,
@@ -113,6 +123,15 @@ impl<State, Owner> NativeGame<State, Owner> {
             NativeFrame,
             WindowMetrics,
         ) -> Result<(), NativeAppError>,
+        render_sprites: fn(
+            &mut Owner,
+            &State,
+            &mut Renderer,
+            &SpriteBatch,
+            ClearColor,
+            NativeFrame,
+            WindowMetrics,
+        ) -> Result<(RenderFrame, RenderReport), NativeAppError>,
         shutdown: fn(
             &mut Owner,
             &mut State,
@@ -126,6 +145,7 @@ impl<State, Owner> NativeGame<State, Owner> {
             service_audio_callback: service_audio,
             required_sprite_capacity_callback: required_sprite_capacity,
             extract_sprites_callback: extract_sprites,
+            render_sprites_callback: render_sprites,
             shutdown_callback: shutdown,
             release_callback: release,
         }
@@ -172,6 +192,27 @@ impl<State, Owner> NativeGame<State, Owner> {
     ) -> Result<(), NativeAppError> {
         let callback = self.extract_sprites_callback;
         callback(&mut self.owner, state, renderer, batch, frame, window)
+    }
+
+    pub fn render_sprites(
+        &mut self,
+        state: &State,
+        renderer: &mut Renderer,
+        batch: &SpriteBatch,
+        clear: ClearColor,
+        frame: NativeFrame,
+        window: WindowMetrics,
+    ) -> Result<(RenderFrame, RenderReport), NativeAppError> {
+        let callback = self.render_sprites_callback;
+        callback(
+            &mut self.owner,
+            state,
+            renderer,
+            batch,
+            clear,
+            frame,
+            window,
+        )
     }
 
     pub fn shutdown(

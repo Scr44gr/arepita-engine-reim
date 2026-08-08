@@ -378,6 +378,19 @@ impl SdlWgpu {
         Ok(())
     }
 
+    /// Ends the active UI frame without recording its draw data.
+    ///
+    /// Renderer adapters use this when the platform window and the acquired
+    /// presentation image temporarily disagree during a resize transition.
+    pub fn discard_frame(&mut self) -> Result<(), FrameError> {
+        activate_frame(self.raw, self.frame_active)?;
+        unsafe {
+            imgui::ImGui_EndFrame();
+        }
+        self.frame_active = false;
+        Ok(())
+    }
+
     /// Returns the native context for advanced raw API calls.
     ///
     /// The pointer remains owned by this facade and is invalid after `deinit`.

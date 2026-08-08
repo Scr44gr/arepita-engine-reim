@@ -101,6 +101,25 @@ pub enum PrimitiveTopology {
     TriangleStrip,
 }
 
+/// Native graphics API requested during adapter selection.
+@derive(Copy, Clone, Debug, Eq)
+pub enum BackendType {
+    /// Lets wgpu-native choose the platform's preferred compatible backend.
+    Automatic,
+    Vulkan,
+    OpenGl,
+}
+
+impl BackendType {
+    fn as_raw(self) -> types::WGPUBackendType {
+        match self {
+            BackendType::Automatic => constants::WGPUBackendType_Undefined,
+            BackendType::Vulkan => constants::WGPUBackendType_Vulkan,
+            BackendType::OpenGl => constants::WGPUBackendType_OpenGL,
+        }
+    }
+}
+
 impl PrimitiveTopology {
     fn as_raw(&self) -> types::WGPUPrimitiveTopology {
         match *self {
@@ -222,12 +241,20 @@ impl Instance {
 
     /// Requests the system's default adapter and waits without busy-spinning.
     pub fn request_adapter(&self) -> Result<Adapter, Error> {
+        self.request_adapter_with_backend(BackendType::Automatic)
+    }
+
+    /// Requests an adapter implemented by one explicit native graphics API.
+    pub fn request_adapter_with_backend(
+        &self,
+        backend: BackendType,
+    ) -> Result<Adapter, Error> {
         let options = types::WGPURequestAdapterOptions {
             next_in_chain: c::null<types::WGPUChainedStruct>(),
             feature_level: constants::WGPUFeatureLevel_Undefined,
             power_preference: constants::WGPUPowerPreference_Undefined,
             force_fallback_adapter: 0,
-            backend_type: constants::WGPUBackendType_Undefined,
+            backend_type: backend.as_raw(),
             compatible_surface: c::null<()>(),
         };
         self.request_adapter_with(&options)
@@ -420,6 +447,15 @@ impl Device {
         )
     }
 
+    /// Creates a persistent uniform buffer that can be refreshed by the queue.
+    pub fn create_uniform_buffer(&self, size: u64) -> Result<Buffer, Error> {
+        self.create_buffer(
+            size,
+            constants::WGPUBufferUsage_Uniform
+                | constants::WGPUBufferUsage_CopyDst,
+        )
+    }
+
     /// Creates an RGBA8 texture for sampled images and queue uploads.
     pub fn create_rgba8_texture(
         &self,
@@ -594,6 +630,50 @@ impl Device {
             label: empty_string_view(),
             layout: layout.raw,
             entry_count: 3,
+            entries: slice::as_ptr(&entries),
+        };
+        let raw = unsafe {
+            api::wgpuDeviceCreateBindGroup(
+                self.raw,
+                &descriptor as *const types::WGPUBindGroupDescriptor,
+            )
+        };
+        if c::is_null_mut(raw) {
+            Err(Error::ResourceCreationFailed)
+        } else {
+            Ok(BindGroup { raw: raw })
+        }
+    }
+
+    /// Binds one complete buffer range to binding zero of a pipeline layout.
+    pub fn create_buffer_bind_group(
+        &self,
+        layout: &BindGroupLayout,
+        buffer: &Buffer,
+        size: u64,
+    ) -> Result<BindGroup, Error> {
+        require_live(self.raw)?;
+        require_live(layout.raw)?;
+        require_live(buffer.raw)?;
+        if size == 0 || size > buffer.size() {
+            return Err(Error::InvalidBufferRange);
+        }
+        let entries = [
+            types::WGPUBindGroupEntry {
+                next_in_chain: c::null<types::WGPUChainedStruct>(),
+                binding: 0,
+                buffer: buffer.raw,
+                offset: 0,
+                size: size,
+                sampler: c::null<()>(),
+                texture_view: c::null<()>(),
+            },
+        ];
+        let descriptor = types::WGPUBindGroupDescriptor {
+            next_in_chain: c::null<types::WGPUChainedStruct>(),
+            label: empty_string_view(),
+            layout: layout.raw,
+            entry_count: 1,
             entries: slice::as_ptr(&entries),
         };
         let raw = unsafe {
@@ -823,6 +903,8 @@ impl Device {
             frame.release();
             return Err(Error::Released);
         }
+        let width = frame.width();
+        let height = frame.height();
         let view = unsafe {
             api::wgpuTextureCreateView(
                 frame.texture,
@@ -859,6 +941,8 @@ impl Device {
             view: view,
             encoder: encoder,
             pass: pass,
+            width: width,
+            height: height,
         })
     }
 
@@ -1656,6 +1740,14 @@ fn configure_surface(
 impl Surface {
     /// Requests an adapter compatible with this surface.
     pub fn request_adapter(&self) -> Result<Adapter, Error> {
+        self.request_adapter_with_backend(BackendType::Automatic)
+    }
+
+    /// Requests a surface-compatible adapter from one native graphics API.
+    pub fn request_adapter_with_backend(
+        &self,
+        backend: BackendType,
+    ) -> Result<Adapter, Error> {
         require_live(self.instance)?;
         require_live(self.raw)?;
         let options = types::WGPURequestAdapterOptions {
@@ -1663,7 +1755,7 @@ impl Surface {
             feature_level: constants::WGPUFeatureLevel_Undefined,
             power_preference: constants::WGPUPowerPreference_Undefined,
             force_fallback_adapter: 0,
-            backend_type: constants::WGPUBackendType_Undefined,
+            backend_type: backend.as_raw(),
             compatible_surface: self.raw,
         };
         request_adapter_from(self.instance, &options)
@@ -1852,6 +1944,24 @@ impl SurfaceFrame {
         self.suboptimal
     }
 
+    /// Returns the actual width of this acquired presentation image.
+    pub fn width(&self) -> u32 {
+        if c::is_null_mut(self.texture) {
+            0
+        } else {
+            unsafe { api::wgpuTextureGetWidth(self.texture) }
+        }
+    }
+
+    /// Returns the actual height of this acquired presentation image.
+    pub fn height(&self) -> u32 {
+        if c::is_null_mut(self.texture) {
+            0
+        } else {
+            unsafe { api::wgpuTextureGetHeight(self.texture) }
+        }
+    }
+
     /// Presents the frame and releases its texture reference.
     pub fn present(self) -> Result<(), Error> {
         let mut frame = self;
@@ -1901,9 +2011,17 @@ pub struct RenderFrame {
     view: types::WGPUTextureView,
     encoder: CommandEncoder,
     pass: types::WGPURenderPassEncoder,
+    width: u32,
+    height: u32,
 }
 
 impl RenderFrame {
+    /// Returns the actual acquired render-target width.
+    pub fn width(&self) -> u32 { self.width }
+
+    /// Returns the actual acquired render-target height.
+    pub fn height(&self) -> u32 { self.height }
+
     /// Records one instanced draw into this frame's active pass.
     pub fn draw_instanced(
         &mut self,
@@ -1939,6 +2057,66 @@ impl RenderFrame {
                 0,
                 vertex_buffer.as_raw(),
                 0,
+                byte_length,
+            );
+            api::wgpuRenderPassEncoderDraw(
+                self.pass,
+                vertex_count,
+                instance_count,
+                0,
+                0,
+            );
+        }
+        Ok(())
+    }
+
+    /// Records one instanced draw with texture and uniform bind groups.
+    pub fn draw_instanced_with_uniform(
+        &mut self,
+        pipeline: &RenderPipeline,
+        texture_bind_group: &BindGroup,
+        uniform_bind_group: &BindGroup,
+        vertex_buffer: &Buffer,
+        vertex_count: u32,
+        instance_count: u32,
+        byte_offset: u64,
+        byte_length: u64,
+    ) -> Result<(), Error> {
+        require_live(self.pass)?;
+        require_live(pipeline.raw)?;
+        require_live(texture_bind_group.raw)?;
+        require_live(uniform_bind_group.raw)?;
+        require_live(vertex_buffer.raw)?;
+        let buffer_size = vertex_buffer.size();
+        if vertex_count == 0
+            || instance_count == 0
+            || byte_length == 0
+            || byte_offset > buffer_size
+            || byte_length > buffer_size - byte_offset
+        {
+            return Err(Error::InvalidBufferRange);
+        }
+        unsafe {
+            api::wgpuRenderPassEncoderSetPipeline(self.pass, pipeline.as_raw());
+            api::wgpuRenderPassEncoderSetBindGroup(
+                self.pass,
+                0,
+                texture_bind_group.as_raw(),
+                0,
+                c::null_const<u32>(),
+            );
+            api::wgpuRenderPassEncoderSetBindGroup(
+                self.pass,
+                1,
+                uniform_bind_group.as_raw(),
+                0,
+                c::null_const<u32>(),
+            );
+            api::wgpuRenderPassEncoderSetVertexBuffer(
+                self.pass,
+                0,
+                vertex_buffer.as_raw(),
+                byte_offset,
                 byte_length,
             );
             api::wgpuRenderPassEncoderDraw(

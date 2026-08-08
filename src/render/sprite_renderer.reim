@@ -1,10 +1,15 @@
+from std::alloc import general_allocator;
+from std::string import String, byte_len;
+
 from self::context import ClearColor, GpuContext, RenderFrame, RendererError;
 from self::sprite_batch import SpriteBatch;
 from wgpu import BindGroup, BindGroupLayout, Buffer, PrimitiveTopology, RenderPipeline, Sampler, Texture, TextureView, VertexAttribute, VertexFormat;
 from wgpu_sdl3 import WindowSurface;
 
 const INSTANCE_BYTES: usize = 64;
-const SPRITE_SHADER: str = "@group(0) @binding(0) var image_sampler: sampler;\n@group(0) @binding(1) var image: texture_2d<f32>;\n@group(0) @binding(2) var auxiliary_image: texture_2d<f32>;\nstruct InstanceInput {\n    @location(0) transform: vec4<f32>,\n    @location(1) packed1: vec4<f32>,\n    @location(2) packed2: vec4<f32>,\n    @location(3) packed3: vec2<f32>,\n    @location(4) packed_indices: u32,\n    @location(5) depth: f32,\n};\nstruct VertexOutput {\n    @builtin(position) position: vec4<f32>,\n    @location(0) color: vec4<f32>,\n    @location(1) uv: vec2<f32>,\n    @location(2) @interpolate(flat) material_index: u32,\n};\n@vertex\nfn vs_main(input: InstanceInput, @builtin(vertex_index) vertex_index: u32) -> VertexOutput {\n    var corners = array<vec2<f32>, 4>(\n        vec2<f32>(-0.5, -0.5),\n        vec2<f32>(0.5, -0.5),\n        vec2<f32>(-0.5, 0.5),\n        vec2<f32>(0.5, 0.5)\n    );\n    var texture_coordinates = array<vec2<f32>, 4>(\n        vec2<f32>(input.packed1.z, input.packed2.y),\n        vec2<f32>(input.packed2.x, input.packed2.y),\n        vec2<f32>(input.packed1.z, input.packed1.w),\n        vec2<f32>(input.packed2.x, input.packed1.w)\n    );\n    let local = corners[vertex_index] * input.transform.zw;\n    let rotated = vec2<f32>(\n        local.x * input.packed1.y - local.y * input.packed1.x,\n        local.x * input.packed1.x + local.y * input.packed1.y\n    );\n    var output: VertexOutput;\n    output.position = vec4<f32>(input.transform.xy + rotated, input.depth, 1.0);\n    output.color = vec4<f32>(input.packed2.zw, input.packed3.xy);\n    output.uv = texture_coordinates[vertex_index];\n    output.material_index = input.packed_indices >> 16u;\n    return output;\n}\n@fragment\nfn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {\n    if input.material_index == 65535u {\n        return input.color;\n    }\n    if input.material_index == 65534u {\n        return textureSample(auxiliary_image, image_sampler, input.uv)\n            * input.color;\n    }\n    let sampled = textureSample(image, image_sampler, input.uv);\n    if sampled.a == 0.0 {\n        discard;\n    }\n    return sampled * input.color;\n}\n";
+const VIEW_BYTES: usize = 32;
+const SPRITE_VIEW_BINDING: str = "struct SpriteViewUniform {\n    scale_offset: vec4<f32>,\n    parameters: vec4<f32>,\n};\n@group(1) @binding(0) var<uniform> sprite_view: SpriteViewUniform;\n";
+const SPRITE_SHADER: str = "@group(0) @binding(0) var image_sampler: sampler;\n@group(0) @binding(1) var image: texture_2d<f32>;\n@group(0) @binding(2) var auxiliary_image: texture_2d<f32>;\nstruct InstanceInput {\n    @location(0) transform: vec4<f32>,\n    @location(1) packed1: vec4<f32>,\n    @location(2) packed2: vec4<f32>,\n    @location(3) packed3: vec2<f32>,\n    @location(4) packed_indices: u32,\n    @location(5) depth: f32,\n};\nstruct VertexOutput {\n    @builtin(position) position: vec4<f32>,\n    @location(0) color: vec4<f32>,\n    @location(1) uv: vec2<f32>,\n    @location(2) @interpolate(flat) material_index: u32,\n};\n@vertex\nfn vs_main(input: InstanceInput, @builtin(vertex_index) vertex_index: u32) -> VertexOutput {\n    var corners = array<vec2<f32>, 4>(\n        vec2<f32>(-0.5, -0.5),\n        vec2<f32>(0.5, -0.5),\n        vec2<f32>(-0.5, 0.5),\n        vec2<f32>(0.5, 0.5)\n    );\n    var texture_coordinates = array<vec2<f32>, 4>(\n        vec2<f32>(input.packed1.z, input.packed2.y),\n        vec2<f32>(input.packed2.x, input.packed2.y),\n        vec2<f32>(input.packed1.z, input.packed1.w),\n        vec2<f32>(input.packed2.x, input.packed1.w)\n    );\n    let projected_center = input.transform.xy * sprite_view.scale_offset.xy\n        + sprite_view.scale_offset.zw;\n    let projected_size = input.transform.zw * abs(sprite_view.scale_offset.xy);\n    let local = corners[vertex_index] * projected_size;\n    let rotated = vec2<f32>(\n        local.x * input.packed1.y - local.y * input.packed1.x,\n        local.x * input.packed1.x + local.y * input.packed1.y\n    );\n    var output: VertexOutput;\n    output.position = vec4<f32>(projected_center + rotated, input.depth, 1.0);\n    output.color = vec4<f32>(input.packed2.zw, input.packed3.xy);\n    output.uv = texture_coordinates[vertex_index];\n    output.material_index = input.packed_indices >> 16u;\n    return output;\n}\n@fragment\nfn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {\n    if input.material_index == 65535u {\n        return input.color;\n    }\n    if input.material_index == 65534u {\n        return textureSample(auxiliary_image, image_sampler, input.uv)\n            * input.color;\n    }\n    let sampled = textureSample(image, image_sampler, input.uv);\n    if sampled.a == 0.0 {\n        discard;\n    }\n    return sampled * input.color;\n}\n";
 
 struct AtlasBinding {
     texture: Texture,
@@ -15,6 +20,109 @@ struct AtlasBinding {
 struct AuxiliaryBinding {
     texture: Texture,
     view: TextureView,
+}
+
+/// Projection and application parameters shared by one sprite draw family.
+@repr(C)
+@align(16)
+@derive(Copy, Clone, Pod, Debug)
+pub struct SpriteView {
+    pub scale_x: f32,
+    pub scale_y: f32,
+    pub offset_x: f32,
+    pub offset_y: f32,
+    pub parameter_0: f32,
+    pub parameter_1: f32,
+    pub parameter_2: f32,
+    pub parameter_3: f32,
+}
+
+impl SpriteView {
+    /// Keeps already-projected clip-space instances unchanged.
+    pub fn screen() -> SpriteView {
+        SpriteView {
+            scale_x: 1.0,
+            scale_y: 1.0,
+            offset_x: 0.0,
+            offset_y: 0.0,
+            parameter_0: 0.0,
+            parameter_1: 0.0,
+            parameter_2: 0.0,
+            parameter_3: 0.0,
+        }
+    }
+
+    /// Projects persistent world-space instances into clip space.
+    pub fn world(
+        scale_x: f32,
+        scale_y: f32,
+        offset_x: f32,
+        offset_y: f32,
+    ) -> SpriteView {
+        let mut view = SpriteView::screen();
+        view.scale_x = scale_x;
+        view.scale_y = scale_y;
+        view.offset_x = offset_x;
+        view.offset_y = offset_y;
+        view
+    }
+
+    pub fn with_parameter_0(self, value: f32) -> SpriteView {
+        let mut view = self;
+        view.parameter_0 = value;
+        view
+    }
+}
+
+struct ViewBinding {
+    buffer: Buffer,
+    bind_group: BindGroup,
+}
+
+impl ViewBinding {
+    fn create(
+        context: &GpuContext,
+        layout: &BindGroupLayout,
+        view: SpriteView,
+    ) -> Result<ViewBinding, RendererError> {
+        let device = context.device()?;
+        let mut buffer = match device.create_uniform_buffer(VIEW_BYTES as u64) {
+            Ok(value) => value,
+            Err(_) => { return Err(RendererError::BufferCreationFailed); },
+        };
+        let bind_group = match device.create_buffer_bind_group(
+            layout,
+            &buffer,
+            VIEW_BYTES as u64,
+        ) {
+            Ok(value) => value,
+            Err(_) => {
+                buffer.release();
+                return Err(RendererError::BindingCreationFailed);
+            },
+        };
+        let binding = ViewBinding { buffer: buffer, bind_group: bind_group };
+        binding.update(context, view)?;
+        Ok(binding)
+    }
+
+    fn update(
+        &self,
+        context: &GpuContext,
+        view: SpriteView,
+    ) -> Result<(), RendererError> {
+        let queue = context.queue()?;
+        let values = [view];
+        match queue.write_buffer_pod<SpriteView>(&self.buffer, 0, &values) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(RendererError::UploadFailed),
+        }
+    }
+
+    fn release(&mut self) {
+        self.bind_group.release();
+        self.buffer.release();
+    }
 }
 
 impl AuxiliaryBinding {
@@ -47,6 +155,9 @@ impl AtlasBinding {
 pub struct SpriteRenderer {
     pipeline: RenderPipeline,
     layout: BindGroupLayout,
+    view_layout: BindGroupLayout,
+    screen_view: ViewBinding,
+    world_view: ViewBinding,
     sampler: Sampler,
     atlas: AtlasBinding,
     auxiliary: AuxiliaryBinding,
@@ -63,13 +174,205 @@ pub struct RenderReport {
     pub uploaded_bytes: u64,
 }
 
+impl RenderReport {
+    pub fn empty() -> RenderReport {
+        RenderReport { draw_calls: 0, instances: 0, uploaded_bytes: 0 }
+    }
+
+    pub fn combined(self, other: RenderReport) -> RenderReport {
+        RenderReport {
+            draw_calls: self.draw_calls + other.draw_calls,
+            instances: self.instances + other.instances,
+            uploaded_bytes: self.uploaded_bytes + other.uploaded_bytes,
+        }
+    }
+}
+
+/// GPU-resident sprite instances updated only when their source layer changes.
+pub struct PreparedSpriteLayer {
+    buffer: Buffer,
+    capacity: usize,
+    length: usize,
+    released: bool,
+}
+
+impl PreparedSpriteLayer {
+    pub fn capacity(&self) -> usize {
+        if self.released { 0 } else { self.capacity }
+    }
+
+    pub fn len(&self) -> usize {
+        if self.released { 0 } else { self.length }
+    }
+
+    pub fn allocated_bytes(&self) -> u64 {
+        self.capacity() as u64 * INSTANCE_BYTES as u64
+    }
+
+    pub fn release(&mut self) {
+        if self.released { return; }
+        self.buffer.release();
+        self.capacity = 0;
+        self.length = 0;
+        self.released = true;
+    }
+}
+
 impl SpriteRenderer {
+    pub fn set_screen_view(
+        &self,
+        context: &GpuContext,
+        view: SpriteView,
+    ) -> Result<(), RendererError> {
+        self.screen_view.update(context, view)
+    }
+
+    pub fn set_world_view(
+        &self,
+        context: &GpuContext,
+        view: SpriteView,
+    ) -> Result<(), RendererError> {
+        self.world_view.update(context, view)
+    }
+
+    pub fn prepare_layer(
+        &self,
+        context: &GpuContext,
+        batch: &SpriteBatch,
+    ) -> Result<PreparedSpriteLayer, RendererError> {
+        if self.released {
+            return Err(RendererError::Released);
+        }
+        let capacity: usize = if batch.len() < 1 { 1 as usize } else { batch.len() };
+        let device = context.device()?;
+        let buffer = match device.create_vertex_buffer(
+            capacity as u64 * INSTANCE_BYTES as u64,
+        ) {
+            Ok(value) => value,
+            Err(_) => { return Err(RendererError::BufferCreationFailed); },
+        };
+        let mut layer = PreparedSpriteLayer {
+            buffer: buffer,
+            capacity: capacity,
+            length: 0,
+            released: false,
+        };
+        match self.update_layer(context, &mut layer, batch) {
+            Ok(_) => Ok(layer),
+            Err(error) => {
+                layer.release();
+                Err(error)
+            },
+        }
+    }
+
+    pub fn update_layer(
+        &self,
+        context: &GpuContext,
+        layer: &mut PreparedSpriteLayer,
+        batch: &SpriteBatch,
+    ) -> Result<(), RendererError> {
+        if self.released || layer.released {
+            return Err(RendererError::Released);
+        }
+        if batch.len() > layer.capacity {
+            if batch.len() > 0xffff_ffff {
+                return Err(RendererError::BatchCapacityExceeded);
+            }
+            let device = context.device()?;
+            let mut replacement = match device.create_vertex_buffer(
+                batch.len() as u64 * INSTANCE_BYTES as u64,
+            ) {
+                Ok(value) => value,
+                Err(_) => { return Err(RendererError::BufferCreationFailed); },
+            };
+            let queue = context.queue()?;
+            match queue.write_buffer_pod(&replacement, 0, batch.instances()) {
+                Ok(_) => {},
+                Err(_) => {
+                    replacement.release();
+                    return Err(RendererError::UploadFailed);
+                },
+            }
+            layer.buffer.release();
+            layer.buffer = replacement;
+            layer.capacity = batch.len();
+            layer.length = batch.len();
+            return Ok(());
+        }
+        if batch.len() > 0 {
+            let queue = context.queue()?;
+            match queue.write_buffer_pod(&layer.buffer, 0, batch.instances()) {
+                Ok(_) => {},
+                Err(_) => { return Err(RendererError::UploadFailed); },
+            }
+        }
+        layer.length = batch.len();
+        Ok(())
+    }
+
+    pub fn draw_layer_range_into(
+        &self,
+        layer: &PreparedSpriteLayer,
+        first_instance: usize,
+        instance_count: usize,
+        frame: &mut RenderFrame,
+    ) -> Result<RenderReport, RendererError> {
+        if self.released || layer.released {
+            return Err(RendererError::Released);
+        }
+        if first_instance > layer.length
+            || instance_count > layer.length - first_instance
+        {
+            return Err(RendererError::BatchCapacityExceeded);
+        }
+        if instance_count == 0 {
+            return Ok(RenderReport::empty());
+        }
+        let byte_offset = first_instance as u64 * INSTANCE_BYTES as u64;
+        let byte_length = instance_count as u64 * INSTANCE_BYTES as u64;
+        frame.draw_instances_with_uniform(
+            &self.pipeline,
+            &self.atlas.bind_group,
+            &self.world_view.bind_group,
+            &layer.buffer,
+            4,
+            instance_count as u32,
+            byte_offset,
+            byte_length,
+        )?;
+        Ok(RenderReport {
+            draw_calls: 1,
+            instances: instance_count as u32,
+            uploaded_bytes: 0,
+        })
+    }
+
     /// Creates the pipeline and prepares storage for `capacity` instances.
     pub fn create(
         context: &GpuContext,
         capacity: usize,
     ) -> Result<SpriteRenderer, RendererError> {
-        SpriteRenderer::create_with_shader(context, capacity, SPRITE_SHADER)
+        let allocator = general_allocator();
+        let view_binding_source: str = SPRITE_VIEW_BINDING;
+        let default_shader_source: str = SPRITE_SHADER;
+        let mut shader = match String::with_capacity(
+            &allocator,
+            byte_len(view_binding_source) + byte_len(default_shader_source),
+        ) {
+            Ok(value) => value,
+            Err(_) => { return Err(RendererError::PipelineCreationFailed); },
+        };
+        defer shader.deinit();
+        match shader.push_str(view_binding_source) {
+            Ok(_) => {},
+            Err(_) => { return Err(RendererError::PipelineCreationFailed); },
+        }
+        match shader.push_str(default_shader_source) {
+            Ok(_) => {},
+            Err(_) => { return Err(RendererError::PipelineCreationFailed); },
+        }
+        SpriteRenderer::create_with_shader(context, capacity, shader.as_str())
     }
 
     /// Creates the sprite pipeline from application-owned WGSL.
@@ -126,9 +429,19 @@ impl SpriteRenderer {
                 return Err(RendererError::BindingCreationFailed);
             },
         };
+        let mut view_layout = match pipeline.bind_group_layout(1) {
+            Ok(value) => value,
+            Err(_) => {
+                layout.release();
+                instance_buffer.release();
+                pipeline.release();
+                return Err(RendererError::BindingCreationFailed);
+            },
+        };
         let mut sampler = match device.create_nearest_sampler() {
             Ok(value) => value,
             Err(_) => {
+                view_layout.release();
                 layout.release();
                 instance_buffer.release();
                 pipeline.release();
@@ -140,13 +453,14 @@ impl SpriteRenderer {
             Ok(value) => value,
             Err(error) => {
                 sampler.release();
+                view_layout.release();
                 layout.release();
                 instance_buffer.release();
                 pipeline.release();
                 return Err(error);
             },
         };
-        let atlas = match create_atlas(
+        let mut atlas = match create_atlas(
             context,
             &layout,
             &sampler,
@@ -159,6 +473,42 @@ impl SpriteRenderer {
             Err(error) => {
                 auxiliary.release();
                 sampler.release();
+                view_layout.release();
+                layout.release();
+                instance_buffer.release();
+                pipeline.release();
+                return Err(error);
+            },
+        };
+        let mut screen_view = match ViewBinding::create(
+            context,
+            &view_layout,
+            SpriteView::screen(),
+        ) {
+            Ok(value) => value,
+            Err(error) => {
+                atlas.release();
+                auxiliary.release();
+                sampler.release();
+                view_layout.release();
+                layout.release();
+                instance_buffer.release();
+                pipeline.release();
+                return Err(error);
+            },
+        };
+        let world_view = match ViewBinding::create(
+            context,
+            &view_layout,
+            SpriteView::screen(),
+        ) {
+            Ok(value) => value,
+            Err(error) => {
+                screen_view.release();
+                atlas.release();
+                auxiliary.release();
+                sampler.release();
+                view_layout.release();
                 layout.release();
                 instance_buffer.release();
                 pipeline.release();
@@ -168,6 +518,9 @@ impl SpriteRenderer {
         Ok(SpriteRenderer {
             pipeline: pipeline,
             layout: layout,
+            view_layout: view_layout,
+            screen_view: screen_view,
+            world_view: world_view,
             sampler: sampler,
             atlas: atlas,
             auxiliary: auxiliary,
@@ -234,12 +587,7 @@ impl SpriteRenderer {
                 return Err(RendererError::BindingCreationFailed);
             },
         };
-        let replacement_binding = match device.create_dual_texture_bind_group(
-            &replacement_layout,
-            &self.sampler,
-            &self.atlas.view,
-            &self.auxiliary.view,
-        ) {
+        let mut replacement_view_layout = match replacement_pipeline.bind_group_layout(1) {
             Ok(value) => value,
             Err(_) => {
                 replacement_layout.release();
@@ -247,11 +595,60 @@ impl SpriteRenderer {
                 return Err(RendererError::BindingCreationFailed);
             },
         };
+        let mut replacement_binding = match device.create_dual_texture_bind_group(
+            &replacement_layout,
+            &self.sampler,
+            &self.atlas.view,
+            &self.auxiliary.view,
+        ) {
+            Ok(value) => value,
+            Err(_) => {
+                replacement_view_layout.release();
+                replacement_layout.release();
+                replacement_pipeline.release();
+                return Err(RendererError::BindingCreationFailed);
+            },
+        };
+        let mut replacement_screen_view = match ViewBinding::create(
+            context,
+            &replacement_view_layout,
+            SpriteView::screen(),
+        ) {
+            Ok(value) => value,
+            Err(error) => {
+                replacement_binding.release();
+                replacement_view_layout.release();
+                replacement_layout.release();
+                replacement_pipeline.release();
+                return Err(error);
+            },
+        };
+        let replacement_world_view = match ViewBinding::create(
+            context,
+            &replacement_view_layout,
+            SpriteView::screen(),
+        ) {
+            Ok(value) => value,
+            Err(error) => {
+                replacement_screen_view.release();
+                replacement_binding.release();
+                replacement_view_layout.release();
+                replacement_layout.release();
+                replacement_pipeline.release();
+                return Err(error);
+            },
+        };
         self.atlas.bind_group.release();
+        self.screen_view.release();
+        self.world_view.release();
+        self.view_layout.release();
         self.layout.release();
         self.pipeline.release();
         self.atlas.bind_group = replacement_binding;
         self.layout = replacement_layout;
+        self.view_layout = replacement_view_layout;
+        self.screen_view = replacement_screen_view;
+        self.world_view = replacement_world_view;
         self.pipeline = replacement_pipeline;
         Ok(())
     }
@@ -420,12 +817,14 @@ impl SpriteRenderer {
                 return Err(RendererError::UploadFailed);
             },
         }
-        frame.draw_instances(
+        frame.draw_instances_with_uniform(
             &self.pipeline,
             &self.atlas.bind_group,
+            &self.screen_view.bind_group,
             &self.instance_buffer,
             4,
             count as u32,
+            0,
             count as u64 * INSTANCE_BYTES as u64,
         )?;
         Ok(RenderReport {
@@ -441,10 +840,13 @@ impl SpriteRenderer {
             return;
         }
         self.instance_buffer.release();
+        self.screen_view.release();
+        self.world_view.release();
         self.atlas.release();
         self.auxiliary.release();
         self.sampler.release();
         self.layout.release();
+        self.view_layout.release();
         self.pipeline.release();
         self.capacity = 0;
         self.released = true;

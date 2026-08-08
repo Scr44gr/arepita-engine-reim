@@ -227,6 +227,11 @@ impl DebugUi {
         map_frame(self.inner.render_to_pass(pass))
     }
 
+    /// Ends the current UI frame without submitting its draw data.
+    pub fn discard_frame(&mut self) -> Result<(), DebugUiError> {
+        map_frame(self.inner.discard_frame())
+    }
+
     /// Releases Dear ImGui before the borrowed renderer and window.
     pub fn deinit(self) {
         self.inner.deinit();

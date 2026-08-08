@@ -69,6 +69,12 @@ Release builds can use `create_no_native_extension`. The core engine therefore
 does not acquire an ImGui linkage requirement when development tooling is not
 selected.
 
+Native applications may explicitly select the graphics API through
+`NativeAppConfig::with_renderer_backend(RendererBackend::Vulkan)` or
+`RendererBackend::OpenGl`. `RendererBackend::Automatic` preserves wgpu-native's
+platform selection. The choice is made while requesting the presentation
+adapter, so the engine and ImGui integration remain backend-neutral.
+
 ## Low-level APIs
 
 `WindowHost`, `Input`, `Gamepads`, and `Renderer` remain public for focused

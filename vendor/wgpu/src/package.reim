@@ -1,5 +1,5 @@
 /// Safe owning wrappers for the most common WebGPU objects and operations.
-pub from self::facade import Adapter, BindGroup, BindGroupLayout, Buffer, Color, CommandBuffer, CommandEncoder, Device, Error, Instance, PresentMode, PrimitiveTopology, Queue, ReadMapping, RenderFrame, RenderPipeline, Sampler, ShaderModule, Surface, SurfaceFrame, Texture, TextureView, VertexAttribute, VertexFormat, WriteMapping, empty_string_view, string_view;
+pub from self::facade import Adapter, BackendType, BindGroup, BindGroupLayout, Buffer, Color, CommandBuffer, CommandEncoder, Device, Error, Instance, PresentMode, PrimitiveTopology, Queue, ReadMapping, RenderFrame, RenderPipeline, Sampler, ShaderModule, Surface, SurfaceFrame, Texture, TextureView, VertexAttribute, VertexFormat, WriteMapping, empty_string_view, string_view;
 /// Safe WebGPU ownership and blocking-future facade.
 pub import self::facade as facade;
 /// Complete generated standard WebGPU and wgpu-native C ABI.

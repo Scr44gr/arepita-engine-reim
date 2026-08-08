@@ -1,4 +1,5 @@
 from std::alloc import Allocator, general_allocator;
+from std::time import monotonic;
 
 from sdl3 import Window;
 from self::config import NativeAppConfig;
@@ -10,7 +11,7 @@ from super::lifecycle import PipelineState, SystemPipeline;
 from super::super::platform::gamepads import Gamepads;
 from super::super::platform::state import Input;
 from super::super::platform::window import WindowHost;
-from super::super::render::renderer import Renderer;
+from super::super::render::renderer import Renderer, RendererConfig;
 from super::super::render::sprite_batch import SpriteBatch;
 
 /// Owns and drives one complete SDL3 + wgpu application session.
@@ -68,7 +69,9 @@ pub fn run_native<
         Ok(value) => value,
         Err(_) => { return Err(NativeAppError::WindowInitializationFailed); },
     };
-    let mut renderer = match Renderer::create(window, config.sprite_capacity) {
+    let renderer_config = RendererConfig::new(config.sprite_capacity)
+        .with_backend(config.renderer_backend);
+    let mut renderer = match Renderer::create_with_config(window, renderer_config) {
         Ok(value) => value,
         Err(_) => { return Err(NativeAppError::RendererInitializationFailed); },
     };
@@ -148,9 +151,21 @@ fn run_native_session<
     let mut fixed_clock = fixed_clock;
     let mut input = Input::new();
     let mut clock = FrameClock::start(config.maximum_delta);
+    let mut render_draw_calls: u32 = 0;
+    let mut rendered_sprite_instances: u32 = 0;
+    let mut uploaded_sprite_bytes: u64 = 0;
+    let mut audio_service_ms: f64 = 0.0;
+    let mut extension_begin_ms: f64 = 0.0;
+    let mut render_pipeline_ms: f64 = 0.0;
+    let mut sprite_extraction_ms: f64 = 0.0;
+    let mut game_render_ms: f64 = 0.0;
+    let mut extension_render_ms: f64 = 0.0;
+    let mut presentation_ms: f64 = 0.0;
+    let mut surface_resize_pending = false;
     while state.running() {
         input.begin_frame();
         let mut window_closed = false;
+        let mut window_resized = false;
         let mut polling = true;
         while polling {
             match host.poll_event() {
@@ -164,12 +179,7 @@ fn run_native_session<
                         window_closed = true;
                     }
                     if event.is_window_size_changed() {
-                        match renderer.resize() {
-                            Ok(_) => {},
-                            Err(_) => {
-                                return Err(NativeAppError::ResizeFailed);
-                            },
-                        }
+                        window_resized = true;
                     }
                 },
                 None => { polling = false; },
@@ -177,8 +187,47 @@ fn run_native_session<
         }
         input.update();
         gamepads.update();
+        // SDL's platform backend can observe a maximize/DPI transition before
+        // every corresponding window event reaches this polling pass. Compare
+        // the physical drawable size directly so renderer extensions never
+        // advance using newer dimensions than the configured surface.
+        let physical_size = match window.pixel_size() {
+            Ok(value) => value,
+            Err(_) => {
+                return Err(NativeAppError::ResizeFailed);
+            },
+        };
+        let physical_width: u32 = if physical_size.width > 0 {
+            physical_size.width as u32
+        } else {
+            0
+        };
+        let physical_height: u32 = if physical_size.height > 0 {
+            physical_size.height as u32
+        } else {
+            0
+        };
+        if physical_width != renderer.width()
+            || physical_height != renderer.height()
+        {
+            window_resized = true;
+        }
         if window_closed {
             return Ok(ExitReason::WindowClosed);
+        }
+        // Coalesce every SDL size/density notification before touching the
+        // surface. Rendering is skipped for this iteration so extensions
+        // cannot submit clip rectangles built for the new window size into an
+        // image acquired from the previous surface configuration.
+        if window_resized {
+            match renderer.resize() {
+                Ok(_) => {},
+                Err(_) => {
+                    return Err(NativeAppError::ResizeFailed);
+                },
+            }
+            surface_resize_pending = true;
+            continue;
         }
 
         clock.tick();
@@ -210,35 +259,85 @@ fn run_native_session<
         if !state.running() {
             return Ok(ExitReason::StateRequested);
         }
+        let audio_started = monotonic();
         game.service_audio(state, frame)?;
+        audio_service_ms = elapsed_milliseconds(audio_started);
 
         if !renderer.is_suspended() && metrics.is_drawable() {
+            if surface_resize_pending {
+                match renderer.surface_extent_ready() {
+                    Ok(true) => { surface_resize_pending = false; },
+                    Ok(false) => { continue; },
+                    Ok(_) => { continue; },
+                    Err(_) => {
+                        match renderer.resize() {
+                            Ok(_) => {},
+                            Err(_) => {
+                                return Err(NativeAppError::ResizeFailed);
+                            },
+                        }
+                        continue;
+                    },
+                }
+            }
             let stats = AppStats {
                 frame_index: frame.index,
                 state_allocated_bytes: state.allocated_bytes(),
                 sprite_batch_allocated_bytes: batch.allocated_bytes(),
                 renderer_allocated_bytes: renderer.allocated_gpu_bytes(),
+                render_draw_calls: render_draw_calls,
+                rendered_sprite_instances: rendered_sprite_instances,
+                uploaded_sprite_bytes: uploaded_sprite_bytes,
+                renderer_backend: renderer.backend(),
+                audio_service_ms: audio_service_ms,
+                extension_begin_ms: extension_begin_ms,
+                render_pipeline_ms: render_pipeline_ms,
+                sprite_extraction_ms: sprite_extraction_ms,
+                game_render_ms: game_render_ms,
+                extension_render_ms: extension_render_ms,
+                presentation_ms: presentation_ms,
             };
+            let extension_begin_started = monotonic();
             extension.begin_frame(state, frame, metrics, stats)?;
+            extension_begin_ms = elapsed_milliseconds(extension_begin_started);
+            let render_pipeline_started = monotonic();
             execute_render_pipelines(state);
+            render_pipeline_ms = elapsed_milliseconds(render_pipeline_started);
+            let extraction_started = monotonic();
             prepare_sprite_batch(game, &*state, renderer, batch, frame, metrics)?;
-            let frame_result = renderer.draw_sprites_to_frame(
+            sprite_extraction_ms = elapsed_milliseconds(extraction_started);
+            let game_render_started = monotonic();
+            let render_result = match game.render_sprites(
+                &*state,
+                renderer,
                 &*batch,
                 config.clear_color,
-            );
-            let render_frame = match frame_result {
-                Ok(value) => value.0,
-                Err(_) => {
-                    return Err(NativeAppError::FrameSubmissionFailed);
-                },
+                frame,
+                metrics,
+            ) {
+                Ok(value) => value,
+                Err(error) => { return Err(error); },
             };
+            game_render_ms = elapsed_milliseconds(game_render_started);
+            let report = render_result.1;
+            let render_frame = render_result.0;
+            render_draw_calls = report.draw_calls;
+            rendered_sprite_instances = report.instances;
+            uploaded_sprite_bytes = report.uploaded_bytes;
+            let extension_render_started = monotonic();
             let extension_result = extension.render(&render_frame);
+            extension_render_ms = elapsed_milliseconds(extension_render_started);
             match extension_result {
-                Ok(_) => match renderer.present_frame(render_frame) {
-                    Ok(_) => {},
-                    Err(_) => {
-                        return Err(NativeAppError::PresentationFailed);
-                    },
+                Ok(_) => {
+                    let presentation_started = monotonic();
+                    match renderer.present_frame(render_frame) {
+                        Ok(_) => {
+                            presentation_ms = elapsed_milliseconds(presentation_started);
+                        },
+                        Err(_) => {
+                            return Err(NativeAppError::PresentationFailed);
+                        },
+                    }
                 },
                 Err(error) => {
                     render_frame.discard();
@@ -248,6 +347,10 @@ fn run_native_session<
         }
     }
     Ok(ExitReason::StateRequested)
+}
+
+fn elapsed_milliseconds(started: f64) -> f64 {
+    (monotonic() - started) * 1_000.0
 }
 
 fn prepare_sprite_batch<

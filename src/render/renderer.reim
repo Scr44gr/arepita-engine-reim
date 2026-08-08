@@ -1,7 +1,7 @@
 from sdl3 import Window;
-from self::context import ClearColor, GpuContext, PresentationMode, RenderFrame, RendererError;
+from self::context import ClearColor, GpuContext, PresentationMode, RenderFrame, RendererBackend, RendererError;
 from self::sprite_batch import SpriteBatch;
-from self::sprite_renderer import RenderReport, SpriteRenderer;
+from self::sprite_renderer import PreparedSpriteLayer, RenderReport, SpriteRenderer, SpriteView;
 from wgpu_sdl3 import WindowSurface, create_window_surface;
 
 /// High-level renderer that owns presentation resources in dependency order.
@@ -21,6 +21,7 @@ pub struct Renderer {
 pub struct RendererConfig {
     sprite_capacity: usize,
     presentation_mode: PresentationMode,
+    backend: RendererBackend,
 }
 
 impl RendererConfig {
@@ -29,6 +30,7 @@ impl RendererConfig {
         RendererConfig {
             sprite_capacity: sprite_capacity,
             presentation_mode: PresentationMode::Fifo,
+            backend: RendererBackend::Automatic,
         }
     }
 
@@ -49,6 +51,15 @@ impl RendererConfig {
     pub fn presentation_mode(&self) -> PresentationMode {
         self.presentation_mode
     }
+
+    /// Selects a native graphics API instead of automatic adapter selection.
+    pub fn with_backend(self, backend: RendererBackend) -> RendererConfig {
+        let mut config = self;
+        config.backend = backend;
+        config
+    }
+
+    pub fn backend(&self) -> RendererBackend { self.backend }
 }
 
 impl Renderer {
@@ -71,9 +82,10 @@ impl Renderer {
                 return Err(RendererError::SurfaceCreationFailed);
             },
         };
-        let mut context = match GpuContext::create_with_presentation_mode(
+        let mut context = match GpuContext::create_with_options(
             &mut surface,
             config.presentation_mode,
+            config.backend,
         ) {
             Ok(value) => value,
             Err(error) => {
@@ -122,6 +134,101 @@ impl Renderer {
         self.context.resize(&mut self.surface)
     }
 
+    /// Returns whether the surface now yields images at its configured extent.
+    pub fn surface_extent_ready(&self) -> Result<bool, RendererError> {
+        if self.released {
+            return Err(RendererError::Released);
+        }
+        self.context.surface_extent_ready(&self.surface)
+    }
+
+    /// Begins one shared render transaction without recording a sprite layer.
+    pub fn begin_frame(
+        &self,
+        clear: ClearColor,
+    ) -> Result<RenderFrame, RendererError> {
+        if self.released {
+            return Err(RendererError::Released);
+        }
+        self.context.begin_render_frame(&self.surface, clear)
+    }
+
+    /// Records an ordinary transient sprite batch into an existing frame.
+    pub fn draw_sprites_into_frame(
+        &self,
+        batch: &SpriteBatch,
+        frame: &mut RenderFrame,
+    ) -> Result<RenderReport, RendererError> {
+        if self.released {
+            return Err(RendererError::Released);
+        }
+        self.sprites.draw_into(&self.context, batch, frame)
+    }
+
+    /// Uploads a sprite layer once so later frames can draw GPU-resident ranges.
+    pub fn prepare_sprite_layer(
+        &self,
+        batch: &SpriteBatch,
+    ) -> Result<PreparedSpriteLayer, RendererError> {
+        if self.released {
+            return Err(RendererError::Released);
+        }
+        self.sprites.prepare_layer(&self.context, batch)
+    }
+
+    /// Refreshes a prepared layer after its source data changes.
+    pub fn update_sprite_layer(
+        &self,
+        layer: &mut PreparedSpriteLayer,
+        batch: &SpriteBatch,
+    ) -> Result<(), RendererError> {
+        if self.released {
+            return Err(RendererError::Released);
+        }
+        self.sprites.update_layer(&self.context, layer, batch)
+    }
+
+    /// Draws a visible range from a persistent world-space sprite layer.
+    pub fn draw_prepared_sprite_range(
+        &self,
+        layer: &PreparedSpriteLayer,
+        first_instance: usize,
+        instance_count: usize,
+        frame: &mut RenderFrame,
+    ) -> Result<RenderReport, RendererError> {
+        if self.released {
+            return Err(RendererError::Released);
+        }
+        self.sprites.draw_layer_range_into(
+            layer,
+            first_instance,
+            instance_count,
+            frame,
+        )
+    }
+
+    /// Updates the projection used by prepared world-space layers.
+    pub fn set_world_sprite_view(
+        &self,
+        view: SpriteView,
+    ) -> Result<(), RendererError> {
+        if self.released {
+            return Err(RendererError::Released);
+        }
+        self.sprites.set_world_view(&self.context, view)
+    }
+
+    /// Updates parameters attached to ordinary clip-space sprite batches.
+    pub fn set_screen_sprite_view(
+        &self,
+        view: SpriteView,
+    ) -> Result<(), RendererError> {
+        if self.released {
+            return Err(RendererError::Released);
+        }
+        self.sprites.set_screen_view(&self.context, view)
+    }
+
     /// Draws one packed sprite batch and reports the submitted work.
     pub fn draw_sprites(
         &self,
@@ -150,8 +257,8 @@ impl Renderer {
         if self.released {
             return Err(RendererError::Released);
         }
-        let mut frame = self.context.begin_render_frame(&self.surface, clear)?;
-        match self.sprites.draw_into(&self.context, batch, &mut frame) {
+        let mut frame = self.begin_frame(clear)?;
+        match self.draw_sprites_into_frame(batch, &mut frame) {
             Ok(report) => Ok((frame, report)),
             Err(error) => {
                 frame.discard();
@@ -272,6 +379,9 @@ impl Renderer {
         self.context.presentation_mode()
     }
 
+    /// Returns the requested graphics backend retained by the live context.
+    pub fn backend(&self) -> RendererBackend { self.context.backend() }
+
     /// Returns whether this renderer has crossed its final release barrier.
     pub fn is_released(&self) -> bool {
         self.released
@@ -298,4 +408,7 @@ fn renderer_config_should_default_to_fifo_and_preserve_explicit_mode() {
     let immediate = default.with_presentation_mode(PresentationMode::Immediate);
     assert(immediate.sprite_capacity() == 2_048);
     assert(immediate.presentation_mode() == PresentationMode::Immediate);
+    assert(immediate.backend() == RendererBackend::Automatic);
+    let vulkan = immediate.with_backend(RendererBackend::Vulkan);
+    assert(vulkan.backend() == RendererBackend::Vulkan);
 }

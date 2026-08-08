@@ -1,6 +1,10 @@
+import std::c;
+
 from arepita_engine::app::native import AppStats, InputCapture, NativeAppError, NativeExtension, NativeFrame, WindowMetrics;
 from arepita_engine::platform import Event, Window;
 from arepita_engine::render import RenderFrame, Renderer;
+import sdl3::raw::functions as sdl;
+import sdl3::raw::types as sdl_types;
 from self::debug_ui import DebugUi, DebugUiError;
 
 /// Owns Dear ImGui and one statically typed set of application panels.
@@ -9,6 +13,7 @@ from self::debug_ui import DebugUi, DebugUiError;
 /// edit the active application without reflection or game-specific engine APIs.
 pub struct ImGuiPlugin<State, Panels> {
     ui: DebugUi,
+    window: *mut sdl_types::SDL_Window,
     panels: Panels,
     draw_panels: fn(
         &mut Panels,
@@ -38,6 +43,7 @@ impl<State, Panels> ImGuiPlugin<State, Panels> {
         let ui = DebugUi::create(renderer, window)?;
         Ok(ImGuiPlugin {
             ui: ui,
+            window: window.as_raw(),
             panels: panels,
             draw_panels: draw_panels,
         })
@@ -83,6 +89,23 @@ fn render_imgui<State, Panels>(
     plugin: &mut ImGuiPlugin<State, Panels>,
     frame: &RenderFrame,
 ) -> Result<(), NativeAppError> {
+    let mut width: c::Int = 0;
+    let mut height: c::Int = 0;
+    let size_available = unsafe {
+        sdl::SDL_GetWindowSizeInPixels(
+            plugin.window,
+            &mut width as *mut c::Int,
+            &mut height as *mut c::Int,
+        )
+    };
+    if !size_available
+        || width <= 0
+        || height <= 0
+        || frame.width() != width as u32
+        || frame.height() != height as u32
+    {
+        return map_extension_frame(plugin.ui.discard_frame());
+    }
     map_extension_frame(plugin.ui.render(frame))
 }
 

@@ -1,4 +1,4 @@
-pub from self::context import ClearColor, Frame, GpuContext, PresentationMode, RenderFrame, RendererError;
+pub from self::context import ClearColor, Frame, GpuContext, PresentationMode, RenderFrame, RendererBackend, RendererError;
 pub import self::context as context;
 pub from self::handles import MaterialHandle, MeshHandle, TextureHandle;
 pub import self::handles as handles;
@@ -8,6 +8,6 @@ pub from self::scene2d import Camera2D, Sprite, Transform2D, extract_sprites;
 pub import self::scene2d as scene2d;
 pub from self::sprite_batch import AtlasRegion, BatchError, SortError, SpriteBatch, SpriteColor, SpriteInstance;
 pub import self::sprite_batch as sprite_batch;
-pub from self::sprite_renderer import RenderReport, SpriteRenderer;
+pub from self::sprite_renderer import PreparedSpriteLayer, RenderReport, SpriteRenderer, SpriteView;
 pub import self::sprite_renderer as sprite_renderer;
 pub from wgpu_sdl3 import WindowSurface, create_surface, create_window_surface;
